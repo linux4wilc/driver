@@ -280,7 +280,7 @@ static int spi_data_rsp(struct wilc *wilc, u8 cmd)
 		goto _fail_;
 	}
 
-	if((rsp[len-1] != 0)||(rsp[len-2] != 0xC3)){
+	if((rsp[len-1] != 0) || (rsp[len-2] != 0xC3)) {
 		dev_err(&spi->dev, "Failed data response read, %x %x %x\n",rsp[0],rsp[1],rsp[2]);
 		result = N_FAIL;
 		goto _fail_;
@@ -538,7 +538,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 
 	if (len2 > ARRAY_SIZE(wb)) {
 		dev_err(&spi->dev, "spi buffer size too small %d, %zu\n",
-			   len2, ARRAY_SIZE(wb));
+			    len2, ARRAY_SIZE(wb));
 		return N_FAIL;
 	}
 	/* zero spi write buffers. */
