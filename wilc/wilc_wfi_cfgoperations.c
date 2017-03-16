@@ -1480,7 +1480,7 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 
 	PRINT_INFO(netdev, CFG80211_DBG, "Deleting PMKSA keys\n");
 
-	for (i = 0; i < priv->pmkid_list.numpmkid; i++)	{
+	for (i = 0; i < priv->pmkid_list.numpmkid; i++) {
 		if (!memcmp(pmksa->bssid, priv->pmkid_list.pmkidlist[i].bssid,
 					ETH_ALEN)) {
 			PRINT_INFO(netdev, CFG80211_DBG, "Reseting PMKID values\n");
@@ -1495,8 +1495,8 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 			       priv->pmkid_list.pmkidlist[i + 1].bssid,
 			       ETH_ALEN);
 			memcpy(priv->pmkid_list.pmkidlist[i].pmkid,
-				    priv->pmkid_list.pmkidlist[i].pmkid,
-				    PMKID_LEN);
+				   priv->pmkid_list.pmkidlist[i + 1].pmkid,
+				   PMKID_LEN);
 		}
 		priv->pmkid_list.numpmkid--;
 	} else {
