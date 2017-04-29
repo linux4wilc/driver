@@ -2273,25 +2273,18 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 			strStaParams.ht_supported = false;
 		} else {
 			strStaParams.ht_supported = true;
-			strStaParams.ht_capa_info = params->ht_capa->cap_info;
-			strStaParams.ht_ampdu_params = params->ht_capa->ampdu_params_info;
-			memcpy(strStaParams.ht_supp_mcs_set,
-			       &params->ht_capa->mcs,
-			       WILC_SUPP_MCS_SET_SIZE);
-			strStaParams.ht_ext_params = params->ht_capa->extended_ht_cap_info;
-			strStaParams.ht_tx_bf_cap = params->ht_capa->tx_BF_cap_info;
-			strStaParams.ht_ante_sel = params->ht_capa->antenna_selection_info;
+			strStaParams.ht_capa = *params->ht_capa;
 		}
 
 		strStaParams.flags_mask = params->sta_flags_mask;
 		strStaParams.flags_set = params->sta_flags_set;
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "IS HT supported = %d\n", strStaParams.ht_supported);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n", strStaParams.ht_capa_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n", strStaParams.ht_ampdu_params);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params = %d\n", strStaParams.ht_ext_params);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap = %d\n", strStaParams.ht_tx_bf_cap);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", strStaParams.ht_ante_sel);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n", strStaParams.ht_capa.cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n", strStaParams.ht_capa.ampdu_params_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params = %d\n", strStaParams.ht_capa.extended_ht_cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap = %d\n", strStaParams.ht_capa.tx_BF_cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", strStaParams.ht_capa.antenna_selection_info);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n", strStaParams.flags_mask);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n", strStaParams.flags_set);
 		s32Error = wilc_add_station(vif, &strStaParams);
@@ -2370,25 +2363,18 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 			strStaParams.ht_supported = false;
 		} else {
 			strStaParams.ht_supported = true;
-			strStaParams.ht_capa_info = params->ht_capa->cap_info;
-			strStaParams.ht_ampdu_params = params->ht_capa->ampdu_params_info;
-			memcpy(strStaParams.ht_supp_mcs_set,
-			       &params->ht_capa->mcs,
-			       WILC_SUPP_MCS_SET_SIZE);
-			strStaParams.ht_ext_params = params->ht_capa->extended_ht_cap_info;
-			strStaParams.ht_tx_bf_cap = params->ht_capa->tx_BF_cap_info;
-			strStaParams.ht_ante_sel = params->ht_capa->antenna_selection_info;
+			strStaParams.ht_capa = *params->ht_capa;
 		}
 
 		strStaParams.flags_mask = params->sta_flags_mask;
 		strStaParams.flags_set = params->sta_flags_set;
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "IS HT supported = %d\n", strStaParams.ht_supported);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n", strStaParams.ht_capa_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n", strStaParams.ht_ampdu_params);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params = %d\n", strStaParams.ht_ext_params);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap = %d\n", strStaParams.ht_tx_bf_cap);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", strStaParams.ht_ante_sel);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n", strStaParams.ht_capa.cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n", strStaParams.ht_capa.ampdu_params_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params = %d\n", strStaParams.ht_capa.extended_ht_cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap = %d\n", strStaParams.ht_capa.tx_BF_cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", strStaParams.ht_capa.antenna_selection_info);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n", strStaParams.flags_mask);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n", strStaParams.flags_set);
 		s32Error = wilc_edit_station(vif, &strStaParams);
