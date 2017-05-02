@@ -22,7 +22,9 @@ static struct dentry *wilc_dir;
 /*
  * ----------------------------------------------------------------------------
  */
-atomic_t WILC_DEBUG_REGION = ATOMIC_INIT(INIT_DBG|GENERIC_DBG|CFG80211_DBG | HOSTAPD_DBG | PWRDEV_DBG);
+atomic_t WILC_DEBUG_REGION = ATOMIC_INIT(INIT_DBG | GENERIC_DBG |
+										  CFG80211_DBG | HOSTAPD_DBG |
+										  PWRDEV_DBG);
 
 /*
  * ----------------------------------------------------------------------------
@@ -38,7 +40,8 @@ static ssize_t wilc_debug_region_read(struct file *file, char __user *userbuf,
 	if (*ppos > 0)
 		return 0;
 
-	res = scnprintf(buf, sizeof(buf), "Debug Region: (0x%08x)\n", atomic_read(&WILC_DEBUG_REGION));
+	res = scnprintf(buf, sizeof(buf), "Debug Region: (0x%08x)\n",
+				    atomic_read(&WILC_DEBUG_REGION));
 
 	return simple_read_from_buffer(userbuf, count, ppos, buf, res);
 }
@@ -55,7 +58,8 @@ static ssize_t wilc_debug_region_write(struct file *filp,
 		return ret;
 
 	if (flag > DBG_REGION_ALL) {
-		pr_err("%s, value (0x%08x) is out of range, stay previous flag (0x%08x)\n", __func__, flag, atomic_read(&WILC_DEBUG_REGION));
+		pr_err("%s, value (0x%08x) is out of range, stay previous flag (0x%08x)\n",
+			   __func__, flag, atomic_read(&WILC_DEBUG_REGION));
 		pr_err("allowed bits are 0 to 15\n");
 		return -EINVAL;
 	}
