@@ -1271,7 +1271,6 @@ static int get_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(netdev);
 
-
 	if (!pairwise) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Getting group key idx: %x\n", key_index);
 		key_params.key = priv->wilc_gtk[key_index]->key;
