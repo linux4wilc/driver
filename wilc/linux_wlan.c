@@ -1310,8 +1310,8 @@ static int wilc_mac_open(struct net_device *ndev)
 		return -ENODEV;
 	}
 	wilc_set_wfi_drv_handler(vif,
-				 wilc_get_vif_idx(vif),
-				 vif->iftype, vif->ifc_id);
+							 wilc_get_vif_idx(vif),
+							 vif->iftype, vif->ifc_id);
 	wilc_set_operation_mode(vif, vif->iftype);
 	wilc_get_mac_address(vif, mac_add);
 	PRINT_INFO(vif->ndev, INIT_DBG, "Mac address: %pM\n", mac_add);
@@ -1327,13 +1327,13 @@ static int wilc_mac_open(struct net_device *ndev)
 	}
 
 	wilc_mgmt_frame_register(vif->ndev->ieee80211_ptr->wiphy,
-				 vif->ndev->ieee80211_ptr,
-				 vif->frame_reg[0].type,
-				 vif->frame_reg[0].reg);
+							 vif->ndev->ieee80211_ptr,
+							 vif->frame_reg[0].type,
+							 vif->frame_reg[0].reg);
 	wilc_mgmt_frame_register(vif->ndev->ieee80211_ptr->wiphy,
-				 vif->ndev->ieee80211_ptr,
-				 vif->frame_reg[1].type,
-				 vif->frame_reg[1].reg);
+							 vif->ndev->ieee80211_ptr,
+							 vif->frame_reg[1].type,
+							 vif->frame_reg[1].reg);
 	if (vif->attr_sysfs.ant_swtch_mode != 0)
 		wilc_set_antenna(vif,DIVERSITY);
 

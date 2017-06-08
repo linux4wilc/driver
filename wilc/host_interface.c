@@ -2820,6 +2820,7 @@ static void host_if_work(struct work_struct *work)
 	struct host_if_msg *msg;
 	struct wilc_vif *vif;
 	struct wilc *wilc;
+	int ret = 0;
 
 	msg = container_of(work, struct host_if_msg, work);
 	vif = msg->vif;
@@ -2925,7 +2926,7 @@ static void host_if_work(struct work_struct *work)
 		break;
 
 	case HOST_IF_MSG_SET_WFIDRV_HANDLER:
-		handle_set_wfi_drv_handler(vif, &msg->body.drv);
+		ret = handle_set_wfi_drv_handler(vif, &msg->body.drv);
 		break;
 
 	case HOST_IF_MSG_SET_OPERATION_MODE:
@@ -2986,6 +2987,8 @@ static void host_if_work(struct work_struct *work)
 		break;
 	}
 free_msg:
+	if (ret)
+		netdev_err(msg->vif->ndev, "Host cmd %d failed\n", msg->id);
 	kfree(msg);
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Releasing thread exit completion\n");
 	complete(&hif_thread_comp);
@@ -3827,7 +3830,7 @@ int wilc_deinit(struct wilc_vif *vif)
 	del_timer_sync(&periodic_rssi);
 	del_timer_sync(&hif_drv->remain_on_ch_timer);
 
-	wilc_set_wfi_drv_handler(vif,0, vif->iftype, vif->ifc_id);
+	wilc_set_wfi_drv_handler(vif, 0, vif->iftype, vif->ifc_id);
 	wait_for_completion(&hif_driver_comp);
 
 	if (hif_drv->usr_scan_req.scan_result) {
