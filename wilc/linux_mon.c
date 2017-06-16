@@ -68,11 +68,11 @@ void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		}
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
 		skb_put_data(skb, buff, size);
+		cb_hdr = skb_push(skb, sizeof(*cb_hdr));
 	#else
 		memcpy(skb_put(skb, size), buff, size);
-	#endif
-
 		cb_hdr = (struct wilc_wfi_radiotap_cb_hdr *)skb_push(skb, sizeof(*cb_hdr));
+	#endif
 		memset(cb_hdr, 0, sizeof(struct wilc_wfi_radiotap_cb_hdr));
 
 		cb_hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
@@ -101,10 +101,11 @@ void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		}
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
 		skb_put_data(skb, buff, size);
+		hdr = skb_push(skb, sizeof(*hdr));
 	#else
 		memcpy(skb_put(skb, size), buff, size);
-	#endif
 		hdr = (struct wilc_wfi_radiotap_hdr *)skb_push(skb, sizeof(*hdr));
+	#endif	
 		memset(hdr, 0, sizeof(struct wilc_wfi_radiotap_hdr));
 		hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
 		hdr->hdr.it_len = cpu_to_le16(sizeof(struct wilc_wfi_radiotap_hdr));
