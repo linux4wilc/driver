@@ -1703,7 +1703,11 @@ void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset, u8
 		skb->dev = wilc_netdev;
 		if (skb->dev == NULL)
 			PRINT_ER(wilc_netdev, "skb->dev is NULL\n");
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+		skb_put_data(skb, buff_to_send, frame_len);
+	#else
 		memcpy(skb_put(skb, frame_len), buff_to_send, frame_len);
+	#endif
 
 		skb->protocol = eth_type_trans(skb, wilc_netdev);
 		vif->netstats.rx_packets++;

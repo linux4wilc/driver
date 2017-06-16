@@ -66,8 +66,11 @@ void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 			PRINT_D(vif->ndev, HOSTAPD_DBG,"Monitor if : No memory to allocate skb");
 			return;
 		}
-
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+		skb_put_data(skb, buff, size);
+	#else
 		memcpy(skb_put(skb, size), buff, size);
+	#endif
 
 		cb_hdr = (struct wilc_wfi_radiotap_cb_hdr *)skb_push(skb, sizeof(*cb_hdr));
 		memset(cb_hdr, 0, sizeof(struct wilc_wfi_radiotap_cb_hdr));
@@ -96,8 +99,11 @@ void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 			PRINT_D(vif->ndev, HOSTAPD_DBG,"Monitor if : No memory to allocate skb");
 			return;
 		}
-
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+		skb_put_data(skb, buff, size);
+	#else
 		memcpy(skb_put(skb, size), buff, size);
+	#endif
 		hdr = (struct wilc_wfi_radiotap_hdr *)skb_push(skb, sizeof(*hdr));
 		memset(hdr, 0, sizeof(struct wilc_wfi_radiotap_hdr));
 		hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
