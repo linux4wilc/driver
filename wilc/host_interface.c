@@ -1339,7 +1339,7 @@ static s32 Handle_ConnectTimeout(struct wilc_vif *vif)
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				      wilc_get_vif_idx(vif));
 	if (result)
-		PRINT_ER(vif->ndev, "Failed to send dissconect\n");
+		PRINT_ER(vif->ndev, "Failed to send disconect\n");
 
 	hif_drv->usr_conn_req.ssid_len = 0;
 	kfree(hif_drv->usr_conn_req.ssid);
