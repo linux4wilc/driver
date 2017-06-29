@@ -232,52 +232,42 @@ static u32 get_rssi_avg(struct network_info *network_info)
 	return rssi_v;
 }
 
-static void refresh_scan(void *user_void, u8 all, bool direct_scan)
+static void refresh_scan(struct wilc_priv *priv, bool direct_scan)
 {
-	struct wilc_priv *priv;
-	struct wiphy *wiphy;
-	struct cfg80211_bss *bss = NULL;
+	struct wiphy *wiphy = priv->dev->ieee80211_ptr->wiphy;
 	int i;
-	int rssi = 0;
-
-	priv = (struct wilc_priv *)user_void;
-	wiphy = priv->dev->ieee80211_ptr->wiphy;
 
 	for (i = 0; i < last_scanned_cnt; i++) {
 		struct network_info *network_info;
+		s32 freq;
+		struct ieee80211_channel *channel;
+		int rssi;
+		struct cfg80211_bss *bss;
 
 		network_info = &last_scanned_shadow[i];
 
-		if (!network_info->found || all) {
-			s32 freq;
-			struct ieee80211_channel *channel;
+		if (network_info->found)
+			continue;
 
-			if (network_info) {
-			#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
-				freq = ieee80211_channel_to_frequency((s32)network_info->ch, NL80211_BAND_2GHZ);
-			#else
-				freq = ieee80211_channel_to_frequency((s32)network_info->ch, IEEE80211_BAND_2GHZ);
-			#endif
-				channel = ieee80211_get_channel(wiphy, freq);
+		if (!memcmp("DIRECT-", network_info->ssid, 7) && !direct_scan)
+			continue;
 
-				rssi = get_rssi_avg(network_info);
-				if (memcmp("DIRECT-", network_info->ssid, 7) ||
-				    direct_scan) {
-					bss = cfg80211_inform_bss(wiphy,
-								  channel,
-								  CFG80211_BSS_FTYPE_UNKNOWN,
-								  network_info->bssid,
-								  network_info->tsf_hi,
-								  network_info->cap_info,
-								  network_info->beacon_period,
-								  (const u8 *)network_info->ies,
-								  (size_t)network_info->ies_len,
-								  (s32)rssi * 100,
-								  GFP_KERNEL);
-					cfg80211_put_bss(wiphy, bss);
-				}
-			}
-		}
+		freq = ieee80211_channel_to_frequency((s32)network_info->ch,
+						      NL80211_BAND_2GHZ);
+		channel = ieee80211_get_channel(wiphy, freq);
+		rssi = get_rssi_avg(network_info);
+		bss = cfg80211_inform_bss(wiphy,
+					  channel,
+					  CFG80211_BSS_FTYPE_UNKNOWN,
+					  network_info->bssid,
+					  network_info->tsf_hi,
+					  network_info->cap_info,
+					  network_info->beacon_period,
+					  (const u8 *)network_info->ies,
+					  (size_t)network_info->ies_len,
+					  (s32)rssi * 100,
+					  GFP_KERNEL);
+		cfg80211_put_bss(wiphy, bss);
 	}
 }
 
@@ -475,7 +465,7 @@ static void CfgScanResult(enum scan_event scan_event,
 		} else if (scan_event == SCAN_EVENT_DONE) {
 			PRINT_INFO(priv->dev, CFG80211_DBG, "Scan Done[%p]\n", priv->dev);
 			PRINT_INFO(priv->dev, CFG80211_DBG, "Refreshing Scan ...\n");
-			refresh_scan(priv, 1, false);
+			refresh_scan(priv, false);
 
 			if (priv->u32RcvdChCount > 0)
 				PRINT_INFO(priv->dev, CFG80211_DBG, "%d Network(s) found\n", priv->u32RcvdChCount);
@@ -513,7 +503,7 @@ static void CfgScanResult(enum scan_event scan_event,
 #endif
 
 				update_scan_time();
-				refresh_scan(priv, 1, false);
+				refresh_scan(priv, false);
 				priv->bCfgScanning = false;
 				priv->pstrScanReq = NULL;
 			}
@@ -588,7 +578,7 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 			}
 
 			if (bNeedScanRefresh)
-				refresh_scan(priv, 1, true);
+				refresh_scan(priv, true);
 		}
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG,"Association request info elements length = %d\n", pstrConnectInfo->req_ies_len);
