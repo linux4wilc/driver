@@ -2198,7 +2198,7 @@ static s32 Handle_Get_InActiveTime(struct wilc_vif *vif,
 				      wilc_get_vif_idx(vif));
 
 	if (result) {
-		PRINT_ER(vif->ndev, "Failed to SET incative time\n");
+		PRINT_ER(vif->ndev, "Failed to SET inactive time\n");
 		return -EFAULT;
 	}
 
@@ -2211,7 +2211,7 @@ static s32 Handle_Get_InActiveTime(struct wilc_vif *vif,
 				      wilc_get_vif_idx(vif));
 
 	if (result) {
-		PRINT_ER(vif->ndev, "Failed to get incative time\n");
+		PRINT_ER(vif->ndev, "Failed to get inactive time\n");
 		return -EFAULT;
 	}
 
