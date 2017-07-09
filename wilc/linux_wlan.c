@@ -626,7 +626,8 @@ struct host_if_drv * wilc_get_drv_handler_by_ifc(struct wilc *wilc, uint8_t ifc)
 
 static int linux_wlan_txq_task(void *vp)
 {
-	int ret, txq_count;
+	int ret;
+	u32 txq_count;
 	struct wilc_vif *vif;
 	struct wilc *wl;
 	struct net_device *dev = vp;
