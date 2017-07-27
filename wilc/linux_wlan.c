@@ -1242,7 +1242,7 @@ _fail_wilc_wlan_:
 		wilc_wlan_cleanup(dev);
 _fail_locks_:
 		wlan_deinit_locks(dev);
-		PRINT_ER(dev, "WLAN Iinitialization FAILED\n");
+		PRINT_ER(dev, "WLAN initialization FAILED\n");
 	} else {
 		PRINT_D(vif->ndev, INIT_DBG, "wilc already initialized\n");
 	}
