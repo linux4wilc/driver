@@ -141,6 +141,7 @@ static int linux_sdio_probe(struct sdio_func *func,
 	sdio_set_drvdata(func, wilc);
 	wilc->dev = &func->dev;
 
+	mutex_init(&wilc->hif_cs);
 	wilc_bt_init(wilc);
 
 	wilc->dev_active = NONE;

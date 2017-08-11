@@ -859,7 +859,6 @@ static int wlan_init_locks(struct net_device *dev)
 	vif = netdev_priv(dev);
 	wl = vif->wilc;
 
-	mutex_init(&wl->hif_cs);
 	mutex_init(&wl->rxq_cs);
 
 	spin_lock_init(&wl->txq_spinlock);
