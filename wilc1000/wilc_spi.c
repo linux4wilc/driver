@@ -133,6 +133,7 @@ static int wilc_bus_probe(struct spi_device *spi)
 	if (ret)
 		return ret;
 
+	mutex_init(&wilc->hif_cs);
 	spi_set_drvdata(spi, wilc);
 	wilc->dev = &spi->dev;
 	dev_info(&spi->dev, "WILC SPI probe success\n");
@@ -142,6 +143,7 @@ static int wilc_bus_probe(struct spi_device *spi)
 static int wilc_bus_remove(struct spi_device *spi)
 {
 	wilc_netdev_cleanup(spi_get_drvdata(spi));
+	wilc_bt_deinit();
 	return 0;
 }
 
