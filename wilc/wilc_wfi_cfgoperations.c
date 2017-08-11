@@ -1362,8 +1362,8 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 			       priv->pmkid_list.pmkidlist[i + 1].bssid,
 			       ETH_ALEN);
 			memcpy(priv->pmkid_list.pmkidlist[i].pmkid,
-			       priv->pmkid_list.pmkidlist[i + 1].pmkid,
-			       PMKID_LEN);
+				    priv->pmkid_list.pmkidlist[i].pmkid,
+				    PMKID_LEN);
 		}
 		priv->pmkid_list.numpmkid--;
 	} else {
