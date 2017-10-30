@@ -14,45 +14,6 @@ enum basic_frame_type {
 	FRAME_TYPE_FORCE_32BIT = 0xFFFFFFFF
 };
 
-enum sub_frame_type {
-	ASSOC_REQ             = 0x00,
-	ASSOC_RSP             = 0x10,
-	REASSOC_REQ           = 0x20,
-	REASSOC_RSP           = 0x30,
-	PROBE_REQ             = 0x40,
-	PROBE_RSP             = 0x50,
-	BEACON                = 0x80,
-	ATIM                  = 0x90,
-	DISASOC               = 0xA0,
-	AUTH                  = 0xB0,
-	DEAUTH                = 0xC0,
-	ACTION                = 0xD0,
-	PS_POLL               = 0xA4,
-	RTS                   = 0xB4,
-	CTS                   = 0xC4,
-	ACK                   = 0xD4,
-	CFEND                 = 0xE4,
-	CFEND_ACK             = 0xF4,
-	DATA                  = 0x08,
-	DATA_ACK              = 0x18,
-	DATA_POLL             = 0x28,
-	DATA_POLL_ACK         = 0x38,
-	NULL_FRAME            = 0x48,
-	CFACK                 = 0x58,
-	CFPOLL                = 0x68,
-	CFPOLL_ACK            = 0x78,
-	QOS_DATA              = 0x88,
-	QOS_DATA_ACK          = 0x98,
-	QOS_DATA_POLL         = 0xA8,
-	QOS_DATA_POLL_ACK     = 0xB8,
-	QOS_NULL_FRAME        = 0xC8,
-	QOS_CFPOLL            = 0xE8,
-	QOS_CFPOLL_ACK        = 0xF8,
-	BLOCKACK_REQ          = 0x84,
-	BLOCKACK              = 0x94,
-	FRAME_SUBTYPE_FORCE_32BIT  = 0xFFFFFFFF
-};
-
 enum info_element_id {
 	ISSID               = 0,   /* Service Set Identifier         */
 	ISUPRATES           = 1,   /* Supported Rates                */
@@ -273,10 +234,17 @@ s32 wilc_parse_network_info(u8 *msg_buffer,
 	u8 msg_type = 0;
 	u8 msg_id = 0;
 	u16 msg_len = 0;
-
 	u16 wid_id = (u16)WID_NIL;
 	u16 wid_len  = 0;
 	u8 *wid_val = NULL;
+	u8 *msa = NULL;
+	u16 rx_len = 0;
+	u8 *tim_elm = NULL;
+	u8 *ies = NULL;
+	u16 ies_len = 0;
+	u8 index = 0;
+	u32 tsf_lo;
+	u32 tsf_hi;
 
 	msg_type = msg_buffer[0];
 
@@ -289,60 +257,49 @@ s32 wilc_parse_network_info(u8 *msg_buffer,
 	wid_len = MAKE_WORD16(msg_buffer[6], msg_buffer[7]);
 	wid_val = &msg_buffer[8];
 
-	{
-		u8 *msa = NULL;
-		u16 rx_len = 0;
-		u8 *tim_elm = NULL;
-		u8 *ies = NULL;
-		u16 ies_len = 0;
-		u8 index = 0;
-		u32 tsf_lo;
-		u32 tsf_hi;
+	network_info = kzalloc(sizeof(*network_info), GFP_KERNEL);
+	if (!network_info)
+		return -ENOMEM;
 
-		network_info = kzalloc(sizeof(*network_info), GFP_KERNEL);
-		if (!network_info)
+	network_info->rssi = wid_val[0];
+
+	msa = &wid_val[1];
+
+	rx_len = wid_len - 1;
+	network_info->cap_info = get_cap_info(msa);
+	network_info->tsf_lo = get_beacon_timestamp_lo(msa);
+
+	tsf_lo = get_beacon_timestamp_lo(msa);
+	tsf_hi = get_beacon_timestamp_hi(msa);
+
+	network_info->tsf_hi = tsf_lo | ((u64)tsf_hi << 32);
+
+	get_ssid(msa, network_info->ssid, &network_info->ssid_len);
+	get_BSSID(msa, network_info->bssid);
+
+	network_info->ch = get_current_channel_802_11n(msa,
+						rx_len + FCS_LEN);
+
+	index = MAC_HDR_LEN + TIME_STAMP_LEN;
+
+	network_info->beacon_period = get_beacon_period(msa + index);
+
+	index += BEACON_INTERVAL_LEN + CAP_INFO_LEN;
+
+	tim_elm = get_tim_elm(msa, rx_len + FCS_LEN, index);
+	if (tim_elm)
+		network_info->dtim_period = tim_elm[3];
+	ies = &msa[TAG_PARAM_OFFSET];
+	ies_len = rx_len - TAG_PARAM_OFFSET;
+
+	if (ies_len > 0) {
+		network_info->ies = kmemdup(ies, ies_len, GFP_KERNEL);
+		if (!network_info->ies) {
+			kfree(network_info);
 			return -ENOMEM;
-
-		network_info->rssi = wid_val[0];
-
-		msa = &wid_val[1];
-
-		rx_len = wid_len - 1;
-		network_info->cap_info = get_cap_info(msa);
-		network_info->tsf_lo = get_beacon_timestamp_lo(msa);
-
-		tsf_lo = get_beacon_timestamp_lo(msa);
-		tsf_hi = get_beacon_timestamp_hi(msa);
-
-		network_info->tsf_hi = tsf_lo | ((u64)tsf_hi << 32);
-
-		get_ssid(msa, network_info->ssid, &network_info->ssid_len);
-		get_BSSID(msa, network_info->bssid);
-
-		network_info->ch = get_current_channel_802_11n(msa,
-							rx_len + FCS_LEN);
-
-		index = MAC_HDR_LEN + TIME_STAMP_LEN;
-
-		network_info->beacon_period = get_beacon_period(msa + index);
-
-		index += BEACON_INTERVAL_LEN + CAP_INFO_LEN;
-
-		tim_elm = get_tim_elm(msa, rx_len + FCS_LEN, index);
-		if (tim_elm)
-			network_info->dtim_period = tim_elm[3];
-		ies = &msa[TAG_PARAM_OFFSET];
-		ies_len = rx_len - TAG_PARAM_OFFSET;
-
-		if (ies_len > 0) {
-			network_info->ies = kmemdup(ies, ies_len, GFP_KERNEL);
-			if (!network_info->ies) {
-				kfree(network_info);
-				return -ENOMEM;
-			}
 		}
-		network_info->ies_len = ies_len;
 	}
+	network_info->ies_len = ies_len;
 
 	*ret_network_info = network_info;
 
