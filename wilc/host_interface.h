@@ -11,6 +11,10 @@
 #define GO_MODE		0x03
 #define CLIENT_MODE	0x04
 
+#define P2P_IFC		0x00
+#define WLAN_IFC	0x01
+#define DEFAULT_IFC		0x03
+
 #define ACTION_FRM_IDX				0
 #define PROBE_REQ_IDX				1
 #define MAX_NUM_STA				9

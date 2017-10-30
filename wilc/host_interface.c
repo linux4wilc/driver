@@ -10,6 +10,7 @@
 #include <linux/errno.h>
 #include "coreconfigurator.h"
 #include "wilc_wlan.h"
+#include "linux_wlan.h"
 #include "wilc_wlan_if.h"
 #include <linux/etherdevice.h>
 #include "wilc_wfi_netdevice.h"

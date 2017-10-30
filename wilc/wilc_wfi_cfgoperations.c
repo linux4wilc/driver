@@ -1,5 +1,6 @@
 #include "wilc_wfi_cfgoperations.h"
 #include "host_interface.h"
+#include "linux_wlan.h"
 #include <linux/errno.h>
 #include <linux/kernel.h>
 
@@ -303,7 +304,7 @@ static void remove_network_from_shadow(unsigned long arg)
 	}
 }
 
-static void clear_duringIP(unsigned long arg)
+void clear_duringIP(unsigned long arg)
 {
 	wilc_optaining_ip = false;
 }
@@ -1852,11 +1853,24 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 {
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
+	struct wilc_vif *vif_1;
+	struct wilc_vif *vif_2;
 	struct wilc *wl;
+	struct net_device *net_device_1;
+	struct net_device *net_device_2;
+	struct wilc_priv* priv_1;
+	struct wilc_priv* priv_2;
 
 	vif = netdev_priv(dev);
 	priv = wiphy_priv(wiphy);
 	wl = vif->wilc;
+	net_device_1 = wilc_get_if_netdev(wl, P2P_IFC);
+	net_device_2 = wilc_get_if_netdev(wl, WLAN_IFC);
+	priv_1 = wdev_priv(net_device_1->ieee80211_ptr);
+	priv_2 = wdev_priv(net_device_2->ieee80211_ptr);
+	vif_1 = netdev_priv(net_device_1);
+	vif_2 = netdev_priv(net_device_2);
+	
 	p2p_local_random = 0x01;
 	p2p_recv_random = 0x00;
 	wilc_ie = false;
@@ -1877,7 +1891,8 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		memset(priv->assoc_stainfo.au8Sta_AssociatedBss, 0, MAX_NUM_STA * ETH_ALEN);
 
 		wilc_enable_ps = true;
-		wilc_set_power_mgmt(vif, 1, 0);
+		wilc_set_power_mgmt(vif_1, 1, 0);
+		wilc_set_power_mgmt(vif_2, 1, 0);
 		break;
 
 	case NL80211_IFTYPE_P2P_CLIENT:
@@ -1890,21 +1905,21 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 					 STATION_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, STATION_MODE);
 
-		wilc_enable_ps = false;
-		wilc_set_power_mgmt(vif, 0, 0);
+		wilc_set_power_mgmt(vif_1, 0, 0);
+		wilc_set_power_mgmt(vif_2, 0, 0);
 		break;
 
 	case NL80211_IFTYPE_AP:
-		wilc_enable_ps = false;
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
 		vif->iftype = AP_MODE;
-
+		wilc_enable_ps = false;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 						 AP_MODE, vif->ifc_id);
 			wilc_set_operation_mode(vif, AP_MODE);
-			wilc_set_power_mgmt(vif, 0, 0);
+			wilc_set_power_mgmt(vif_1, 0, 0);
+			wilc_set_power_mgmt(vif_2, 0, 0);
 		}
 		break;
 
@@ -1918,9 +1933,12 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
 		vif->iftype = GO_MODE;
-
+		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
+					 AP_MODE, vif->ifc_id);
+		wilc_set_operation_mode(vif, AP_MODE);
 		wilc_enable_ps = false;
-		wilc_set_power_mgmt(vif, 0, 0);
+		wilc_set_power_mgmt(vif_1, 0, 0);
+		wilc_set_power_mgmt(vif_2, 0, 0);
 		break;
 
 	default:
