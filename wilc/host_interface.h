@@ -10,9 +10,6 @@
 #define STATION_MODE	0x02
 #define GO_MODE		0x03
 #define CLIENT_MODE	0x04
-#define ACTION		0xD0
-#define PROBE_REQ	0x40
-#define PROBE_RESP	0x50
 
 #define ACTION_FRM_IDX				0
 #define PROBE_REQ_IDX				1
@@ -22,14 +19,14 @@
 #define MIN_SCAN_TIME				10
 #define MAX_SCAN_TIME				1200
 #define DEFAULT_SCAN				0
-#define USER_SCAN				BIT(0)
+#define USER_SCAN					BIT(0)
 #define OBSS_PERIODIC_SCAN			BIT(1)
 #define OBSS_ONETIME_SCAN			BIT(2)
 #define GTK_RX_KEY_BUFF_LEN			24
-#define ADDKEY					0x1
-#define REMOVEKEY				0x2
-#define DEFAULTKEY				0x4
-#define ADDKEY_AP				0x8
+#define ADDKEY						0x1
+#define REMOVEKEY					0x2
+#define DEFAULTKEY					0x4
+#define ADDKEY_AP					0x8
 #define MAX_NUM_SCANNED_NETWORKS		100
 #define MAX_NUM_SCANNED_NETWORKS_SHADOW		130
 #define MAX_NUM_PROBED_SSID			10
@@ -37,17 +34,17 @@
 
 #define TX_MIC_KEY_LEN				8
 #define RX_MIC_KEY_LEN				8
-#define PTK_KEY_LEN				16
+#define PTK_KEY_LEN					16
 
 #define TX_MIC_KEY_MSG_LEN			26
 #define RX_MIC_KEY_MSG_LEN			48
 #define PTK_KEY_MSG_LEN				39
 
 #define PMKSA_KEY_LEN				22
-#define ETH_ALEN				6
-#define PMKID_LEN				16
+#define ETH_ALEN					6
+#define PMKID_LEN					16
 #define WILC_MAX_NUM_PMKIDS			16
-#define WILC_SUPP_MCS_SET_SIZE			16
+#define WILC_SUPP_MCS_SET_SIZE		16
 #define WILC_ADD_STA_LENGTH			40
 #define SCAN_EVENT_DONE_ABORTED
 #define NUM_CONCURRENT_IFC			2
@@ -224,7 +221,7 @@ struct user_conn_req {
 struct drv_handler {
 	u32 handler;
 	u8 mode;
-	u8 name;
+	u8 ifc_id;
 };
 
 struct op_mode {
@@ -327,7 +324,7 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 				  u8 *buff, unsigned int size,
 				  unsigned int pkt_offset,
 				  void *user_arg);
-s32 wilc_remove_key(struct host_if_drv *hWFIDrv, const u8 *pu8StaAddress);
+s32 wilc_remove_key(struct wilc_vif *vif, const u8 *pu8StaAddress);
 int wilc_remove_wep_key(struct wilc_vif *vif, u8 index);
 int wilc_set_wep_default_keyid(struct wilc_vif *vif, u8 index);
 int wilc_add_wep_key_bss_sta(struct wilc_vif *vif, const u8 *key, u8 len,

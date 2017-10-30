@@ -422,7 +422,7 @@ static int handle_set_wfi_drv_handler(struct wilc_vif *vif,
 	currbyte++;
 	*currbyte = (u32)0 & DRV_HANDLER_MASK;
 	currbyte++;
-	*currbyte = (hif_drv_handler->name | (hif_drv_handler->mode << 1));
+	*currbyte = (hif_drv_handler->ifc_id| (hif_drv_handler->mode << 1));
 
 	wid.id = (u16)WID_SET_DRV_HANDLER;
 	wid.type = WID_STR;
@@ -2855,7 +2855,7 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 	return result;
 }
 
-s32 wilc_remove_key(struct host_if_drv *hif_drv, const u8 *pu8StaAddress)
+s32 wilc_remove_key(struct wilc_vif *vif, const u8 *pu8StaAddress)
 {
 	struct wid wid;
 
@@ -3336,7 +3336,7 @@ int wilc_set_wfi_drv_handler(struct wilc_vif *vif, int index, u8 mode,
 	msg.id = HOST_IF_MSG_SET_WFIDRV_HANDLER;
 	msg.body.drv.handler = index;
 	msg.body.drv.mode = mode;
-	msg.body.drv.name = ifc_id;
+	msg.body.drv.ifc_id= ifc_id;
 	msg.vif = vif;
 
 	result = wilc_enqueue_cmd(&msg);

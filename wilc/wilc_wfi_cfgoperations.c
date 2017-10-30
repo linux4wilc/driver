@@ -1133,7 +1133,7 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 			wilc_remove_wep_key(vif, key_index);
 		}
 	} else {
-		wilc_remove_key(priv->hif_drv, mac_addr);
+		wilc_remove_key(vif, mac_addr);
 	}
 
 	return 0;
