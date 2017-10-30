@@ -25,7 +25,8 @@ static ssize_t p2p_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
 	const char *buf, size_t count)
 {
 
-	kstrtoint(buf, 10, &p2p_mode);
+	if(kstrtoint(buf, 10, &p2p_mode))
+		return 0;
 
 	if(p2p_mode)
 		vif->p2p_mode = 1;

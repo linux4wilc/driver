@@ -303,7 +303,6 @@ static struct wilc_vif *join_req_vif;
 #define FLUSHED_BYTE_POS 79
 
 static void *host_int_ParseJoinBssParam(struct network_info *ptstrNetworkInfo);
-static int host_int_get_ipaddress(struct wilc_vif *vif, u8 *ip_addr, u8 idx);
 s32 Handle_ScanDone(struct wilc_vif *vif, enum scan_event enuEvent);
 static void host_if_work(struct work_struct *work);
 
@@ -4236,26 +4235,6 @@ int wilc_setup_ipaddress(struct wilc_vif *vif, u8 *ip_addr, u8 idx)
 	msg.id = HOST_IF_MSG_SET_IPADDRESS;
 	if(!hif_workqueue)
 		return 0;
-
-	msg.body.ip_info.ip_addr = ip_addr;
-	msg.vif = vif;
-	msg.body.ip_info.idx = idx;
-
-	result = wilc_enqueue_cmd(&msg);
-	if (result)
-		netdev_err(vif->ndev, "wilc_mq_send fail\n");
-
-	return result;
-}
-
-static int host_int_get_ipaddress(struct wilc_vif *vif, u8 *ip_addr, u8 idx)
-{
-	int result = 0;
-	struct host_if_msg msg;
-
-	memset(&msg, 0, sizeof(struct host_if_msg));
-
-	msg.id = HOST_IF_MSG_GET_IPADDRESS;
 
 	msg.body.ip_info.ip_addr = ip_addr;
 	msg.vif = vif;

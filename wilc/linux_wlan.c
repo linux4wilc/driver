@@ -687,7 +687,6 @@ static int linux_wlan_start_firmware(struct net_device *dev)
 	struct wilc_vif *vif;
 	struct wilc *wilc;
 	int ret = 0;
-	struct sdio_func *func;
 
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
