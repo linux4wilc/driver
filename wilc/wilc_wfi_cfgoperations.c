@@ -3,6 +3,7 @@
 #include "linux_wlan.h"
 #include <linux/errno.h>
 #include <linux/kernel.h>
+#include <linux/version.h>
 
 #define NO_ENCRYPT		0
 #define ENCRYPT_ENABLED		BIT(0)
@@ -445,11 +446,15 @@ static void CfgScanResult(enum scan_event scan_event,
 			mutex_lock(&priv->scan_req_lock);
 
 			if (priv->pstrScanReq) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 				struct cfg80211_scan_info info = {
 					.aborted = false,
 				};
-
 				cfg80211_scan_done(priv->pstrScanReq, &info);
+#else
+				cfg80211_scan_done(priv->pstrScanReq, false);
+#endif
+
 				priv->u32RcvdChCount = 0;
 				priv->bCfgScanning = false;
 				priv->pstrScanReq = NULL;
@@ -459,14 +464,17 @@ static void CfgScanResult(enum scan_event scan_event,
 			mutex_lock(&priv->scan_req_lock);
 
 			if (priv->pstrScanReq) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 				struct cfg80211_scan_info info = {
 					.aborted = false,
 				};
+				cfg80211_scan_done(priv->pstrScanReq, &info);
+#else
+				cfg80211_scan_done(priv->pstrScanReq, false);
+#endif
 
 				update_scan_time();
 				refresh_scan(priv, 1, false);
-
-				cfg80211_scan_done(priv->pstrScanReq, &info);
 				priv->bCfgScanning = false;
 				priv->pstrScanReq = NULL;
 			}
@@ -561,9 +569,15 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 		else if ((!pstrWFIDrv->IFC_UP) && (dev == wl->vif[1]->ndev))
 			pstrDisconnectNotifInfo->reason = 1;
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,1,0)
+		cfg80211_disconnected(dev, pstrDisconnectNotifInfo->reason, pstrDisconnectNotifInfo->ie,
+				      pstrDisconnectNotifInfo->ie_len,
+				      GFP_KERNEL);
+#else
 		cfg80211_disconnected(dev, pstrDisconnectNotifInfo->reason, pstrDisconnectNotifInfo->ie,
 				      pstrDisconnectNotifInfo->ie_len, false,
 				      GFP_KERNEL);
+#endif
 	}
 }
 
@@ -835,7 +849,11 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev, u16 reason_co
 
 	if (wilc->close) {
 		/* already disconnected done */
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,1,0)
+		cfg80211_disconnected(dev, 0, NULL, 0, GFP_KERNEL);
+#else
 		cfg80211_disconnected(dev, 0, NULL, 0, true, GFP_KERNEL);
+#endif
 		return 0;
 	}
 
@@ -1829,13 +1847,23 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	if (!wiphy)
 		return -ENOENT;
 
-	if (wilc_optaining_ip)
-		return -EINVAL;
-
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(priv->dev);
-	if (!priv->hif_drv)
+	if (!priv->hif_drv) {
+		netdev_err(dev, "Driver is NULL\n");
 		return -EIO;
+	}
+
+	/* Can't set PS during obtaining IP */
+	if (wilc_optaining_ip == true)
+	{
+		netdev_err(dev, "Device is Obtaining IP, Power Managment will be handled after IP Obtained\n");
+
+		/* Save the current status of the PS */
+		store_power_save_current_state(vif, enabled);
+			
+		return 0;
+	}
 
 	if (wilc_enable_ps)
 		wilc_set_power_mgmt(vif, enabled, timeout);
@@ -1843,8 +1871,13 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			       enum nl80211_iftype type, u32 *flags, struct vif_params *params)
+#else
+static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
+			       enum nl80211_iftype type, struct vif_params *params)
+#endif
 {
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
@@ -1869,8 +1902,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 	p2p_local_random = 0x01;
 	p2p_recv_random = 0x00;
 	wilc_ie = false;
-	wilc_optaining_ip = false;
-	del_timer(&wilc_during_ip_timer);
+	handle_pwrsave_during_obtainingIP(NULL, IP_STATE_DEFAULT);
 
 	switch (type) {
 	case NL80211_IFTYPE_STATION:
@@ -1896,6 +1928,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		priv->wdev->iftype = type;
 		vif->monitor_flag = 0;
 		vif->iftype = CLIENT_MODE;
+		wilc_enable_ps = false;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 					 STATION_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, STATION_MODE);
@@ -1919,12 +1952,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		break;
 
 	case NL80211_IFTYPE_P2P_GO:
-		wilc_optaining_ip = true;
-		mod_timer(&wilc_during_ip_timer,
-			  jiffies + msecs_to_jiffies(during_ip_time));
-		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 AP_MODE, vif->ifc_id);
-		wilc_set_operation_mode(vif, AP_MODE);
+		handle_pwrsave_during_obtainingIP(vif, IP_STATE_GO_ASSIGNING);
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
 		vif->iftype = GO_MODE;
@@ -2135,12 +2163,21 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 	return s32Error;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
 static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 					     const char *name,
 					     unsigned char name_assign_type,
 					     enum nl80211_iftype type,
 					     u32 *flags,
 					     struct vif_params *params)
+#else
+static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
+					     const char *name,
+					     unsigned char name_assign_type,
+					     enum nl80211_iftype type,
+					     struct vif_params *params)
+
+#endif
 {
 	struct wilc_vif *vif;
 	struct wilc_priv *priv;
