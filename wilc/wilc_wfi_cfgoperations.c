@@ -304,11 +304,6 @@ static void remove_network_from_shadow(unsigned long arg)
 	}
 }
 
-void clear_duringIP(unsigned long arg)
-{
-	wilc_optaining_ip = false;
-}
-
 static int is_network_in_shadow(struct network_info *pstrNetworkInfo,
 				void *user_void)
 {

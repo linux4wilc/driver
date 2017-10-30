@@ -169,6 +169,9 @@ struct wilc_vif {
 	u8 ifc_id;
 	bool ifc_open;
 	bool p2p_mode;
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+	bool pwrsave_current_state;
+#endif
 };
 
 struct wilc {

@@ -1534,14 +1534,11 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 
 			if ((u8MacStatus == MAC_CONNECTED) &&
 			    (strConnectInfo.status == SUCCESSFUL_STATUSCODE))	{
-				wilc_set_power_mgmt(vif, 0, 0);
 
 				hif_drv->hif_state = HOST_IF_CONNECTED;
 
-				wilc_optaining_ip = true;
-				netdev_info(vif->ndev," his_state = HOST_IF_CONNECTED \n");
-				mod_timer(&wilc_during_ip_timer,
-					  jiffies + msecs_to_jiffies(10000));
+
+				handle_pwrsave_during_obtainingIP(vif, IP_STATE_OBTAINING);
 			} else {
 				hif_drv->hif_state = HOST_IF_IDLE;
 				scan_while_connected = false;
@@ -1574,8 +1571,7 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 			strDisconnectNotifInfo.ie_len = 0;
 
 			if (hif_drv->usr_conn_req.conn_result) {
-				wilc_optaining_ip = false;
-				wilc_set_power_mgmt(vif, 0, 0);
+				handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 
 				hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
 								  NULL,
@@ -1891,9 +1887,8 @@ static void Handle_Disconnect(struct wilc_vif *vif)
 	wid.val = (s8 *)&u16DummyReasonCode;
 	wid.size = sizeof(char);
 
-	wilc_optaining_ip = false;
-	wilc_set_power_mgmt(vif, 0, 0);
 
+	handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 	eth_zero_addr(wilc_connected_ssid);
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
@@ -2514,8 +2509,11 @@ static void Handle_PowerManagement(struct wilc_vif *vif,
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				      wilc_get_vif_idx(vif));
-	if (result)
+	if (result) {
 		netdev_err(vif->ndev, "Failed to send power management\n");
+		return;
+	}
+	store_power_save_current_state(vif, s8PowerMode);
 }
 
 static void Handle_SetMulticastFilter(struct wilc_vif *vif,

@@ -30,6 +30,115 @@
 #include "linux_wlan.h"
 
 //#define PREVENT_SDIO_HOST_FROM_SUSPEND
+bool g_ignore_PS_state = false;
+#define duringIP_TIME		15000
+extern struct timer_list wilc_during_ip_timer;
+
+void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
+{
+
+	switch(state)
+	{	
+	case IP_STATE_OBTAINING:
+		
+		netdev_info(vif->ndev, "Obtaining an IP, Disable (Scan-Set PowerSave)\n");
+		netdev_info(vif->ndev, "Save the Current state of the PS = %d\n", vif->pwrsave_current_state);
+
+		/* Set the wilc_optaining_ip flag */
+		wilc_optaining_ip = true;
+
+		/* Set this flag to avoid storing the disabled case of PS which occurs duringIP */
+		g_ignore_PS_state = true;
+
+		/* Disable Power Save */
+		wilc_set_power_mgmt(vif, 0, 0);
+
+		/* Start the DuringIPTimer */
+		wilc_during_ip_timer.data = (uint32_t)vif;
+		mod_timer(&wilc_during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
+
+		break;
+	
+	case IP_STATE_OBTAINED:
+
+		netdev_info(vif->ndev, "IP obtained , Enable (Scan-Set PowerSave)\n");
+		netdev_info(vif->ndev, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
+
+		/* Clear the wilc_optaining_ip flag */
+		wilc_optaining_ip = false;
+
+		/* Recover PS previous state */
+		if(wilc_enable_ps == true)
+		{
+			wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
+		}
+
+		/* Stop the DuringIPTimer */
+		del_timer(&wilc_during_ip_timer);	
+
+		break;
+	
+	case IP_STATE_GO_ASSIGNING:
+
+		/* Set the wilc_optaining_ip flag */
+		wilc_optaining_ip = true;
+
+		/* Start the DuringIPTimer */
+		wilc_during_ip_timer.data = (unsigned long)vif;
+		mod_timer(&wilc_during_ip_timer, (jiffies + msecs_to_jiffies(duringIP_TIME)));
+
+		break;
+	
+	default: //IP_STATE_DEFAULT
+
+		/* Clear the wilc_optaining_ip flag */
+		wilc_optaining_ip = false;
+
+		/* Stop the DuringIPTimer */
+		del_timer(&wilc_during_ip_timer);
+
+		/* Disable PS */
+		if(vif)
+		{
+			wilc_set_power_mgmt(vif, 0, 0);
+		}
+
+		break;
+	}
+}
+
+void set_obtaining_IP_flag(bool val)
+{
+	wilc_optaining_ip = val;
+}
+
+void store_power_save_current_state(struct wilc_vif *vif, bool val)
+{
+	if(g_ignore_PS_state)
+	{
+		g_ignore_PS_state = false;
+		return;
+	}
+	vif->pwrsave_current_state = val;
+}
+
+void clear_duringIP(unsigned long arg)
+{
+	struct wilc_vif *vif = (struct wilc_vif *)arg;
+	
+	netdev_err(vif->ndev, "Unable to Obtain IP\n");
+
+	/* Clear the wilc_optaining_ip flag */
+	wilc_optaining_ip = false;
+
+	netdev_info(vif->ndev, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
+
+	/* Recover PS previous state */
+	if(wilc_enable_ps == true)
+	{
+		wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
+	}
+}
 
 static int dev_state_ev_handler(struct notifier_block *this,
 				unsigned long event, void *ptr);
@@ -124,8 +233,7 @@ static int debug_thread(void *arg)
 			strDisconnectNotifInfo.ie_len = 0;
 
 			if (hif_drv->usr_conn_req.conn_result) {
-				wilc_optaining_ip = false;
-				wilc_set_power_mgmt(vif, 0, 0);
+				handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 
 				hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
 								  NULL,
@@ -194,7 +302,8 @@ static int dev_state_ev_handler(struct notifier_block *this,
 	case NETDEV_UP:
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
 			hif_drv->IFC_UP = 1;
-			del_timer(&wilc_during_ip_timer);
+
+			handle_pwrsave_during_obtainingIP(vif, IP_STATE_OBTAINED);
 		}
 		netdev_dbg(dev, "[%s] Up IP\n", dev_iface->ifa_label);
 
@@ -214,6 +323,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 	case NETDEV_DOWN:
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
 			hif_drv->IFC_UP = 0;
+			handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 		}
 
 		if (memcmp(dev_iface->ifa_label, wlan_dev_name,5) == 0){
