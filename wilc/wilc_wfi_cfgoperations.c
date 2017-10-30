@@ -2,7 +2,6 @@
 #include "host_interface.h"
 #include <linux/errno.h>
 #include <linux/kernel.h>
-#include <linux/version.h>
 
 #define NO_ENCRYPT		0
 #define ENCRYPT_ENABLED		BIT(0)
@@ -450,15 +449,11 @@ static void CfgScanResult(enum scan_event scan_event,
 			mutex_lock(&priv->scan_req_lock);
 
 			if (priv->pstrScanReq) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 				struct cfg80211_scan_info info = {
 					.aborted = false,
 				};
-				cfg80211_scan_done(priv->pstrScanReq, &info);
-#else
-				cfg80211_scan_done(priv->pstrScanReq, false);
-#endif
 
+				cfg80211_scan_done(priv->pstrScanReq, &info);
 				priv->u32RcvdChCount = 0;
 				priv->bCfgScanning = false;
 				priv->pstrScanReq = NULL;
@@ -468,17 +463,14 @@ static void CfgScanResult(enum scan_event scan_event,
 			mutex_lock(&priv->scan_req_lock);
 
 			if (priv->pstrScanReq) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 				struct cfg80211_scan_info info = {
 					.aborted = false,
 				};
-				cfg80211_scan_done(priv->pstrScanReq, &info);
-#else
-				cfg80211_scan_done(priv->pstrScanReq, false);
-#endif
 
 				update_scan_time();
 				refresh_scan(priv, 1, false);
+
+				cfg80211_scan_done(priv->pstrScanReq, &info);
 				priv->bCfgScanning = false;
 				priv->pstrScanReq = NULL;
 			}
@@ -573,15 +565,9 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 		else if ((!pstrWFIDrv->IFC_UP) && (dev == wl->vif[1]->ndev))
 			pstrDisconnectNotifInfo->reason = 1;
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,1,0)
-		cfg80211_disconnected(dev, pstrDisconnectNotifInfo->reason, pstrDisconnectNotifInfo->ie,
-				      pstrDisconnectNotifInfo->ie_len,
-				      GFP_KERNEL);
-#else
 		cfg80211_disconnected(dev, pstrDisconnectNotifInfo->reason, pstrDisconnectNotifInfo->ie,
 				      pstrDisconnectNotifInfo->ie_len, false,
 				      GFP_KERNEL);
-#endif
 	}
 }
 
@@ -853,11 +839,7 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev, u16 reason_co
 
 	if (wilc->close) {
 		/* already disconnected done */
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,1,0)
-		cfg80211_disconnected(dev, 0, NULL, 0, GFP_KERNEL);
-#else
 		cfg80211_disconnected(dev, 0, NULL, 0, true, GFP_KERNEL);
-#endif
 		return 0;
 	}
 
@@ -1865,14 +1847,8 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
-			       u32 *flags,
-			       enum nl80211_iftype type, struct vif_params *params)
-#else
-static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
-			       enum nl80211_iftype type, struct vif_params *params)
-#endif
+			       enum nl80211_iftype type, u32 *flags, struct vif_params *params)
 {
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
@@ -2146,21 +2122,12 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 	return s32Error;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
 static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 					     const char *name,
 					     unsigned char name_assign_type,
 					     enum nl80211_iftype type,
 					     u32 *flags,
 					     struct vif_params *params)
-#else
-static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
-					     const char *name,
-					     unsigned char name_assign_type,
-					     enum nl80211_iftype type,
-					     struct vif_params *params)
-
-#endif
 {
 	struct wilc_vif *vif;
 	struct wilc_priv *priv;

@@ -889,9 +889,17 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 	static int isinit;
 
 	if (isinit) {
-		if (!wilc_spi_read_reg(wilc, 0x3b0000, &chipid)) {
-			dev_err(&spi->dev, "Fail cmd read chip id...\n");
-			return 0;
+		if(wilc->chip_id == WILC_3000) {
+			if (!wilc_spi_read_reg(wilc, 0x3b0000, &chipid)) {
+				dev_err(&spi->dev, "Fail cmd read chip id...\n");
+				return 0;
+			}
+		}
+		else if (wilc->chip_id == WILC_1000) {
+			if (!wilc_spi_read_reg(wilc, 0x1000, &chipid)) {
+				dev_err(&spi->dev, "Fail cmd read chip id...\n");
+				return 0;
+			}
 		}
 		return 1;
 	}
@@ -932,14 +940,38 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 	/**
 	 *      make sure can read back chip id correctly
 	 **/
-	if (!wilc_spi_read_reg(wilc, 0x3b0000, &chipid)) {
+
+	if (wilc_spi_read_reg(wilc, 0x3b0000, &chipid)) {
+		if (ISWILC3000(chipid)) {
+			g_spi.has_thrpt_enh = 1;
+			wilc->chip_id = WILC_3000;
+			goto _pass_;
+		}		
+	}
+	else {
 		dev_err(&spi->dev, "Fail cmd read chip id...\n");
 		return 0;
 	}
+
+	if (wilc_spi_read_reg(wilc, 0x1000, &chipid)) {
+		if (ISWILC1000(chipid)) {
+			wilc->chip_id = WILC_1000;
+			if ((chipid & 0xfff) > 0x2a0) {
+				g_spi.has_thrpt_enh = 1;
+			} else {
+				g_spi.has_thrpt_enh = 0;
+			}
+			goto _pass_;
+		}		
+	}
+	else {
+		dev_err(&spi->dev, "Fail cmd read chip id...\n");
+		return 0;
+	}
+
 	/* dev_err(&spi->dev, "chipid (%08x)\n", chipid); */
 
-	g_spi.has_thrpt_enh = 1;
-	wilc->chip_id = 1;
+_pass_:
 	isinit = 1;
 
 	return 1;
