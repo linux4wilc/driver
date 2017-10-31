@@ -287,6 +287,7 @@ static void wilc_wlan_parse_response_frame(u8 *info, int size)
 		wid = info[0] | (info[1] << 8);
 		wid = cpu_to_le32(wid);
 
+		PRINT_INFO(GENERIC_DBG,"Processing response for %d\n", wid);
 		switch ((wid >> 12) & 0x7) {
 		case WID_CHAR:
 			do {
@@ -345,6 +346,8 @@ static void wilc_wlan_parse_response_frame(u8 *info, int size)
 					if (wid == WID_SITE_SURVEY_RESULTS) {
 						static int toggle;
 
+						PRINT_INFO(GENERIC_DBG,"Site survey results received %d\n", size);
+						PRINT_INFO(GENERIC_DBG,"Site survey results value %d toggle%d\n", size, toggle);
 						i += toggle;
 						toggle ^= 1;
 					}
@@ -357,36 +360,37 @@ static void wilc_wlan_parse_response_frame(u8 *info, int size)
 			len = 2+((info[3] << 8) | info[2]);
 			break;
 		case WID_BIN_DATA:
-				do {
-					if (g_cfg_bin[i].id == WID_NIL)
-						break;
+			do {
+				if (g_cfg_bin[i].id == WID_NIL)
+					break;
 
-					if (g_cfg_bin[i].id == wid)
+				if (g_cfg_bin[i].id == wid)
+				{
+					uint16_t length      = ((info[3] << 8) | info[2]);
+					uint8_t  checksum    = 0;
+					uint16_t i           = 0;
+
+					/* Compute the Checksum of received data field */
+					for(i = 0;i < length;i++)
 					{
-						uint16_t length      = ((info[3] << 8) | info[2]);
-						uint8_t  checksum    = 0;
-						uint16_t i           = 0;
-
-						/* Compute the Checksum of received data field */
-						for(i = 0;i < length;i++)
-						{
-							checksum += info[4 + i];
-						}
-						/*  Verify the checksum of recieved BIN DATA */
-						if (checksum == info[4 + length])
-						{
-							memcpy(g_cfg_bin[i].bin, &info[2], length + 2);
-							len = 2 + length + 1;   /* value length + data length + checksum */
-							break;
-						}
-						else
-						{
-								return;
-						}
+						checksum += info[4 + i];
 					}
-					i++;
-				} while (1);
-				break;
+					/*  Verify the checksum of recieved BIN DATA */
+					if (checksum == info[4 + length])
+					{
+						memcpy(g_cfg_bin[i].bin, &info[2], length + 2);
+						len = 2 + length + 1;   /* value length + data length + checksum */
+						break;
+					}
+					else
+					{
+						PRINT_ER("Parsing WID_BIN_DATA - Checksum Failed!" );
+							return;
+					}
+				}
+				i++;
+			} while (1);
+			break;
 		default:
 			break;
 		}
@@ -404,7 +408,7 @@ static int wilc_wlan_parse_info_frame(u8 *info, int size)
 	wid = info[0] | (info[1] << 8);
 
 	len = info[2];
-
+	PRINT_INFO(GENERIC_DBG,"Status Len = %d Id= %d\n", len, wid);
 	if ((len == 1) && (wid == WID_STATUS)) {
 		pd->mac_status = info[3];
 		type = WILC_CFG_RSP_STATUS;
@@ -449,6 +453,9 @@ int wilc_wlan_cfg_set_wid(u8 *frame, u32 offset, u16 id, u8 *buf, int size)
 	case CFG_BIN_CMD:
 		ret = wilc_wlan_cfg_set_bin(frame, offset, id, buf, size);
 		break;
+
+	default:
+		PRINT_ER("illegal id\n");
 	}
 
 	return ret;
@@ -529,6 +536,8 @@ int wilc_wlan_cfg_get_wid_value(u16 wid, u8 *buffer, u32 buffer_size)
 					if (g_cfg_str[i].id == WID_SITE_SURVEY_RESULTS)	{
 						static int toggle;
 
+						PRINT_INFO(GENERIC_DBG,"Site survey results%d\n",
+							 size);
 						i += toggle;
 						toggle ^= 1;
 
@@ -557,7 +566,7 @@ int wilc_wlan_cfg_get_wid_value(u16 wid, u8 *buffer, u32 buffer_size)
 			i++;
 		} while (1);
 	} else {
-		pr_info("[CFG]: illegal type (%08x)\n", wid);
+		PRINT_ER("[CFG]: illegal type (%08x)\n", wid);
 	}
 
 	return ret;
@@ -590,6 +599,7 @@ int wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 		rsp->type = wilc_wlan_parse_info_frame(frame, size);
 		rsp->seq_no = msg_id;
 		/*call host interface info parse as well*/
+		PRINT_INFO(RX_DBG,"Info message received\n");
 		wilc_gnrl_async_info_received(wilc, frame - 4, size + 4);
 		break;
 
@@ -599,10 +609,14 @@ int wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 		break;
 
 	case 'S':
+		PRINT_INFO(RX_DBG,"Scan Notification Received\n");
 		wilc_scan_complete_received(wilc, frame - 4, size + 4);
 		break;
 
 	default:
+		PRINT_INFO(RX_DBG,"Receive unknown message type %d-%d-%d-%d-%d-%d-%d-%d\n",
+			 frame[0], frame[1], frame[2], frame[3], frame[4],
+			 frame[5], frame[6], frame[7]);
 		rsp->type = 0;
 		rsp->seq_no = msg_id;
 		ret = 0;

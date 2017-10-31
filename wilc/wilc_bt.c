@@ -70,17 +70,20 @@ static const struct wilc_cmd_handle_entry wilc_cmd_table[] = {
 
 static int wilc_bt_dev_open(struct inode *i, struct file *f)
 {
+	PRINT_D(PWRDEV_DBG, "at_pwr_dev: open()\n");
 	return 0;
 }
 
 static int wilc_bt_dev_close(struct inode *i, struct file *f)
 {
+	PRINT_D(PWRDEV_DBG, "at_pwr_dev: close()\n");
 	return 0;
 }
 
 static ssize_t wilc_bt_dev_read(struct file *f, char __user *buf, size_t len,
 				loff_t *off)
 {
+	PRINT_D(PWRDEV_DBG, "at_pwr_dev: read()\n");
 	return 0;
 }
 
@@ -96,16 +99,20 @@ static ssize_t wilc_bt_dev_write(struct file *f, const char __user *buff,
 		return -EIO;
 
 	if (len > 0) {
+		PRINT_D(PWRDEV_DBG, "received %s, len %d\n", cmd_buff, len);
 		// call the appropriate command handler
 		wilc_cmd_entry = (struct wilc_cmd_handle_entry *)wilc_cmd_table;
 		while (wilc_cmd_entry->wilc_handle_cmd != NULL) {
 			if (strncmp(wilc_cmd_entry->wilc_cmd_str, cmd_buff,
 				    strlen(wilc_cmd_entry->wilc_cmd_str)) == 0) {
+				PRINT_D(PWRDEV_DBG, "param len: %d, string: %s\n", len - strlen(wilc_cmd_entry->wilc_cmd_str), cmd_buff);
 				wilc_cmd_entry->wilc_handle_cmd(cmd_buff + strlen(wilc_cmd_entry->wilc_cmd_str));
 				break;
 			}
 			wilc_cmd_entry++;
 		}
+	} else {
+		PRINT_D(PWRDEV_DBG, "received invalid size <=0: %d\n", len);
 	}
 	kfree(cmd_buff);
 	return len;
@@ -115,6 +122,7 @@ static void wilc_bt_create_device(void)
 {
 	int ret = 0;
 
+	PRINT_D(PWRDEV_DBG, "at_pwr_dev: registered\n");
 	if (device_created)
 		return;
 
@@ -152,14 +160,23 @@ static void wilc_cmd_handle_wilc_cca_threshold(char* param)
 	unsigned int carr_thrshold_frac, noise_thrshold_frac, carr_thrshold_int, 
 		noise_thrshold_int, reg;
 	
-	if(param == NULL)
+	if(param == NULL) {
+		PRINT_ER("Invalid parameter\n");
 		return;
-
+	}
 
 	if(sscanf(param, " %d %d", &noise_thrshold, &carrier_thrshold) != 2) {
+		PRINT_ER("Failed to parse input parameters. Usage:\n echo CCA_THRESHOLD "
+			"NOISE_THRESHOLD CARRIER_THRESHOLD > /dev/at_pwr_dev\n"
+			"where threshold values are in dB * 10\ne.g."
+			"echo CCA_THRESHOLD -625 -826 > /dev/at_pwr_dev to set thresholds "
+			"to -62.5 and -82.6\n\n");
 		return;
 	}
 	
+	PRINT_D(PWRDEV_DBG, 
+		"Changing CCA noise threshold to %d and carrier thresholds to %d \n",
+		noise_thrshold, carrier_thrshold);
 
 	carr_thrshold_int = carrier_thrshold/10;
 	if(carrier_thrshold < 0)
@@ -460,13 +477,17 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	int ret = 0;
 	u32 reg;
 
-	if (request_firmware(&wilc_bt_firmware, FIRMWARE_WILC3000_BT, dev) != 0)
-
-	wilc->firmware = wilc_bt_firmware;
+	PRINT_WRN(PWRDEV_DBG, "Bluetooth firmware: %s\n", FIRMWARE_WILC3000_BT);
+	if (request_firmware(&wilc_bt_firmware, FIRMWARE_WILC3000_BT, dev) != 0) {
+		PRINT_ER("%s - firmare not available. Skip!\n", FIRMWARE_WILC3000_BT);
+		ret = -1;
+		goto _fail_1;
+	}
 
 	buffer = wilc_bt_firmware->data;
 	buffer_size = (size_t)wilc_bt_firmware->size;
 	if (buffer_size <= 0) {
+		PRINT_ER("Firmware size = 0!\n");
 		ret = -1;
 		goto _fail_1;
 	}
@@ -475,12 +496,19 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 
 	ret = wilc->hif_func->hif_write_reg(wilc, 0x4f0000, 0x71);
 	if (!ret) {
+		PRINT_ER("[wilc start]: fail write reg 0x4f0000 ...\n");
 		release_bus(wilc,RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);	
 		goto _fail_1;
 	}
 
+	/*
+	 * Avoid booting from BT boot ROM. Make sure that Drive IRQN [SDIO platform]
+	 * or SD_DAT3 [SPI platform] to ?1?
+	 */
+	/* Set cortus reset register to register control. */
 	ret = wilc->hif_func->hif_read_reg(wilc, 0x3b0090, &reg);
 	if (!ret) {
+		PRINT_ER("[wilc start]: fail read reg 0x3b0090 ...\n");
 		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 		goto _fail_1;
 	}
@@ -488,6 +516,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	reg |= (1 << 0);
 	ret = wilc->hif_func->hif_write_reg(wilc, 0x3b0090, reg);
 	if (!ret) {
+		PRINT_ER("[wilc start]: fail write reg 0x3b0090 ...\n");
 		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 		goto _fail_1;
 	}
@@ -511,8 +540,10 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	dma_buffer = kmalloc(blksz, GFP_KERNEL);
 	if (dma_buffer == NULL) {
 		ret = -5;
+		PRINT_ER("Can't allocate buffer for BT firmware download IO error\n");
 		goto _fail_1;
 	}
+	PRINT_D(PWRDEV_DBG, "Downloading BT firmware size = %d ...\n", buffer_size);
 
 	offset = 0;
 	addr = 0x400000;
@@ -546,12 +577,17 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 
 	if (!ret) {
 		ret = -5;
+		PRINT_ER("Can't download BT firmware IO error\n");
 		goto _fail_;
 	}
+	PRINT_D(PWRDEV_DBG, "BT Offset = %d\n", offset);
 
 _fail_:
 	kfree(dma_buffer);
 _fail_1:
+	PRINT_D(PWRDEV_DBG, "Freeing BT FW buffer ...\n");
+	PRINT_D(PWRDEV_DBG, "Releasing BT firmware\n");
+	release_firmware(wilc_bt_firmware);
 	return;
 }
 
@@ -563,18 +599,23 @@ static void wilc_bt_start(struct wilc *wilc)
 	acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_BT);
 
 	if(wilc->power_status[PWR_DEV_SRC_WIFI]) {
+		/*If WiFi is on, send config packet to change coex mode and coex null frames transmission*/
 		ret = wilc->hif_func->hif_read_reg(wilc, WILC_COEXIST_CTL, &val32);
 		if (!ret) {
+			PRINT_ER("[wilc start]: fail read reg %x ...\n", WILC_COEXIST_CTL);
 			goto _fail_1;
 		}
+		/*Coex ON*/
 		val32 |= BIT(0);
 		val32 &= ~(BIT(9)|BIT(11));
 		ret = wilc->hif_func->hif_write_reg(wilc, WILC_COEXIST_CTL, val32);
 		if (!ret) {
+			PRINT_ER( "[wilc start]: fail write reg %x ...\n", WILC_COEXIST_CTL);
 			goto _fail_1;
 		}
 	}
 
+	PRINT_D(PWRDEV_DBG, "Starting BT firmware\n");
 	/*
 	 * Write the firmware download complete magic value 0x10ADD09E at
 	 * location 0xFFFF000C (Cortus map) or C000C (AHB map).
@@ -592,6 +633,7 @@ static void wilc_bt_start(struct wilc *wilc)
 
 	wilc->hif_func->hif_write_reg(wilc, 0x3B0400, val32);
 
+	PRINT_D(PWRDEV_DBG, "BT Start Succeeded\n");
 
 _fail_1:
 	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
@@ -599,6 +641,7 @@ _fail_1:
 
 static void wilc_cmd_handle_bt_power_up(char* param)
 {
+	PRINT_D(PWRDEV_DBG, "AT PWR: bt_power_up\n");
 	bt_init_done=0;
 	if (!wilc_bt->hif_func->hif_init(wilc_bt, false)) {
 		return;
@@ -624,6 +667,8 @@ static void wilc_cmd_handle_bt_fw_chip_allow_sleep(char* param)
 
 static void wilc_cmd_handle_bt_download_fw(char* param)
 {
+	PRINT_D(PWRDEV_DBG, "AT PWR: bt_download_fw\n");
+
 	wilc_bt_firmware_download(wilc_bt);
 	wilc_bt_start(wilc_bt);
 }
@@ -644,6 +689,8 @@ EXPORT_SYMBOL_GPL(wilc_bt_init);
 
 void wilc_bt_deinit(void)
 {
+	PRINT_D(PWRDEV_DBG, "at_pwr_dev: deinit\n");
+
 	if (&wilc_bt->cs != NULL)
 		mutex_destroy(&wilc_bt->cs);
 
@@ -652,5 +699,6 @@ void wilc_bt_deinit(void)
 	device_destroy(chc_dev_class, chc_dev_no);
 	class_destroy(chc_dev_class);
 	unregister_chrdev_region(chc_dev_no, 1);
+	PRINT_D(PWRDEV_DBG, "at_pwr_dev: unregistered\n");
 }
 EXPORT_SYMBOL_GPL(wilc_bt_deinit);

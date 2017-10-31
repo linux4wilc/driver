@@ -24,9 +24,13 @@ static ssize_t p2p_mode_show(struct kobject *kobj, struct kobj_attribute *attr,
 static ssize_t p2p_mode_store(struct kobject *kobj, struct kobj_attribute *attr,
 	const char *buf, size_t count)
 {
+	int ret;
 
-	if(kstrtoint(buf, 10, &p2p_mode))
-		return 0;
+	ret = kstrtoint(buf, 10, &p2p_mode);
+	if(ret < 0) {
+		PRINT_ER("Failed to convert p2p_mode string");
+		return ret;
+	}
 
 	if(p2p_mode)
 		vif->p2p_mode = 1;
