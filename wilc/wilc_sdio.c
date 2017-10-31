@@ -145,6 +145,8 @@ static int linux_sdio_probe(struct sdio_func *func,
 	wilc->dev = &func->dev;
 
 	mutex_init(&wilc->hif_cs);
+	mutex_init(&wilc->cs);
+
 	wilc_bt_init(wilc);
 
 	dev_info(&func->dev, "Driver Initializing success\n");
@@ -155,7 +157,6 @@ static void linux_sdio_remove(struct sdio_func *func)
 {
 	wilc_netdev_cleanup(sdio_get_drvdata(func));
 	wilc_bt_deinit();
-//	init_power = 0;
 }
 
 static int sdio_reset(struct wilc *wilc)
@@ -184,8 +185,13 @@ static int wilc_sdio_suspend(struct device *dev)
 	int ret;
 
 	dev_info(dev, "sdio suspend\n");
+	mutex_lock(&wilc->hif_cs);
+
 	chip_wakeup(wilc, 0);
 
+	if (mutex_is_locked(&wilc->hif_cs))
+		mutex_unlock(&wilc->hif_cs);
+	
 	if (!wilc->suspend_event) {
 		if(!wilc_wlan_get_num_conn_ifcs(wilc))
 			wilc_chip_sleep_manually(wilc, 0);
@@ -193,6 +199,8 @@ static int wilc_sdio_suspend(struct device *dev)
 		host_sleep_notify(wilc, 0);
 		chip_allow_sleep(wilc, 0);
 	}
+
+	mutex_lock(&wilc->hif_cs);
 
 	ret = sdio_reset(wilc);
 	if (ret) {
@@ -214,10 +222,18 @@ static int wilc_sdio_resume(struct device *dev)
 	chip_wakeup(wilc, 0);
 	sdio_init(wilc, true);
 
+	if (mutex_is_locked(&wilc->hif_cs))
+		mutex_unlock(&wilc->hif_cs);
+
 	if (wilc->suspend_event)
 		host_wakeup_notify(wilc, 0);
 
+	mutex_lock(&wilc->hif_cs);
+
 	chip_allow_sleep(wilc, 0);
+
+	if (mutex_is_locked(&wilc->hif_cs))
+		mutex_unlock(&wilc->hif_cs);
 
 	return 0;
 }

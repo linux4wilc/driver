@@ -142,6 +142,7 @@ static void wilc_bt_create_device(void)
 		unregister_chrdev_region(chc_dev_no, 1);
 		return;
 	}
+	mutex_init(&wilc_bt->cs);	
 	device_created = 1;
 }
 
@@ -191,7 +192,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 	int ret;
 	int reg;
 	
-	mutex_lock(&wilc->hif_cs);
+	mutex_lock(&wilc->cs);
 
 	PRINT_D(PWRDEV_DBG, "source: %s, current bus status Wifi: %d, BT: %d\n",
 		 (source == PWR_DEV_SRC_WIFI ? "Wifi" : "BT"),
@@ -246,7 +247,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 //		msleep(100);
 	}
 	wilc->power_status[source] = true;
-	mutex_unlock(&wilc->hif_cs);
+	mutex_unlock(&wilc->cs);
 
 	if(source == PWR_DEV_SRC_BT)
 	{
@@ -431,7 +432,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		bt_init_done=0;
 	}
 	
-	mutex_lock(&wilc->hif_cs);
+	mutex_lock(&wilc->cs);
 
 	PRINT_D(PWRDEV_DBG, "source: %s, current bus status Wifi: %d, BT: %d\n",
 		 (source == PWR_DEV_SRC_WIFI ? "Wifi" : "BT"),
@@ -452,7 +453,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 	}
 	wilc->power_status[source] = false;
 
-	mutex_unlock(&wilc->hif_cs);
+	mutex_unlock(&wilc->cs);
 
 	return 0;
 }
@@ -654,6 +655,10 @@ EXPORT_SYMBOL_GPL(wilc_bt_init);
 
 void wilc_bt_deinit(void)
 {
+	if (&wilc_bt->cs != NULL)
+		mutex_destroy(&wilc_bt->cs);
+
+	cdev_del(&str_chc_dev);
 	device_created = 0;
 	device_destroy(chc_dev_class, chc_dev_no);
 	class_destroy(chc_dev_class);

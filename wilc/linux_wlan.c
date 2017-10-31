@@ -1021,6 +1021,9 @@ static int wlan_deinit_locks(struct net_device *dev)
 
 	if (&wilc->hif_cs)
 		mutex_destroy(&wilc->hif_cs);
+
+	if (&wilc->cs)
+		mutex_destroy(&wilc->cs);
 	
 	if (&wilc->rxq_cs)
 		mutex_destroy(&wilc->rxq_cs);
