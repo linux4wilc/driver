@@ -2800,7 +2800,7 @@ static void host_if_work(struct work_struct *work)
 		del_timer(&msg->vif->hif_drv->scan_timer);
 
 		if (!wilc_wlan_get_num_conn_ifcs(wilc))
-			wilc_chip_sleep_manually(wilc);
+			wilc_chip_sleep_manually(wilc, PWR_DEV_SRC_WIFI);
 
 		Handle_ScanDone(msg->vif, SCAN_EVENT_DONE);
 

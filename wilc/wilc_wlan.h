@@ -321,18 +321,18 @@ int wilc_wlan_cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 int wilc_wlan_cfg_get_val(u16 wid, u8 *buffer, u32 buffer_size);
 int wilc_wlan_txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
 			       u32 buffer_size, wilc_tx_complete_func_t func);
-void wilc_chip_sleep_manually(struct wilc *wilc);
+void wilc_chip_sleep_manually(struct wilc *wilc, int source);
 
 void wilc_enable_tcp_ack_filter(bool value);
 int wilc_wlan_get_num_conn_ifcs(struct wilc *);
 int wilc_mac_xmit(struct sk_buff *skb, struct net_device *dev);
 
 void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size);
-void host_wakeup_notify(struct wilc *wilc);
-void host_sleep_notify(struct wilc *wilc);
+void host_wakeup_notify(struct wilc *wilc, int source);
+void host_sleep_notify(struct wilc *wilc, int source);
 extern bool wilc_enable_ps;
-void chip_allow_sleep(struct wilc *wilc);
-void chip_wakeup(struct wilc *wilc);
+void chip_allow_sleep(struct wilc *wilc, int source);
+void chip_wakeup(struct wilc *wilc, int source);
 int wilc_send_config_pkt(struct wilc_vif *vif, u8 mode, struct wid *wids,
 			 u32 count, u32 drv);
 void wilc_wlan_power_on_sequence(void);
@@ -341,4 +341,8 @@ void wilc_wlan_power_off_sequence(void);
 void wilc_bt_init(struct wilc *wilc);
 void wilc_bt_deinit(void);
 void eap_buff_timeout(unsigned long pUserVoid);
+void acquire_bus(struct wilc *wilc, enum BUS_ACQUIRE acquire, int source);
+void release_bus(struct wilc *wilc, enum BUS_RELEASE release, int source);
+int wilc_wlan_init(struct net_device *dev);
+u32 wilc_get_chipid(struct wilc *wilc, bool update);
 #endif

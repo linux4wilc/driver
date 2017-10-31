@@ -223,7 +223,9 @@ struct wilc {
 	struct rf_info dummy_statistics;
 
 	enum wilc_chip_type chip;
-	enum device_active dev_active;
+
+	uint8_t power_status[PWR_DEV_SRC_MAX];
+	uint8_t keep_awake[PWR_DEV_SRC_MAX];
 };
 
 struct WILC_WFI_mon_priv {

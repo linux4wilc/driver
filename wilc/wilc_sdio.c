@@ -15,6 +15,9 @@
 #include <linux/mmc/host.h>
 #include <linux/of_gpio.h>
 
+void chip_wakeup(struct wilc *wilc, int source);
+void chip_allow_sleep(struct wilc *wilc, int source);
+
 #define SDIO_MODALIAS "wilc1000_sdio"
 
 #define SDIO_VENDOR_ID_WILC 0x0296
@@ -144,8 +147,6 @@ static int linux_sdio_probe(struct sdio_func *func,
 	mutex_init(&wilc->hif_cs);
 	wilc_bt_init(wilc);
 
-	wilc->dev_active = NONE;
-
 	dev_info(&func->dev, "Driver Initializing success\n");
 	return 0;
 }
@@ -183,13 +184,14 @@ static int wilc_sdio_suspend(struct device *dev)
 	int ret;
 
 	dev_info(dev, "sdio suspend\n");
-	chip_wakeup(wilc);
+	chip_wakeup(wilc, 0);
 
 	if (!wilc->suspend_event) {
-		wilc_chip_sleep_manually(wilc);
+		if(!wilc_wlan_get_num_conn_ifcs(wilc))
+			wilc_chip_sleep_manually(wilc, 0);
 	} else {
-		host_sleep_notify(wilc);
-		chip_allow_sleep(wilc);
+		host_sleep_notify(wilc, 0);
+		chip_allow_sleep(wilc, 0);
 	}
 
 	ret = sdio_reset(wilc);
@@ -209,13 +211,13 @@ static int wilc_sdio_resume(struct device *dev)
 
 	dev_info(dev, "sdio resume\n");
 	sdio_release_host(func);
-	chip_wakeup(wilc);
+	chip_wakeup(wilc, 0);
 	sdio_init(wilc, true);
 
 	if (wilc->suspend_event)
-		host_wakeup_notify(wilc);
+		host_wakeup_notify(wilc, 0);
 
-	chip_allow_sleep(wilc);
+	chip_allow_sleep(wilc, 0);
 
 	return 0;
 }
