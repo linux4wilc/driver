@@ -283,19 +283,20 @@ static u32 inactive_time;
 static u8 del_beacon;
 static u32 clients_count;
 
-static u8 *join_req;
-static u8 *info_element;
+extern int recovery_on;
+
+u8 *join_req;
+u8 *info_element;
 static u8 mode_11i;
 static u8 auth_type;
 static u32 join_req_size;
 static u32 info_element_size;
-static struct wilc_vif *join_req_vif;
+struct wilc_vif *join_req_vif;
 #define REAL_JOIN_REQ 0
 #define FLUSHED_JOIN_REQ 1
 #define FLUSHED_BYTE_POS 79
 
 static void *host_int_ParseJoinBssParam(struct network_info *ptstrNetworkInfo);
-s32 Handle_ScanDone(struct wilc_vif *vif, enum scan_event enuEvent);
 static void host_if_work(struct work_struct *work);
 
 static int wilc_enqueue_cmd(struct host_if_msg *msg)

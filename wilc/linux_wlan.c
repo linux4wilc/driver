@@ -165,7 +165,7 @@ static const struct net_device_ops wilc_netdev_ops = {
 	.ndo_set_rx_mode  = wilc_set_multicast_list,
 };
 
-int debug_running = 0;
+int debug_running = false;
 int recovery_on = 0;
 int wait_for_recovery = 0;
 static int debug_thread(void *arg)
@@ -176,6 +176,7 @@ static int debug_thread(void *arg)
 	struct net_device *dev = arg;
 	signed long timeout;
 	struct host_if_drv *hif_drv;
+	int i = 0;
 	
 	vif = netdev_priv(dev);
 
@@ -192,69 +193,84 @@ static int debug_thread(void *arg)
 	complete(&wl->debug_thread_started);
 
 	while(1){
-		if (wl->close) {
-			while (!kthread_should_stop())
-				schedule();
+		if (wl->initialized) {
+			if (wait_for_completion_timeout(&wl->debug_thread_started, msecs_to_jiffies(6000))) {
+				while (!kthread_should_stop())
+					schedule();
 
-			break;
-		}
-
-
-		if(cfg_packet_timeout >= 5){
-			netdev_info(dev, "<Recover>\n");
-			cfg_packet_timeout = 0;
-			timeout = 10;
-			recovery_on = 1;
-			wait_for_recovery = 1;
-			wilc_mac_close(wl->vif[0]->ndev);
-			wilc_mac_open(wl->vif[0]->ndev);
-			msleep(100);
-
-			if(hif_drv->hif_state == HOST_IF_CONNECTED) {
-				struct disconnect_info strDisconnectNotifInfo;
-
-				memset(&strDisconnectNotifInfo, 0, sizeof(struct disconnect_info));
-			if (hif_drv->usr_scan_req.scan_result) {
-				del_timer(&hif_drv->scan_timer);
-				Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
+				return 0;
 			}
-			strDisconnectNotifInfo.reason = 0;
-			strDisconnectNotifInfo.ie = NULL;
-			strDisconnectNotifInfo.ie_len = 0;
 
-			if (hif_drv->usr_conn_req.conn_result) {
+			if (debug_running) {
+				netdev_info(dev, "*** Debug Thread Running ***\n");
+				if(cfg_packet_timeout >= 5){
+					netdev_info(dev, "<Recover>\n");
+					cfg_packet_timeout = 0;
+					timeout = 10;
+					recovery_on = 1;
+					wait_for_recovery = 1;
+					for (i = 0; i < NUM_CONCURRENT_IFC; i++)
+						wilc_mac_close(wl->vif[i]->ndev);
+					for (i = NUM_CONCURRENT_IFC; i > 0; i--)
+						while (wilc_mac_open(wl->vif[i - 1]->ndev) && --timeout)
+							msleep(100);
+
+					if(hif_drv->hif_state == HOST_IF_CONNECTED) {
+						struct disconnect_info strDisconnectNotifInfo;
+
+						memset(&strDisconnectNotifInfo, 0, sizeof(struct disconnect_info));
+						if (hif_drv->usr_scan_req.scan_result) {
+							del_timer(&hif_drv->scan_timer);
+							Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
+						}
+						strDisconnectNotifInfo.reason = 0;
+						strDisconnectNotifInfo.ie = NULL;
+						strDisconnectNotifInfo.ie_len = 0;
+
+						if (hif_drv->usr_conn_req.conn_result) {
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 
-				handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+							handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 #endif
 
-				hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
-								  NULL,
-								  0,
-								  &strDisconnectNotifInfo,
-								  hif_drv->usr_conn_req.arg);
-			} else {
-				netdev_err(vif->ndev, "Connect result NULL\n");
+							hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
+											  NULL,
+											  0,
+											  &strDisconnectNotifInfo,
+											  hif_drv->usr_conn_req.arg);
+						} else {
+							netdev_err(vif->ndev, "Connect result NULL\n");
+						}
+						eth_zero_addr(hif_drv->assoc_bssid);
+
+						hif_drv->usr_conn_req.ssid_len = 0;
+						kfree(hif_drv->usr_conn_req.ssid);
+						hif_drv->usr_conn_req.ssid = NULL;
+						kfree(hif_drv->usr_conn_req.bssid);
+						hif_drv->usr_conn_req.bssid = NULL;
+						hif_drv->usr_conn_req.ies_len = 0;
+						kfree(hif_drv->usr_conn_req.ies);
+						hif_drv->usr_conn_req.ies = NULL;
+
+						if (join_req != NULL && join_req_vif == vif) {
+							kfree(join_req);
+							join_req = NULL;
+						}
+						if (info_element != NULL && join_req_vif == vif) {
+							kfree(info_element);
+							info_element = NULL;
+						}
+
+						hif_drv->hif_state = HOST_IF_IDLE;
+						scan_while_connected = false;
+
+					}
+					recovery_on = 0;
+				}
 			}
-			eth_zero_addr(hif_drv->assoc_bssid);
-
-			hif_drv->usr_conn_req.ssid_len = 0;
-			kfree(hif_drv->usr_conn_req.ssid);
-			hif_drv->usr_conn_req.ssid = NULL;
-			kfree(hif_drv->usr_conn_req.bssid);
-			hif_drv->usr_conn_req.bssid = NULL;
-			hif_drv->usr_conn_req.ies_len = 0;
-			kfree(hif_drv->usr_conn_req.ies);
-			hif_drv->usr_conn_req.ies = NULL;
-
-
-			hif_drv->hif_state = HOST_IF_IDLE;
-			scan_while_connected = false;
-
-			}
-			recovery_on = 0;
+		} else {
+			msleep(1000);
 		}
-		msleep(2000);
 	}
 	return 0;
 }
@@ -966,7 +982,6 @@ static int wlan_init_locks(struct net_device *dev)
 	mutex_init(&wl->txq_add_to_head_cs);
 
 	init_completion(&wl->txq_event);
-
 	init_completion(&wl->cfg_event);
 	init_completion(&wl->sync_event);
 	init_completion(&wl->txq_thread_started);
@@ -1004,20 +1019,24 @@ static int wlan_initialize_threads(struct net_device *dev)
 				     "K_TXQ_TASK");
 	if (IS_ERR(wilc->txq_thread)) {
 		netdev_err(dev, "couldn't create TXQ thread\n");
-		wilc->close = 0;
+		wilc->close = 1;
 		return PTR_ERR(wilc->txq_thread);
 	}
 	wait_for_completion(&wilc->txq_thread_started);
 
-	wilc->debug_thread = kthread_run(debug_thread, (void *)dev,
-					 "WILC_DEBUG");
-	if(IS_ERR(wilc->debug_thread)){
-		netdev_err(dev, "couldn't create debug thread\n");
-		wilc->close = 0;
-		return PTR_ERR(wilc->debug_thread);
+	if (!debug_running) {
+		wilc->debug_thread = kthread_run(debug_thread,(void *)dev,
+			"WILC_DEBUG");
+		if(IS_ERR(wilc->debug_thread)){
+			netdev_err(dev, "couldn't create debug thread\n");
+			wilc->close = 1;
+			kthread_stop(wilc->txq_thread);
+			return PTR_ERR(wilc->debug_thread);
+		}
+		debug_running = true;
+		wait_for_completion(&wilc->debug_thread_started);
 	}
-	wait_for_completion(&wilc->debug_thread_started);
-	debug_running = true;
+
 	return 0;
 }
 
@@ -1028,6 +1047,16 @@ static void wlan_deinitialize_threads(struct net_device *dev)
 
 	vif = netdev_priv(dev);
 	wl = vif->wilc;
+	
+	if (!recovery_on) {
+		debug_running = false;
+		if (&wl->debug_thread_started)
+			complete(&wl->debug_thread_started);
+		if (wl->debug_thread) {
+			kthread_stop(wl->debug_thread);
+			wl->debug_thread = NULL;
+		}
+	}
 
 	wl->close = 1;
 
@@ -1169,7 +1198,6 @@ static int wilc_mac_open(struct net_device *ndev)
 
 	netdev_dbg(ndev, "MAC OPEN[%p]\n", ndev);
 
-
 	if(!recovery_on){
 		ret = wilc_init_host_int(ndev);
 		if (ret < 0)
@@ -1179,7 +1207,7 @@ static int wilc_mac_open(struct net_device *ndev)
 	ret = wilc_wlan_initialize(ndev, vif);
 	if (ret < 0) {
 		if(!recovery_on)
-		wilc_deinit_host_int(ndev);
+			wilc_deinit_host_int(ndev);
 		return ret;
 	}
 
@@ -1694,3 +1722,4 @@ void wilc_wlan_power_off_sequence(void)
 EXPORT_SYMBOL_GPL(wilc_wlan_power_off_sequence);
 
 MODULE_LICENSE("GPL");
+
