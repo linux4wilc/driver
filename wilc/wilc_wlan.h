@@ -265,7 +265,7 @@ struct rxq_entry_t {
 	int buffer_size;
 };
 
-enum wilc_chip_id {
+enum wilc_chip_type {
 	WILC_1000,
 	WILC_3000,
 };

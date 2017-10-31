@@ -233,7 +233,7 @@ struct wilc {
 
 	struct rf_info dummy_statistics;
 
-	enum wilc_chip_id chip_id;
+	enum wilc_chip_type chip;
 	enum device_active dev_active;
 };
 

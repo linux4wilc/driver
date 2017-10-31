@@ -782,29 +782,18 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	 *      make sure can read back chip id correctly
 	 **/
 	if (!resume) {
-		if (sdio_read_reg(wilc, 0x3b0000, &chipid)) {
-			if (ISWILC3000(chipid)) {
-				g_sdio.has_thrpt_enh3 = 1;
-				wilc->chip_id = WILC_3000;
-				goto _pass_;
-			}
+		chipid = wilc_get_chipid(wilc, true);
+		if(ISWILC3000(chipid)) {
+			g_sdio.has_thrpt_enh3 = 1;
+			wilc->chip = WILC_3000;
+			goto _pass_;
+		} else if(ISWILC1000(chipid)) {
+			wilc->chip = WILC_1000;
+			g_sdio.has_thrpt_enh3 = 1;
 		} else {
 			dev_err(&func->dev, "Fail cmd read chip id...\n");
 			goto _fail_;
 		}
-
-		if (sdio_read_reg(wilc, 0x1000, &chipid)) {
-			if ((chipid & 0xfff) > 0x2a0) {
-				wilc->chip_id = WILC_1000;
-				g_sdio.has_thrpt_enh3 = 1;
-			} else {
-				g_sdio.has_thrpt_enh3 = 0;
-			}
-		} else {
-			dev_err(&func->dev, "Fail cmd read chip id...\n");
-			goto _fail_;
-		}
-
 		dev_err(&func->dev, "chipid (%08x)\n", chipid);
 		dev_info(&func->dev, "has_thrpt_enh3 = %d...\n",
 			 g_sdio.has_thrpt_enh3);
@@ -892,7 +881,7 @@ static int sdio_read_int(struct wilc *wilc, u32 *int_status)
 		cmd.function = 0;
 		cmd.raw = 0;
 		cmd.data = 0;
-		if (wilc->chip_id != WILC_3000) {
+		if (wilc->chip != WILC_3000) {
 			cmd.address = 0xf7;
 			wilc_sdio_cmd52(wilc, &cmd);
 			irq_flags = cmd.data & 0x1f;
@@ -914,7 +903,7 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
 	int ret;
 
-	if (wilc->chip_id != WILC_3000) {
+	if (wilc->chip != WILC_3000) {
 		if (g_sdio.has_thrpt_enh3) {
 			u32 reg;
 
@@ -1132,7 +1121,7 @@ static int sdio_sync_ext(struct wilc *wilc, int nint)
 		return 0;
 	}
 
-	if (wilc->chip_id == WILC_1000) {
+	if (wilc->chip == WILC_1000) {
 		if (g_sdio.irq_gpio) {
 			u32 reg;
 			int ret, i;

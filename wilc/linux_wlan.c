@@ -345,6 +345,22 @@ static int dev_state_ev_handler(struct notifier_block *this,
 }
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
+void linux_wlan_disable_irq(struct wilc* wilc, int wait)
+{
+	if (wait) {
+		PRINT_D(INT_DBG, "Disabling IRQ ...\n");
+		disable_irq(wilc->dev_irq_num);
+	} else {
+		PRINT_D(INT_DBG, "Disabling IRQ ...\n");
+		disable_irq_nosync(wilc->dev_irq_num);
+	}
+}
+
+static irqreturn_t host_wakeup_isr(int irq, void *user_data)
+{
+	return IRQ_HANDLED;
+}
+
 static irqreturn_t isr_uh_routine(int irq, void *user_data)
 {
 	struct wilc_vif *vif;
@@ -397,20 +413,36 @@ static int init_irq(struct net_device *dev)
 		netdev_err(dev, "could not obtain gpio for WILC_INTR\n");
 	}
 
-	if (ret != -1 && request_threaded_irq(wl->dev_irq_num,
-					      isr_uh_routine,
-					      isr_bh_routine,
-					      IRQF_TRIGGER_LOW | IRQF_ONESHOT,
-					      "WILC_IRQ", dev) < 0) {
-		netdev_err(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio);
-		gpio_free(wl->gpio);
-		ret = -1;
+	if ((wl->io_type & 0x1) == HIF_SPI || 
+		(wl->io_type & 0x2) == HIF_SDIO_GPIO_IRQ) {
+		if (ret != -1 && request_threaded_irq(wl->dev_irq_num,
+						      isr_uh_routine,
+						      isr_bh_routine,
+						      IRQF_TRIGGER_LOW | IRQF_ONESHOT|IRQF_NO_SUSPEND,
+						      "WILC_IRQ", dev) < 0) {
+			netdev_err(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio);
+			gpio_free(wl->gpio);
+			ret = -1;
+		} else {
+			netdev_info(dev,
+				   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
+				   wl->dev_irq_num, wl->gpio);
+			enable_irq_wake(wl->dev_irq_num);
+		}
 	} else {
-		netdev_info(dev,
-			   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
-			   wl->dev_irq_num, wl->gpio);
+		if (ret != -1 && request_irq(wl->dev_irq_num, 
+						      host_wakeup_isr,
+						      IRQF_TRIGGER_FALLING | IRQF_NO_SUSPEND,
+						      "WILC_IRQ", dev) < 0) {
+			netdev_err(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio);
+			gpio_free(wl->gpio);
+			ret = -1;
+		} else {
+			netdev_info(dev,
+				   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
+				   wl->dev_irq_num, wl->gpio);
+		}
 	}
-
 	return ret;
 }
 
@@ -622,20 +654,17 @@ int wilc_wlan_get_firmware(struct net_device *dev)
 {
 	struct wilc_vif *vif;
 	struct wilc *wilc;
-	int chip_id, ret = 0;
+	int ret = 0;
 	const struct firmware *wilc_firmware;
 	char *firmware;
 
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
 
-	chip_id = wilc_get_chipid(wilc, false);
-
-	if (chip_id == 0x3000d0) {
+	if (wilc->chip == WILC_3000) {
 		netdev_info(dev, "Detect chip WILC3000\n");
 		firmware = FIRMWARE_WILC3000_WIFI;
-	}
-	else if (chip_id == 0x1003a0) {
+	} else if (wilc->chip == WILC_1000) {
 		netdev_info(dev, "Detect chip WILC1000\n");
 		firmware = FIRMWARE_WILC1000_WIFi;
 	} else {
@@ -670,10 +699,6 @@ static int linux_wlan_start_firmware(struct net_device *dev)
 
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
-#ifdef PREVENT_SDIO_HOST_FROM_SUSPEND
-	func = dev_to_sdio_func(wilc->dev);
-	pm_runtime_get_sync(mmc_dev(func->card->host));
-#endif
 
 	ret = wilc_wlan_start(wilc);
 	if (ret < 0) {
@@ -720,7 +745,6 @@ static int linux_wlan_init_test_config(struct net_device *dev,
 				       struct wilc_vif *vif)
 {
 	unsigned char c_val[64];
-	struct wilc *wilc = vif->wilc;
 	struct wilc_priv *priv;
 	struct host_if_drv *hif_drv;
 
@@ -728,7 +752,6 @@ static int linux_wlan_init_test_config(struct net_device *dev,
 	priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
 	hif_drv = (struct host_if_drv *)priv->hif_drv;
 	netdev_dbg(dev, "Host = %p\n", hif_drv);
-	wilc_get_chipid(wilc, false);
 
 	*(int *)c_val = (unsigned int)vif->iftype;
 
@@ -932,10 +955,15 @@ void wilc_wlan_deinitialize(struct net_device *dev)
 			return;
 		}
 
-		if(wl->hif_func->disable_interrupt) {
-			mutex_lock(&wl->hif_cs);
-			wl->hif_func->disable_interrupt(wl);
-			mutex_unlock(&wl->hif_cs);
+		if ((wl->io_type & 0x1) == HIF_SPI ||
+			(wl->io_type & 0x2) == HIF_SDIO_GPIO_IRQ) {
+			linux_wlan_disable_irq(wl, 1);
+		} else {
+			if(wl->hif_func->disable_interrupt) {
+				mutex_lock(&wl->hif_cs);
+				wl->hif_func->disable_interrupt(wl);
+				mutex_unlock(&wl->hif_cs);
+			}
 		}
 
 		if (&wl->txq_event)
@@ -1337,7 +1365,6 @@ int wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 
 	vif->netstats.tx_packets++;
 	vif->netstats.tx_bytes += tx_data->size;
-
 	tx_data->bssid = wilc->vif[vif->idx]->bssid;
 	queue_count = wilc_wlan_txq_add_net_pkt(ndev, (void *)tx_data,
 						tx_data->buff, tx_data->size,

@@ -651,7 +651,7 @@ void chip_allow_sleep(struct wilc *wilc)
 
 	wilc->hif_func->hif_read_reg(wilc, 0xf0, &reg);
 
-	if (wilc->chip_id != WILC_3000) {
+	if (wilc->chip != WILC_3000) {
 		wilc->hif_func->hif_write_reg(wilc, 0xf0, reg & ~BIT(0));
 		wilc->hif_func->hif_write_reg(wilc, 0xfa, 0);
 	} else {
@@ -664,7 +664,7 @@ void chip_wakeup(struct wilc *wilc)
 {
 	u32 reg, clk_status_reg;
 
-	if (wilc->chip_id != WILC_3000) {
+	if (wilc->chip != WILC_3000) {
 		if ((wilc->io_type & 0x1) == HIF_SPI) {
 			do {
 				wilc->hif_func->hif_read_reg(wilc, 1, &reg);
@@ -791,7 +791,7 @@ void wilc_chip_sleep_manually(struct wilc *wilc)
 	acquire_bus(wilc, ACQUIRE_ONLY);
 
 	chip_allow_sleep(wilc);
-	if (wilc->chip_id != WILC_3000)
+	if (wilc->chip != WILC_3000)
 		wilc->hif_func->hif_write_reg(wilc, 0x10a8, 1);
 	else
 		wilc->hif_func->hif_write_reg(wilc, 0x10B8, 1);
@@ -804,7 +804,7 @@ EXPORT_SYMBOL_GPL(wilc_chip_sleep_manually);
 void host_wakeup_notify(struct wilc *wilc)
 {
 	acquire_bus(wilc, ACQUIRE_ONLY);
-	if (wilc->chip_id != WILC_3000)
+	if (wilc->chip != WILC_3000)
 		wilc->hif_func->hif_write_reg(wilc, 0x10b0, 1);
 	else
 		wilc->hif_func->hif_write_reg(wilc, 0x10c0, 1);
@@ -815,7 +815,7 @@ EXPORT_SYMBOL_GPL(host_wakeup_notify);
 void host_sleep_notify(struct wilc *wilc)
 {
 	acquire_bus(wilc, ACQUIRE_ONLY);
-	if (wilc->chip_id != WILC_3000)
+	if (wilc->chip != WILC_3000)
 		wilc->hif_func->hif_write_reg(wilc, 0x10ac, 1);
 	else
 		wilc->hif_func->hif_write_reg(wilc, 0x10bc, 1);
@@ -945,7 +945,7 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 			if (!ret)
 				break;
 
-			if (wilc->chip_id != WILC_3000) {
+			if (wilc->chip != WILC_3000) {
 				ret = wilc->hif_func->hif_write_reg(wilc,
 								    WILC_HOST_VMM_CTL,
 								    0x2);
@@ -1298,7 +1298,7 @@ int wilc_wlan_firmware_download(struct wilc *wilc, const u8 *buffer,
 
 	offset = 0;
 
-	if (wilc->chip_id == WILC_3000) {
+	if (wilc->chip == WILC_3000) {
 		acquire_bus(wilc, ACQUIRE_AND_WAKEUP);
 
 		wilc->hif_func->hif_read_reg(wilc, WILC_GLB_RESET_0, &reg);
@@ -1316,7 +1316,7 @@ int wilc_wlan_firmware_download(struct wilc *wilc, const u8 *buffer,
 		memcpy(&size, &buffer[offset + 4], 4);
 		addr = cpu_to_le32(addr);
 		size = cpu_to_le32(size);
-		if (wilc->chip_id != WILC_3000)
+		if (wilc->chip != WILC_3000)
 			acquire_bus(wilc, ACQUIRE_ONLY);
 		else
 			acquire_bus(wilc, ACQUIRE_AND_WAKEUP);
@@ -1337,7 +1337,7 @@ int wilc_wlan_firmware_download(struct wilc *wilc, const u8 *buffer,
 			offset += size2;
 			size -= size2;
 		}
-		if (wilc->chip_id != WILC_3000)
+		if (wilc->chip != WILC_3000)
 			release_bus(wilc, RELEASE_ONLY);
 		else
 			release_bus(wilc, RELEASE_ALLOW_SLEEP);
@@ -1359,7 +1359,6 @@ int wilc_wlan_start(struct wilc *wilc)
 {
 	u32 reg = 0;
 	int ret;
-	u32 chipid;
 
 	if (wilc->io_type == HIF_SDIO) {
 		reg = 0;
@@ -1368,7 +1367,7 @@ int wilc_wlan_start(struct wilc *wilc)
 		reg = 1;
 	}
 
-	if (wilc->chip_id == WILC_1000)
+	if (wilc->chip == WILC_1000)
 		acquire_bus(wilc, ACQUIRE_ONLY);
 	else
 		acquire_bus(wilc, ACQUIRE_AND_WAKEUP);
@@ -1420,19 +1419,6 @@ int wilc_wlan_start(struct wilc *wilc)
 
 	wilc->hif_func->hif_sync_ext(wilc, NUM_INT_EXT);
 
-	if (wilc->chip_id == WILC_1000) {
-		ret = wilc->hif_func->hif_read_reg(wilc, 0x1000, &chipid);
-		if (!ret) {
-			release_bus(wilc, RELEASE_ONLY);
-			return -EIO;
-		}
-	} else {
-		ret = wilc->hif_func->hif_read_reg(wilc, 0x3b0000, &chipid);
-		if (!ret) {
-			release_bus(wilc, RELEASE_ALLOW_SLEEP);
-			return -EIO;
-		}
-	}
 
 	wilc->hif_func->hif_read_reg(wilc, WILC_GLB_RESET_0, &reg);
 	if ((reg & BIT(10)) == BIT(10)) {
@@ -1447,7 +1433,7 @@ int wilc_wlan_start(struct wilc *wilc)
 
 	wilc->dev_active = WLAN_ACTTIVE;
 
-	if (wilc->chip_id == WILC_1000)
+	if (wilc->chip == WILC_1000)
 		release_bus(wilc, RELEASE_ONLY);
 	else
 		release_bus(wilc, RELEASE_ALLOW_SLEEP);
@@ -1503,7 +1489,7 @@ int wilc_wlan_stop(struct wilc *wilc)
 
 	} while (timeout);
 
-	if (wilc->chip_id == WILC_1000) {
+	if (wilc->chip == WILC_1000) {
 		reg = (BIT(0) | BIT(1) | BIT(2) | BIT(3) | BIT(8) | BIT(9) |
 		       BIT(26) | BIT(29) | BIT(30) | BIT(31));
 	} else {
@@ -1740,7 +1726,7 @@ static u32 init_chip(struct net_device *dev)
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
 
-	if (wilc->chip_id != WILC_3000) {
+	if (wilc->chip != WILC_3000) {
 		acquire_bus(wilc, ACQUIRE_ONLY);
 
 		chipid = wilc_get_chipid(wilc, true);
@@ -1806,37 +1792,30 @@ static u32 init_chip(struct net_device *dev)
 u32 wilc_get_chipid(struct wilc *wilc, bool update)
 {
 	static u32 chipid;
+	int ret;
 	u32 tempchipid = 0;
-	u32 rfrevid = 0;
-	if (wilc->chip_id == WILC_1000) {
-		if (chipid == 0 || update) {
+
+	if (chipid == 0 || update) {
+		ret = wilc->hif_func->hif_read_reg(wilc, 0x3b0000,
+						     &tempchipid);
+
+		if (!ISWILC3000(tempchipid)) {
 			wilc->hif_func->hif_read_reg(wilc, 0x1000, &tempchipid);
-			wilc->hif_func->hif_read_reg(wilc, 0x13f4, &rfrevid);
 			if (!ISWILC1000(tempchipid)) {
 				chipid = 0;
 				return chipid;
 			}
-			if (tempchipid == 0x1002a0) {
-				if (rfrevid != 0x1)
-					tempchipid = 0x1002a1;
-			} else if (tempchipid == 0x1002b0) {
-				if (rfrevid == 0x4)
-					tempchipid = 0x1002b1;
-				else if (rfrevid != 0x3)
-					tempchipid = 0x1002b2;
+			if(tempchipid < 0x1003a0){
+				chipid = 0;
+				return chipid;
 			}
-
-			chipid = tempchipid;
 		}
-	} else {
-		if (chipid == 0 || update != 0) {
-			wilc->hif_func->hif_read_reg(wilc, 0x3b0000,
-						     &tempchipid);
-			chipid = tempchipid;
-		}
+		chipid = tempchipid;
 	}
+
 	return chipid;
 }
+EXPORT_SYMBOL_GPL(wilc_get_chipid);
 
 int wilc_wlan_init(struct net_device *dev)
 {
@@ -1853,7 +1832,7 @@ int wilc_wlan_init(struct net_device *dev)
 		goto _fail_;
 	}
 
-	if (wilc->chip_id == WILC_1000)
+	if (wilc->chip == WILC_1000)
 		wilc_wlan_power_off_sequence();
 
 	if (!wilc_wlan_cfg_init()) {
