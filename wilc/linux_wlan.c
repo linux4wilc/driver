@@ -1342,9 +1342,9 @@ static int wilc_mac_open(struct net_device *ndev)
 				 vif->ndev->ieee80211_ptr,
 				 vif->frame_reg[1].type,
 				 vif->frame_reg[1].reg);
-#if defined(ANT_SWTCH_DUAL_GPIO_CTRL) || defined(ANT_SWTCH_SNGL_GPIO_CTRL)
-	wilc_set_antenna(vif,DIVERSITY);
-#endif
+	if (vif->attr_sysfs.ant_swtch_mode != 0)
+		wilc_set_antenna(vif,DIVERSITY);
+
 	netif_wake_queue(ndev);
 	wl->open_ifcs++;
 	vif->mac_opened = 1;
@@ -1735,7 +1735,7 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	#endif
 
 	kfree(wilc);
-	p2p_sysfs_exit();
+	wilc_sysfs_exit();
 	PRINT_D(INIT_DBG, "Module_exit Done.\n");
 }
 EXPORT_SYMBOL_GPL(wilc_netdev_cleanup);
@@ -1813,7 +1813,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		vif->iftype = STATION_MODE;
 		vif->mac_opened = 0;
 	}
-	p2p_sysfs_init(vif);
+	wilc_sysfs_init(vif);
 
 	return 0;
 }

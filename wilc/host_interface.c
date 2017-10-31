@@ -62,6 +62,27 @@
 #define TCP_ACK_FILTER_LINK_SPEED_THRESH	54
 #define DEFAULT_LINK_SPEED			72
 
+/* Generic success will return 0 */
+#define WILC_SUCCESS 		0	/** Generic success */
+
+/* Negative numbers to indicate failures */
+#define	WILC_FAIL                -100	/** Generic Fail */		
+#define	WILC_BUSY                -101	/** Busy with another operation*/
+#define	WILC_INVALID_ARGUMENT    -102	/** A given argument is invalid*/
+#define	WILC_INVALID_STATE      	-103	/** An API request would violate the Driver state machine (i.e. to start PID while not camped)*/
+#define	WILC_BUFFER_OVERFLOW     -104	/** In copy operations if the copied data is larger than the allocated buffer*/
+#define WILC_NULL_PTR		-105	/** null pointer is passed or used */
+#define	WILC_EMPTY               -107
+#define WILC_FULL				-108
+#define	WILC_TIMEOUT            	-109
+#define WILC_CANCELED		-110	/** The required operation have been canceled by the user*/
+#define WILC_INVALID_FILE	-112	/** The Loaded file is corruped or having an invalid format */
+#define WILC_NOT_FOUND		-113	/** Cant find the file to load */
+#define WILC_NO_MEM 		-114
+#define WILC_UNSUPPORTED_VERSION -115
+#define WILC_FILE_EOF			-116
+
+
 struct host_if_wpa_attr {
 	u8 *key;
 	const u8 *mac_addr;
@@ -190,9 +211,7 @@ struct bt_coex_mode {
 struct host_if_set_ant {
 	u8 mode;
 	u8 antenna1;
-#ifdef ANT_SWTCH_DUAL_GPIO_CTRL
 	u8 antenna2;
-#endif
 };
 
 union message_body {
@@ -2825,17 +2844,18 @@ static int handle_set_antenna_mode(struct wilc_vif *vif, struct host_if_set_ant
 {
 	int ret = 0;
 	struct wid wid;
+	sysfs_attr_group *attr_syfs_p = &vif->attr_sysfs;
 
 	wid.id = (u16)WID_ANTENNA_SELECTION;
 	wid.type = WID_BIN;
 	wid.val = (u8 *)set_ant;
 	wid.size = sizeof(struct host_if_set_ant);
 
-#ifdef ANT_SWTCH_SNGL_GPIO_CTRL
-	netdev_dbg(vif->ndev, "set antenna %d on GPIO %d\n",set_ant->mode,set_ant->antenna1);
-#elif defined(ANT_SWTCH_DUAL_GPIO_CTRL)
-	netdev_dbg(vif->ndev, "set antenna %d on GPIOs %d and %d\n",set_ant->mode,set_ant->antenna1,set_ant->antenna2);
-#endif
+	if (attr_syfs_p->ant_swtch_mode == ANT_SWTCH_SNGL_GPIO_CTRL)
+		netdev_dbg(vif->ndev, "set antenna %d on GPIO %d\n",set_ant->mode,set_ant->antenna1);
+	else if (attr_syfs_p->ant_swtch_mode == ANT_SWTCH_DUAL_GPIO_CTRL)
+		netdev_dbg(vif->ndev, "set antenna %d on GPIOs %d and %d\n",set_ant->mode,set_ant->antenna1,set_ant->antenna2);
+
 
 	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				   wilc_get_vif_idx(vif));
@@ -4535,12 +4555,12 @@ int wilc_get_tx_power(struct wilc_vif *vif, u8 *tx_power)
 
 	return ret;
 }
-#define ANT1_GPIO_NUM 4
-#define ANT2_GPIO_NUM 6
+
 int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 {
 	int ret = 0;
 	struct host_if_msg msg;
+	sysfs_attr_group *attr_syfs_p;
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
@@ -4548,21 +4568,27 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 
 	msg.vif = vif;
 	msg.body.set_ant.mode = mode;
-#ifdef ANT_SWTCH_SNGL_GPIO_CTRL
-	#if(((ANT_1_GPIO_NUM >= 17) && (ANT_1_GPIO_NUM <= 21)) ||(ANT_1_GPIO_NUM == 3) || (ANT_1_GPIO_NUM == 4))
-			msg.body.set_ant.antenna1 = ANT_1_GPIO_NUM;
-	#else
-			return WILC_FAIL;
-	#endif
-#elif defined(ANT_SWTCH_DUAL_GPIO_CTRL)
-	#if((((ANT_1_GPIO_NUM >= 17) && (ANT_1_GPIO_NUM <= 21)) ||(ANT_1_GPIO_NUM == 3) || (ANT_1_GPIO_NUM == 4))\
-		&& (((ANT_2_GPIO_NUM >= 17) && (ANT_2_GPIO_NUM <= 21)) ||(ANT_2_GPIO_NUM == 3) || (ANT_2_GPIO_NUM == 4)))
-			msg.body.set_ant.antenna1 = ANT_1_GPIO_NUM;
-			msg.body.set_ant.antenna2 = ANT_2_GPIO_NUM;
-	#else
-			return WILC_FAIL;
-	#endif
-#endif
+	attr_syfs_p = &vif->attr_sysfs;
+	if (attr_syfs_p->ant_swtch_mode == ANT_SWTCH_SNGL_GPIO_CTRL)
+		{
+			if(((attr_syfs_p->antenna1 >= 17) && (attr_syfs_p->antenna1 <= 21)) ||
+				(attr_syfs_p->antenna1 == 3) || (attr_syfs_p->antenna1 == 4))
+				msg.body.set_ant.antenna1 = attr_syfs_p->antenna1;
+			else
+				return WILC_FAIL;
+		}
+	else if (attr_syfs_p->ant_swtch_mode == ANT_SWTCH_DUAL_GPIO_CTRL)
+		{
+			if((((attr_syfs_p->antenna1 >= 17) && (attr_syfs_p->antenna1 <= 21)) ||(attr_syfs_p->antenna1 == 3) || (attr_syfs_p->antenna1 == 4))\
+				&& (((attr_syfs_p->antenna2 >= 17) && (attr_syfs_p->antenna2 <= 21)) ||(attr_syfs_p->antenna2 == 3) || (attr_syfs_p->antenna2 == 4))) 
+				{
+					msg.body.set_ant.antenna1 = attr_syfs_p->antenna1;
+					msg.body.set_ant.antenna2 = attr_syfs_p->antenna2;
+				}
+			else
+				return WILC_FAIL;
+
+		}
 	ret = wilc_enqueue_cmd(&msg);
 	if(ret) {
 		netdev_err(vif->ndev, "Failed to send get host channel param's message queue ");

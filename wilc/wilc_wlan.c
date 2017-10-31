@@ -1509,12 +1509,12 @@ int wilc_wlan_start(struct wilc *wilc)
 	if(wilc->chip == WILC_3000)
 		reg |= WILC_HAVE_SLEEP_CLK_SRC_RTC;
 
-#ifdef ANT_SWTCH_SNGL_GPIO_CTRL
+	if (wilc->vif[wilc->vif_num]->attr_sysfs.ant_swtch_mode == ANT_SWTCH_SNGL_GPIO_CTRL)
 	        reg |= WILC_HAVE_ANT_SWTCH_SNGL_GPIO_CTRL;
-#elif defined(ANT_SWTCH_DUAL_GPIO_CTRL)
+	else if (wilc->vif[wilc->vif_num]->attr_sysfs.ant_swtch_mode == ANT_SWTCH_DUAL_GPIO_CTRL) {
 	        reg |= WILC_HAVE_ANT_SWTCH_SNGL_GPIO_CTRL;
 	        reg |= WILC_HAVE_ANT_SWTCH_DUAL_GPIO_CTRL;
-#endif
+}
 
 	ret = wilc->hif_func->hif_write_reg(wilc, WILC_GP_REG_1, reg);
 	if (!ret) {

@@ -49,6 +49,9 @@
 #define FLOW_CONTROL_LOWER_THRESHOLD	128
 #define FLOW_CONTROL_UPPER_THRESHOLD	256
 
+#define ANT_SWTCH_SNGL_GPIO_CTRL 	1
+#define ANT_SWTCH_DUAL_GPIO_CTRL	2
+
 enum stats_flags {
 	WILC_WFI_RX_PKT = BIT(0),
 	WILC_WFI_TX_PKT = BIT(1),
@@ -147,6 +150,13 @@ struct frame_reg {
 	bool reg;
 };
 
+typedef struct {
+	bool p2p_mode;
+	u8 ant_swtch_mode;
+	u8 antenna1;
+	u8 antenna2;
+} sysfs_attr_group;
+
 struct wilc_vif {
 	u8 idx;
 	u8 iftype;
@@ -160,7 +170,8 @@ struct wilc_vif {
 	struct host_if_drv *hif_drv;
 	struct net_device *ndev;
 	u8 ifc_id;
-	bool p2p_mode;
+	
+	sysfs_attr_group attr_sysfs;
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	bool pwrsave_current_state;
 #endif
