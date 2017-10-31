@@ -300,11 +300,11 @@ static int wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
 	return 1;
 }
 
-static bool enabled;
+static bool ack_filter_enabled;
 
 void wilc_enable_tcp_ack_filter(bool value)
 {
-	enabled = value;
+	ack_filter_enabled = value;
 }
 
 static int wilc_wlan_txq_add_cfg_pkt(struct wilc_vif *vif, u8 *buffer,
@@ -536,7 +536,7 @@ int wilc_wlan_txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
 	    (q_num == AC_BE_Q && wilc->txq[q_num].count <= q_limit[AC_BE_Q]) ||
 	    (q_num == AC_BK_Q && wilc->txq[q_num].count <= q_limit[AC_BK_Q])) {
 		tqe->tcp_pending_ack_idx = NOT_TCP_ACK;
-		if (enabled)
+		if (ack_filter_enabled)
 			tcp_process(dev, tqe);
 		wilc_wlan_txq_add_to_tail(dev, q_num, tqe);
 	} else {
