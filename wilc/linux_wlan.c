@@ -1227,7 +1227,9 @@ static int wilc_mac_open(struct net_device *ndev)
 				 vif->ndev->ieee80211_ptr,
 				 vif->frame_reg[1].type,
 				 vif->frame_reg[1].reg);
-//	wilc_set_antenna(vif, DIVERSITY);
+#if defined(ANT_SWTCH_DUAL_GPIO_CTRL) || defined(ANT_SWTCH_SNGL_GPIO_CTRL)
+	wilc_set_antenna(priv->hif_drv,DIVERSITY);
+#endif
 	netif_wake_queue(ndev);
 	wl->open_ifcs++;
 	vif->mac_opened = 1;

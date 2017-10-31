@@ -1394,8 +1394,7 @@ int wilc_wlan_start(struct wilc *wilc)
 
 #ifdef ANT_SWTCH_SNGL_GPIO_CTRL
 	        reg |= WILC_HAVE_ANT_SWTCH_SNGL_GPIO_CTRL;
-#elif 1
-//defined(ANT_SWTCH_DUAL_GPIO_CTRL)
+#elif defined(ANT_SWTCH_DUAL_GPIO_CTRL)
 	        reg |= WILC_HAVE_ANT_SWTCH_SNGL_GPIO_CTRL;
 	        reg |= WILC_HAVE_ANT_SWTCH_DUAL_GPIO_CTRL;
 #endif

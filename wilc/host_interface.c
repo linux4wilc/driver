@@ -190,7 +190,9 @@ struct bt_coex_mode {
 struct host_if_set_ant {
 	u8 mode;
 	u8 antenna1;
+#ifdef ANT_SWTCH_DUAL_GPIO_CTRL
 	u8 antenna2;
+#endif
 };
 
 union message_body {
@@ -2576,7 +2578,11 @@ static int handle_set_antenna_mode(struct wilc_vif *vif, struct host_if_set_ant
 	wid.val = (u8 *)set_ant;
 	wid.size = sizeof(struct host_if_set_ant);
 
-	netdev_dbg(vif->ndev, "set antenna %d\n", set_ant->mode);
+#ifdef ANT_SWTCH_SNGL_GPIO_CTRL
+	netdev_dbg(vif->ndev, "set antenna %d on GPIO %d\n",set_ant->mode,set_ant->antenna1);
+#elif defined(ANT_SWTCH_DUAL_GPIO_CTRL)
+	netdev_dbg(vif->ndev, "set antenna %d on GPIOs %d and %d\n",set_ant->mode,set_ant->antenna1,set_ant->antenna2);
+#endif
 
 	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				   wilc_get_vif_idx(vif));
@@ -2590,7 +2596,6 @@ static void host_if_work(struct work_struct *work)
 {
 	struct host_if_msg *msg;
 	struct wilc *wilc;
-	int ret = 0;
 
 	msg = container_of(work, struct host_if_msg, work);
 	wilc = msg->vif->wilc;
@@ -2700,7 +2705,7 @@ static void host_if_work(struct work_struct *work)
 		break;
 
 	case HOST_IF_MSG_SET_WFIDRV_HANDLER:
-		ret = handle_set_wfi_drv_handler(msg->vif, &msg->body.drv);
+		handle_set_wfi_drv_handler(msg->vif, &msg->body.drv);
 		break;
 
 	case HOST_IF_MSG_SET_OPERATION_MODE:
@@ -2758,8 +2763,6 @@ static void host_if_work(struct work_struct *work)
 		break;
 	}
 free_msg:
-	if (ret)
-		netdev_err(msg->vif->ndev, "Host cmd %d failed\n", msg->id);
 	kfree(msg);
 	complete(&hif_thread_comp);
 }
@@ -4246,13 +4249,26 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 
 	msg.vif = vif;
 	msg.body.set_ant.mode = mode;
-	msg.body.set_ant.antenna1 = ANT1_GPIO_NUM;
-	msg.body.set_ant.antenna2 = ANT2_GPIO_NUM;
-
+#ifdef ANT_SWTCH_SNGL_GPIO_CTRL
+	#if(((ANT_1_GPIO_NUM >= 17) && (ANT_1_GPIO_NUM <= 21)) ||(ANT_1_GPIO_NUM == 3) || (ANT_1_GPIO_NUM == 4))
+			msg.body.set_ant.antenna1 = ANT_1_GPIO_NUM;
+	#else
+			return WILC_FAIL;
+	#endif
+#elif defined(ANT_SWTCH_DUAL_GPIO_CTRL)
+	#if((((ANT_1_GPIO_NUM >= 17) && (ANT_1_GPIO_NUM <= 21)) ||(ANT_1_GPIO_NUM == 3) || (ANT_1_GPIO_NUM == 4))\
+		&& (((ANT_2_GPIO_NUM >= 17) && (ANT_2_GPIO_NUM <= 21)) ||(ANT_2_GPIO_NUM == 3) || (ANT_2_GPIO_NUM == 4)))
+			msg.body.set_ant.antenna1 = ANT_1_GPIO_NUM;
+			msg.body.set_ant.antenna2 = ANT_2_GPIO_NUM;
+	#else
+			return WILC_FAIL;
+	#endif
+#endif
 	ret = wilc_enqueue_cmd(&msg);
-	if(ret)
+	if(ret) {
+		netdev_err(vif->ndev, "Failed to send get host channel param's message queue ");
 		return -EINVAL;
-
+	}	
 	return (ret);
 }
 
