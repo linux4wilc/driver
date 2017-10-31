@@ -42,17 +42,11 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 	switch(state)
 	{	
 	case IP_STATE_OBTAINING:
-		
-		netdev_info(vif->ndev, "Obtaining an IP, Disable (Scan-Set PowerSave)\n");
-		netdev_info(vif->ndev, "Save the Current state of the PS = %d\n", vif->pwrsave_current_state);
-
-		/* Set the wilc_optaining_ip flag */
 		wilc_optaining_ip = true;
 
 		/* Set this flag to avoid storing the disabled case of PS which occurs duringIP */
 		g_ignore_PS_state = true;
 
-		/* Disable Power Save */
 		wilc_set_power_mgmt(vif, 0, 0);
 
 		/* Start the DuringIPTimer */
@@ -62,11 +56,6 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		break;
 	
 	case IP_STATE_OBTAINED:
-
-		netdev_info(vif->ndev, "IP obtained , Enable (Scan-Set PowerSave)\n");
-		netdev_info(vif->ndev, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
-
-		/* Clear the wilc_optaining_ip flag */
 		wilc_optaining_ip = false;
 
 		/* Recover PS previous state */
@@ -75,7 +64,6 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 			wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 		}
 
-		/* Stop the DuringIPTimer */
 		del_timer(&wilc_during_ip_timer);	
 
 		break;

@@ -15,6 +15,9 @@
 #define WLAN_IFC	0x01
 #define DEFAULT_IFC		0x03
 
+#define IFC_0 "wlan0"
+#define IFC_1 "p2p0"
+
 #define ACTION_FRM_IDX				0
 #define PROBE_REQ_IDX				1
 #define MAX_NUM_STA				9
@@ -258,13 +261,6 @@ struct reg_frame {
 	u8 reg_id;
 };
 
-enum p2p_listen_state {
-	P2P_IDLE,
-	P2P_LISTEN,
-	P2P_GRP_FORMATION
-};
-
-struct wilc;
 struct host_if_drv {
 	struct user_scan_req usr_scan_req;
 	struct user_conn_req usr_conn_req;
