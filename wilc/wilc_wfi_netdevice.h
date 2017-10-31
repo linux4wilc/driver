@@ -165,7 +165,6 @@ struct wilc_vif {
 	u8 bssid[ETH_ALEN];
 	struct host_if_drv *hif_drv;
 	struct net_device *ndev;
-	u8 mode;
 	u8 ifc_id;
 	bool ifc_open;
 	bool p2p_mode;

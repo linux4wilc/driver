@@ -985,7 +985,7 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 	
 	if (pstrWFIDrvP2P != NULL) {
 		if (pstrWFIDrvP2P->hif_state == HOST_IF_SCANNING) {
-			netdev_info(vif->ndev, "Don't scan. P2P_IFC is in state [%d]\n",
+			PRINT_D(GENERIC_DBG,"Don't scan. P2P_IFC is in state [%d]\n",
 			 pstrWFIDrvP2P->hif_state);
 			 result = -EFAULT;
 			goto ERRORHANDLER;
@@ -993,7 +993,7 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 	}
 	if (pstrWFIDrvWLAN != NULL) {
 		if (pstrWFIDrvWLAN->hif_state == HOST_IF_SCANNING) {
-			netdev_info(vif->ndev, "Don't scan. WLAN_IFC is in state [%d]\n",
+			PRINT_D(GENERIC_DBG,"Don't scan. WLAN_IFC is in state [%d]\n",
 			 pstrWFIDrvWLAN->hif_state);
 			result = -EFAULT;
 			goto ERRORHANDLER;
@@ -1905,7 +1905,7 @@ static void Handle_Disconnect(struct wilc_vif *vif)
 	
 	if (pstrWFIDrvWLAN != NULL)	{
 		if (pstrWFIDrvWLAN->hif_state == HOST_IF_SCANNING) {
-			netdev_info(vif->ndev, "Abort Scan before disconnecting. WLAN_IFC is in state [%d]\n",
+			PRINT_D(GENERIC_DBG,"Abort Scan before disconnecting. WLAN_IFC is in state [%d]\n",
 				pstrWFIDrvWLAN->hif_state);
 			del_timer(&(pstrWFIDrvWLAN->scan_timer));
 			Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
@@ -1913,7 +1913,7 @@ static void Handle_Disconnect(struct wilc_vif *vif)
 	}
 	if (pstrWFIDrvP2P != NULL) {
 		if (pstrWFIDrvP2P->hif_state == HOST_IF_SCANNING) {
-			netdev_info(vif->ndev, "Abort Scan before disconnecting. P2P_IFC is in state [%d]\n",
+			PRINT_D(GENERIC_DBG,"Abort Scan before disconnecting. P2P_IFC is in state [%d]\n",
 				 pstrWFIDrvP2P->hif_state);
 			del_timer(&(pstrWFIDrvP2P->scan_timer));
 			Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
@@ -1956,7 +1956,7 @@ static void Handle_Disconnect(struct wilc_vif *vif)
 		if (hif_drv->usr_conn_req.conn_result) {
 			if (hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP) {
 				struct connect_info strConnectInfo;
-				netdev_info(vif->ndev, "Upper layer requested termination of connection\n");
+				PRINT_D(HOSTINF_DBG,"Upper layer requested termination of connection\n");
 				memset(&strConnectInfo, 0, sizeof(struct connect_info));
 				del_timer(&hif_drv->connect_timer);
 				if (hif_drv->usr_conn_req.bssid != NULL)
@@ -2424,14 +2424,14 @@ static int Handle_RemainOnChan(struct wilc_vif *vif,
 
 	if (pstrWFIDrvP2P != NULL) {
 		if (pstrWFIDrvP2P->hif_state == HOST_IF_SCANNING) {
-			netdev_info(vif->ndev, "Interface busy scanning. P2P_IFC is in state [%d]\n",
+			PRINT_D(GENERIC_DBG,"Interface busy scanning. P2P_IFC is in state [%d]\n",
 				pstrWFIDrvP2P->hif_state);
 			hif_drv->remain_on_ch_pending = 1;
 			result = -EBUSY;
 			goto ERRORHANDLER;
 		} else if ((pstrWFIDrvP2P->hif_state != HOST_IF_IDLE) &&
 		(pstrWFIDrvP2P->hif_state != HOST_IF_CONNECTED)) {
-			netdev_info(vif->ndev, "Interface busy connecting or listening. P2P_IFC is in state [%d]\n",
+			PRINT_D(GENERIC_DBG,"Interface busy connecting or listening. P2P_IFC is in state [%d]\n",
 			 pstrWFIDrvP2P->hif_state);
 			result = -EBUSY;
 			goto ERRORHANDLER;
@@ -2439,14 +2439,14 @@ static int Handle_RemainOnChan(struct wilc_vif *vif,
 	}
 	if (pstrWFIDrvWLAN != NULL) {
 		if (pstrWFIDrvWLAN->hif_state == HOST_IF_SCANNING) {
-			netdev_info(vif->ndev, "Interface busy scanning. WLAN_IFC is in state [%d]\n",
+			PRINT_D(GENERIC_DBG,"Interface busy scanning. WLAN_IFC is in state [%d]\n",
 				pstrWFIDrvWLAN->hif_state);
 			hif_drv->remain_on_ch_pending = 1;
 			result = -EBUSY;
 			goto ERRORHANDLER;
 		} else if ((pstrWFIDrvWLAN->hif_state != HOST_IF_IDLE) &&
 		(pstrWFIDrvWLAN->hif_state != HOST_IF_CONNECTED)) {
-			netdev_info(vif->ndev, "Interface busy connecting or listening. WLAN_IFC is in state [%d]\n",
+			PRINT_D(GENERIC_DBG,"Interface busy connecting or listening. WLAN_IFC is in state [%d]\n",
 			 pstrWFIDrvWLAN->hif_state);
 			result = -EBUSY;
 			goto ERRORHANDLER;
@@ -2454,7 +2454,7 @@ static int Handle_RemainOnChan(struct wilc_vif *vif,
 	}
 
 	if(wilc_connecting) {
-		netdev_info(vif->ndev, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
+		PRINT_D(GENERIC_DBG, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
 		result = -EBUSY;
 		goto ERRORHANDLER;
 	}
@@ -3592,7 +3592,7 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 		scan_info->hidden_network.net_info = hidden_network->net_info;
 		scan_info->hidden_network.n_ssids = hidden_network->n_ssids;
 	} else {
-		netdev_warn(vif->ndev, "hidden_network IS EQUAL TO NULL\n");
+		PRINT_WRN(HOSTINF_DBG, "hidden_network IS EQUAL TO NULL\n");
 	}
 
 	msg.vif = vif;

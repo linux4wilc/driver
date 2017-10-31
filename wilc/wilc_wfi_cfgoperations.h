@@ -10,6 +10,8 @@
 #define NM_WFI_CFGOPERATIONS
 #include "wilc_wfi_netdevice.h"
 
+#define NO_ENCRYPT		0
+
 struct wireless_dev *wilc_create_wiphy(struct net_device *net, struct device *dev);
 void wilc_free_wiphy(struct net_device *net);
 int wilc_deinit_host_int(struct net_device *net);

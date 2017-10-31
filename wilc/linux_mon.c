@@ -26,15 +26,6 @@ static struct net_device *wilc_wfi_mon; /* global monitor netdev */
 
 static u8 srcadd[6];
 static u8 bssid[6];
-/**
- *  @brief      WILC_WFI_monitor_rx
- *  @details
- *  @param[in]
- *  @return     int : Return 0 on Success
- *  @author	mdaftedar
- *  @date	12 JUL 2012
- *  @version	1.0
- */
 
 #define IEEE80211_RADIOTAP_F_TX_RTS	0x0004  /* used rts/cts handshake */
 #define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001  /* failed due to excessive*/
@@ -60,7 +51,7 @@ void WILC_WFI_monitor_rx(u8 *buff, u32 size)
 	memcpy(&header, (buff - HOST_HDR_OFFSET), HOST_HDR_OFFSET);
 	/*
 	 * The packet offset field contain info about what type of management
-	 * the frame we are dealing with and ack status
+	 * frame we are dealing with and ack status
 	 */
 	pkt_offset = GET_PKT_OFFSET(header);
 
@@ -105,7 +96,7 @@ void WILC_WFI_monitor_rx(u8 *buff, u32 size)
 		hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
 		hdr->hdr.it_len = cpu_to_le16(sizeof(struct wilc_wfi_radiotap_hdr));
 		hdr->hdr.it_present = cpu_to_le32
-				(1 << IEEE80211_RADIOTAP_RATE); /* | */
+				(1 << IEEE80211_RADIOTAP_RATE);
 		hdr->rate = 5; /* txrate->bitrate / 5; */
 	}
 
@@ -140,13 +131,17 @@ static int mon_mgmt_tx(struct net_device *dev, const u8 *buf, size_t len)
 {
 	struct tx_complete_mon_data *mgmt_tx = NULL;
 
-	if (!dev)
+	if (!dev) {
+		netdev_err(dev, "ERROR: dev == NULL\n");
 		return -EFAULT;
+	}
 
 	netif_stop_queue(dev);
 	mgmt_tx = kmalloc(sizeof(*mgmt_tx), GFP_ATOMIC);
-	if (!mgmt_tx)
+	if (!mgmt_tx) {
+		netdev_err(dev, "Failed to allocate memory for mgmt_tx structure\n");
 		return -ENOMEM;
+	}
 
 	mgmt_tx->buff = kmalloc(len, GFP_ATOMIC);
 	if (!mgmt_tx->buff) {
@@ -183,11 +178,15 @@ static netdev_tx_t WILC_WFI_mon_xmit(struct sk_buff *skb,
 		return -EFAULT;
 
 	mon_priv = netdev_priv(wilc_wfi_mon);
-	if (!mon_priv)
+	if (!mon_priv) {
+		netdev_err(dev, "Monitor interface private structure is NULL\n");
 		return -EFAULT;
+	}
 	rtap_len = ieee80211_get_radiotap_len(skb->data);
-	if (skb->len < rtap_len)
+	if (skb->len < rtap_len) {
+		netdev_err(dev, "Error in radiotap header\n");
 		return -1;
+	}
 
 	skb_pull(skb, rtap_len);
 
@@ -235,8 +234,10 @@ struct net_device *WILC_WFI_init_mon_interface(const char *name,
 		return wilc_wfi_mon;
 
 	wilc_wfi_mon = alloc_etherdev(sizeof(struct WILC_WFI_mon_priv));
-	if (!wilc_wfi_mon)
+	if (!wilc_wfi_mon) {
+		netdev_err(real_dev, "failed to allocate memory\n");
 		return NULL;
+	}
 	wilc_wfi_mon->type = ARPHRD_IEEE80211_RADIOTAP;
 	strncpy(wilc_wfi_mon->name, name, IFNAMSIZ);
 	wilc_wfi_mon->name[IFNAMSIZ - 1] = 0;
@@ -244,12 +245,14 @@ struct net_device *WILC_WFI_init_mon_interface(const char *name,
 
 	ret = register_netdevice(wilc_wfi_mon);
 	if (ret) {
-		netdev_err(real_dev, "register_netdevice failed\n");
+		netdev_err(real_dev, "register_netdevice failed %d\n", ret);
 		return NULL;
 	}
 	priv = netdev_priv(wilc_wfi_mon);
-	if (!priv)
+	if (!priv) {
+		netdev_err(real_dev, "private structure is NULL\n");
 		return NULL;
+	}
 
 	priv->real_ndev = real_dev;
 

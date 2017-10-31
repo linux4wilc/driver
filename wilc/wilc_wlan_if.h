@@ -11,6 +11,7 @@
 #define WILC_WLAN_IF_H
 
 #include <linux/netdevice.h>
+#include "wilc_debugfs.h"
 
 /********************************************
  *

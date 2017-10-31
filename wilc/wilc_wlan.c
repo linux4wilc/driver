@@ -319,10 +319,15 @@ static int wilc_wlan_txq_add_cfg_pkt(struct wilc_vif *vif, u8 *buffer,
 		return 0;
 	}
 
-	tqe = kmalloc(sizeof(*tqe), GFP_KERNEL);
-	if (!tqe)
+	if (!(wilc->initialized)) {
+		complete(&wilc->cfg_event);
 		return 0;
-
+	}
+	tqe = kmalloc(sizeof(*tqe), GFP_KERNEL);
+	if (!tqe) {
+		complete(&wilc->cfg_event);
+		return 0;
+	}
 	tqe->type = WILC_CFG_PKT;
 	tqe->buffer = buffer;
 	tqe->buffer_size = buffer_size;
@@ -332,6 +337,7 @@ static int wilc_wlan_txq_add_cfg_pkt(struct wilc_vif *vif, u8 *buffer,
 	tqe->tcp_pending_ack_idx = NOT_TCP_ACK;
 
 	if (wilc_wlan_txq_add_to_head(vif, AC_VO_Q, tqe)) {
+		complete(&wilc->cfg_event);
 		kfree(tqe);
 		return 0;
 	}
@@ -339,7 +345,7 @@ static int wilc_wlan_txq_add_cfg_pkt(struct wilc_vif *vif, u8 *buffer,
 	return 1;
 }
 
-static  void ac_q_limit(struct wilc *wilc, u8 ac, u16 *q_limit)
+static void ac_q_limit(struct wilc *wilc, u8 ac, u16 *q_limit)
 {
 	static u8 buffer[AC_BUFFER_SIZE];
 	static u16 end_index;
@@ -492,17 +498,24 @@ int wilc_wlan_txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
 		return -1;
 	}
 
-
-
 	wilc = vif->wilc;
 
-	if (wilc->quit)
+	if (wilc->quit) {
+		func(priv, 0);
 		return 0;
+	}
+
+	if (!(wilc->initialized)) {
+		func(priv, 0);
+		return 0;
+	}
 
 	tqe = kmalloc(sizeof(*tqe), GFP_KERNEL);
 
-	if (!tqe)
+	if (!tqe) {
+		func(priv, 0);
 		return 0;
+	}
 	tqe->type = WILC_NET_PKT;
 	tqe->buffer = buffer;
 	tqe->buffer_size = buffer_size;

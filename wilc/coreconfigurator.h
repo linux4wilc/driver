@@ -50,6 +50,8 @@
 #define MAKE_WORD16(lsb, msb) ((((u16)(msb) << 8) & 0xFF00) | (lsb))
 #define MAKE_WORD32(lsw, msw) ((((u32)(msw) << 16) & 0xFFFF0000) | (lsw))
 
+extern uint32_t cfg_packet_timeout;
+
 enum sub_frame_type {
 	ASSOC_REQ	      = 0x00,
 	ASSOC_RSP	      = 0x10,

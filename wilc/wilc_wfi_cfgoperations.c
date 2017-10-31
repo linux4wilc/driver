@@ -1207,11 +1207,13 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 {
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
+	struct wilc *wilc;
 	u32 i = 0;
 	u32 associatedsta = 0;
 	u32 inactive_time = 0;
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(dev);
+	wilc = vif->wilc;
 
 	if (vif->iftype == AP_MODE || vif->iftype == GO_MODE) {
 		for (i = 0; i < NUM_STA_ASSOCIATED; i++) {
@@ -1234,6 +1236,8 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 
 	if (vif->iftype == STATION_MODE) {
 		struct rf_info strStatistics;
+		if (!wilc->initialized)
+			return -EBUSY;
 
 		wilc_get_statistics(vif, &strStatistics);
 
