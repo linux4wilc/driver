@@ -242,9 +242,6 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 			 (source == PWR_DEV_SRC_WIFI ? "Wifi" : "BT"));
 	} else {
 		PRINT_D(PWRDEV_DBG, "WILC POWER UP\n");
-//		wilc_wlan_power_off_sequence();
-//		wilc_wlan_power_on_sequence();
-//		msleep(100);
 	}
 	wilc->power_status[source] = true;
 	mutex_unlock(&wilc->cs);
@@ -344,9 +341,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			PRINT_ER("[wilc start]: fail read reg %x ...\n",
 			       WILC_GLOBAL_MODE_CONTROL);
-			
-				release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
-
+			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 			return ret;
 		}
 		/* Clear BT mode*/
@@ -355,9 +350,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			PRINT_ER("[wilc start]: fail write reg %x ...\n",
 			       WILC_GLOBAL_MODE_CONTROL);
-		
-				release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
-			
+			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 			return ret;
 		}
 
@@ -365,9 +358,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			PRINT_ER("[wilc start]: fail read reg %x ...\n",
 			       WILC_COEXIST_CTL);
-			
-				release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
-
+			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 			return ret;
 		}
 		/* Stop forcing BT and force Wifi */

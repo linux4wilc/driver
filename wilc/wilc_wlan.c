@@ -821,12 +821,7 @@ void chip_wakeup_wilc3000(struct wilc *wilc, int source)
 	u32 wakeup_register, wakeup_bit;
 	u32 clk_status_register, clk_status_bit;
 	int wake_seq_trials = 5;
-/*
-	if(wilc->bus_registered[source] != true){
-		PRINT_ER("Wakeup request for source that didn't register bus!");
-		return;
-	}
-*/
+
 	if((wilc->io_type & 0x1) == HIF_SDIO) {
 		wakeup_register = 0xf0;
 		clk_status_register = 0xf0;

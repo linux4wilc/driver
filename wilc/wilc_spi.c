@@ -152,21 +152,80 @@ static int wilc_bus_remove(struct spi_device *spi)
 	return 0;
 }
 
-static const struct of_device_id wilc1000_of_match[] = {
+static int wilc_spi_suspend(struct device *dev)
+{
+	struct spi_device *spi = to_spi_device(dev);
+	struct wilc *wilc = spi_get_drvdata(spi);
+	
+	printk("\n\n << SUSPEND >>\n\n");
+	mutex_lock(&wilc->hif_cs);
+	chip_wakeup(wilc, 0);
+
+	if (mutex_is_locked(&wilc->hif_cs))
+		mutex_unlock(&wilc->hif_cs);
+	/*if there is no events , put the chip in low power mode */
+	if(wilc->suspend_event== 0){
+		/*BugID_5213*/
+		/*Allow chip sleep, only if both interfaces are not connected*/
+		if(!wilc_wlan_get_num_conn_ifcs(wilc))
+			wilc_chip_sleep_manually(wilc, 0);
+	}
+	else{
+		/*notify the chip that host will sleep*/
+		host_sleep_notify(wilc, 0);
+		chip_allow_sleep(wilc, 0);
+	}
+	mutex_lock(&wilc->hif_cs);
+
+ 	return 0 ;
+}
+
+static int wilc_spi_resume(struct device *dev)
+{
+	struct spi_device *spi = to_spi_device(dev);
+	struct wilc *wilc = spi_get_drvdata(spi);
+	
+	printk("\n\n  <<RESUME>> \n\n");
+	
+	/*wake the chip to compelete the re-intialization*/
+	chip_wakeup(wilc, 0);
+
+	if (mutex_is_locked(&wilc->hif_cs))
+		mutex_unlock(&wilc->hif_cs);
+
+	if(wilc->suspend_event == 1)
+		host_wakeup_notify(wilc, 0);
+	
+	mutex_lock(&wilc->hif_cs);
+		
+	chip_allow_sleep(wilc, 0);
+	
+	if (mutex_is_locked(&wilc->hif_cs))
+		mutex_unlock(&wilc->hif_cs);
+
+	return 0;
+}
+
+static const struct of_device_id wilc_of_match[] = {
 	{ .compatible = "atmel,wilc_spi", },
 	{}
 };
-MODULE_DEVICE_TABLE(of, wilc1000_of_match);
+MODULE_DEVICE_TABLE(of, wilc_of_match);
+static const struct dev_pm_ops wilc_spi_pm_ops = {	
+     .suspend = wilc_spi_suspend,    
+     .resume    = wilc_spi_resume,
+    	};
 
-static struct spi_driver wilc1000_spi_driver = {
+static struct spi_driver wilc_spi_driver = {
 	.driver = {
 		.name = MODALIAS,
-		.of_match_table = wilc1000_of_match,
+		.of_match_table = wilc_of_match,
+		.pm = &wilc_spi_pm_ops,
 	},
 	.probe =  wilc_bus_probe,
 	.remove = wilc_bus_remove,
 };
-module_spi_driver(wilc1000_spi_driver);
+module_spi_driver(wilc_spi_driver);
 MODULE_LICENSE("GPL");
 
 static int spi_data_rsp(struct wilc *wilc, uint8_t cmd)
