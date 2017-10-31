@@ -913,14 +913,8 @@ enum WID_E {
 	WID_MAX				= 0xFFFF
 };
 
-enum device_active {
-	NONE = 0,
-	WLAN_ACTTIVE = 1,
-	BT_ACTTIVE = 2,
-};
+#include <linux/version.h>
 
 struct wilc;
-int wilc_wlan_init(struct net_device *dev);
-u32 wilc_get_chipid(struct wilc *wilc, bool update);
 
 #endif

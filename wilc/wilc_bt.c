@@ -517,10 +517,8 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	offset = 0;
 	addr = 0x400000;
 	size = buffer_size;
-#ifdef BIG_ENDIAN
-	addr = BYTE_SWAP(addr);
-	size = BYTE_SWAP(size);
-#endif
+	addr = cpu_to_le32(addr);
+	size = cpu_to_le32(size);
 	offset = 0;
 
 	while (((int)size) && (offset < buffer_size)) {
@@ -569,8 +567,8 @@ static void wilc_bt_start(struct wilc *wilc)
 		if (!ret) {
 			goto _fail_1;
 		}
-		val32 |= (1 << 0);
-		val32 &= ~((1 << 9)|(1 << 11));
+		val32 |= BIT(0);
+		val32 &= ~(BIT(9)|BIT(11));
 		ret = wilc->hif_func->hif_write_reg(wilc, WILC_COEXIST_CTL, val32);
 		if (!ret) {
 			goto _fail_1;
