@@ -24,7 +24,6 @@
 struct wilc_spi {
 	int crc_off;
 	int nint;
-	int has_thrpt_enh;
 };
 
 static struct wilc_spi g_spi;
@@ -1009,18 +1008,16 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 	 *      make sure can read back chip id correctly
 	 **/
 
-	 if(ISWILC3000(chipid)) {
-		g_spi.has_thrpt_enh = 1;
-			wilc->chip = WILC_3000;
-			goto _pass_;
-		} else if(ISWILC1000(chipid)) {
-			wilc->chip = WILC_1000;
-			g_spi.has_thrpt_enh = 1;
-			goto _pass_;
-		} else {
-			dev_err(&spi->dev, "Unsupported chipid: %x\n", chipid);
-			goto _fail_;
-		}
+	chipid = wilc_get_chipid(wilc, true);
+	if(ISWILC3000(chipid)) {
+		wilc->chip = WILC_3000;
+		goto _pass_;
+	} else if(ISWILC1000(chipid)) {
+		wilc->chip = WILC_1000;
+		goto _pass_;
+	} else {
+		goto _fail_;
+	}
 _pass_:
 	isinit = 1;
 	return 1;
@@ -1035,24 +1032,9 @@ static int wilc_spi_read_size(struct wilc *wilc, u32 *size)
 	struct spi_device *spi = to_spi_device(wilc->dev);
 	int ret;
 
-	if (g_spi.has_thrpt_enh) {
-		ret = spi_internal_read(wilc, 0xe840 - WILC_SPI_REG_BASE,
-					size);
-		*size = *size  & IRQ_DMA_WD_CNT_MASK;
-	} else {
-		u32 tmp;
-		u32 byte_cnt;
-
-		ret = wilc_spi_read_reg(wilc, WILC_VMM_TO_HOST_SIZE,
-					&byte_cnt);
-		if (!ret) {
-			dev_err(&spi->dev,
-				"Failed read WILC_VMM_TO_HOST_SIZE ...\n");
-			goto _fail_;
-		}
-		tmp = (byte_cnt >> 2) & IRQ_DMA_WD_CNT_MASK;
-		*size = tmp;
-	}
+	ret = spi_internal_read(wilc, 0xe840 - WILC_SPI_REG_BASE,
+				size);
+	*size = *size  & IRQ_DMA_WD_CNT_MASK;
 
 _fail_:
 	return ret;
@@ -1063,56 +1045,8 @@ static int wilc_spi_read_int(struct wilc *wilc, u32 *int_status)
 	struct spi_device *spi = to_spi_device(wilc->dev);
 	int ret;
 
-	if (g_spi.has_thrpt_enh) {
-		ret = spi_internal_read(wilc, 0xe840 - WILC_SPI_REG_BASE,
-					int_status);
-	} else {
-		u32 tmp;
-		u32 byte_cnt;
-
-		ret = wilc_spi_read_reg(wilc, WILC_VMM_TO_HOST_SIZE,
-					&byte_cnt);
-		if (!ret) {
-			dev_err(&spi->dev,
-				"Failed read WILC_VMM_TO_HOST_SIZE ...\n");
-			goto _fail_;
-		}
-		tmp = (byte_cnt >> 2) & IRQ_DMA_WD_CNT_MASK;
-
-		{
-			int happended, j;
-
-			j = 0;
-			do {
-				u32 irq_flags;
-
-				happended = 0;
-
-				wilc_spi_read_reg(wilc, 0x1a90, &irq_flags);
-				tmp |= ((irq_flags >> 27) << IRG_FLAGS_OFFSET);
-
-				if (g_spi.nint > 5) {
-					wilc_spi_read_reg(wilc, 0x1a94,
-							  &irq_flags);
-					tmp |= (((irq_flags >> 0) & 0x7) << (IRG_FLAGS_OFFSET + 5));
-				}
-
-				{
-					u32 unkmown_mask;
-
-					unkmown_mask = ~((1ul << g_spi.nint) - 1);
-
-					if ((tmp >> IRG_FLAGS_OFFSET) & unkmown_mask) {
-						dev_err(&spi->dev, "Unexpected interrupt (2): j=%d, tmp=%x, mask=%x\n", j, tmp, unkmown_mask);
-						happended = 1;
-					}
-				}
-				j++;
-			} while (happended);
-		}
-
-		*int_status = tmp;
-	}
+	ret = spi_internal_read(wilc, 0xe840 - WILC_SPI_REG_BASE,
+				int_status);
 
 _fail_:
 	return ret;
@@ -1123,73 +1057,8 @@ static int wilc_spi_clear_int_ext(struct wilc *wilc, u32 val)
 	struct spi_device *spi = to_spi_device(wilc->dev);
 	int ret;
 
-	if (g_spi.has_thrpt_enh) {
-		ret = spi_internal_write(wilc, 0xe844 - WILC_SPI_REG_BASE,
-					 val);
-	} else {
-		u32 flags;
-
-		flags = val & (BIT(MAX_NUM_INT) - 1);
-		if (flags) {
-			int i;
-
-			ret = 1;
-			for (i = 0; i < g_spi.nint; i++) {
-				/* No matter what you write 1 or 0, it will clear interrupt. */
-				if (flags & 1)
-					ret = wilc_spi_write_reg(wilc, 0x10c8 + i * 4, 1);
-				if (!ret)
-					break;
-				flags >>= 1;
-			}
-			if (!ret) {
-				dev_err(&spi->dev,
-					"Failed wilc_spi_write_reg, set reg %x ...\n",
-					0x10c8 + i * 4);
-				goto _fail_;
-			}
-			for (i = g_spi.nint; i < MAX_NUM_INT; i++) {
-				if (flags & 1)
-					dev_err(&spi->dev,
-						"Unexpected interrupt cleared %d...\n",
-						i);
-				flags >>= 1;
-			}
-		}
-
-		{
-			u32 tbl_ctl;
-
-			tbl_ctl = 0;
-			/* select VMM table 0 */
-			if ((val & SEL_VMM_TBL0) == SEL_VMM_TBL0)
-				tbl_ctl |= BIT(0);
-			/* select VMM table 1 */
-			if ((val & SEL_VMM_TBL1) == SEL_VMM_TBL1)
-				tbl_ctl |= BIT(1);
-
-			ret = wilc_spi_write_reg(wilc, WILC_VMM_TBL_CTL,
-						 tbl_ctl);
-			if (!ret) {
-				dev_err(&spi->dev,
-					"fail write reg vmm_tbl_ctl...\n");
-				goto _fail_;
-			}
-
-			if ((val & EN_VMM) == EN_VMM) {
-				/**
-				 *      enable vmm transfer.
-				 **/
-				ret = wilc_spi_write_reg(wilc,
-							 WILC_VMM_CORE_CTL, 1);
-				if (!ret) {
-					dev_err(&spi->dev, "fail write reg vmm_core_ctl...\n");
-					goto _fail_;
-				}
-			}
-		}
-	}
-_fail_:
+	ret = spi_internal_write(wilc, 0xe844 - WILC_SPI_REG_BASE,
+				 val);
 	return ret;
 }
 
