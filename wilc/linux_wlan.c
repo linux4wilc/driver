@@ -1306,6 +1306,17 @@ static int wilc_mac_open(struct net_device *ndev)
 	}
 
 	wait_for_recovery = 0;
+	if(!(memcmp(ndev->name, IFC_0, 5)))
+		vif->ifc_id = WLAN_IFC;
+	else if(!(memcmp(ndev->name, IFC_1, 4)))
+		vif->ifc_id = P2P_IFC;
+	else
+	{
+		PRINT_ER("Unknown interface name\n");
+		wilc_deinit_host_int(ndev);
+		wilc_wlan_deinitialize(ndev);
+		return -ENODEV;
+	}
 	wilc_set_wfi_drv_handler(vif,
 				 wilc_get_vif_idx(vif),
 				 vif->iftype, vif->ifc_id);

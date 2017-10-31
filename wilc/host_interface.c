@@ -402,7 +402,7 @@ static int handle_set_wfi_drv_handler(struct wilc_vif *vif,
 		return -ENOMEM;
 
 	currbyte = buffer;
-	*currbyte = wilc_get_vif_idx(vif) & DRV_HANDLER_MASK;
+	*currbyte = hif_drv_handler->handler & DRV_HANDLER_MASK;
 	currbyte++;
 	*currbyte = (u32)0 & DRV_HANDLER_MASK;
 	currbyte++;
@@ -3880,7 +3880,7 @@ int wilc_deinit(struct wilc_vif *vif)
 	del_timer_sync(&periodic_rssi);
 	del_timer_sync(&hif_drv->remain_on_ch_timer);
 
-	wilc_set_wfi_drv_handler(vif,wilc_get_vif_idx(vif), vif->iftype, vif->ifc_id);
+	wilc_set_wfi_drv_handler(vif,0, vif->iftype, vif->ifc_id);
 	wait_for_completion(&hif_driver_comp);
 
 	if (hif_drv->usr_scan_req.scan_result) {
