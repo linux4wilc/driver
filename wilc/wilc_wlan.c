@@ -855,254 +855,255 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 		do {
 			if (wilc->quit)
 				break;
-		if (ac_balance(ac_fw_count, ac_desired_ratio))
-			return -1;
+			if (ac_balance(ac_fw_count, ac_desired_ratio))
+				return -1;
+			
+			mutex_lock(&wilc->txq_add_to_head_cs);
+			wilc_wlan_txq_filter_dup_tcp_ack(dev);
 
-		mutex_lock(&wilc->txq_add_to_head_cs);
-		wilc_wlan_txq_filter_dup_tcp_ack(dev);
-		for(ac = 0; ac < NQUEUES; ac++)
-			tqe_q[ac] = wilc_wlan_txq_get_first(wilc, ac);
-		i = 0;
-		sum = 0;
-		max_size_over = 0;
-		num_pkts_to_add = ac_desired_ratio;
-		do {
-		ac_exist = 0;
-		for(ac = 0; (ac < NQUEUES) && (!max_size_over); ac++) {
-			if (tqe_q[ac]) {
-				ac_exist = 1;
-				for(k = 0; (k < num_pkts_to_add[ac]) && (!max_size_over) && tqe_q[ac]; k++) {
-					if (i < (WILC_VMM_TBL_SIZE - 1)) {
-						if (tqe_q[ac]->type == WILC_CFG_PKT)
-							vmm_sz = ETH_CONFIG_PKT_HDR_OFFSET;
-						else if (tqe_q[ac]->type == WILC_NET_PKT)
-							vmm_sz = ETH_ETHERNET_HDR_OFFSET;
-						else
-							vmm_sz = HOST_HDR_OFFSET;
+			for(ac = 0; ac < NQUEUES; ac++)
+				tqe_q[ac] = wilc_wlan_txq_get_first(wilc, ac);
+			i = 0;
+			sum = 0;
+			max_size_over = 0;
+			num_pkts_to_add = ac_desired_ratio;
+			do {
+				ac_exist = 0;
+				for(ac = 0; (ac < NQUEUES) && (!max_size_over); ac++) {
+					if (tqe_q[ac]) {
+						ac_exist = 1;
+						for(k = 0; (k < num_pkts_to_add[ac]) && (!max_size_over) && tqe_q[ac]; k++) {
+							if (i < (WILC_VMM_TBL_SIZE - 1)) {
+								if (tqe_q[ac]->type == WILC_CFG_PKT)
+									vmm_sz = ETH_CONFIG_PKT_HDR_OFFSET;
+								else if (tqe_q[ac]->type == WILC_NET_PKT)
+									vmm_sz = ETH_ETHERNET_HDR_OFFSET;
+								else
+									vmm_sz = HOST_HDR_OFFSET;
 
-						vmm_sz += tqe_q[ac]->buffer_size;
+								vmm_sz += tqe_q[ac]->buffer_size;
 
-						if (vmm_sz & 0x3)
-							vmm_sz = (vmm_sz + 4) & ~0x3;
+								if (vmm_sz & 0x3)
+									vmm_sz = (vmm_sz + 4) & ~0x3;
 
-						if ((sum + vmm_sz) > LINUX_TX_SIZE) {
-							max_size_over = 1;
-							break;
+								if ((sum + vmm_sz) > LINUX_TX_SIZE) {
+									max_size_over = 1;
+									break;
+								}
+
+								vmm_table[i] = vmm_sz / 4;
+								if (tqe_q[ac]->type == WILC_CFG_PKT)
+									vmm_table[i] |= BIT(10);
+								vmm_table[i] = cpu_to_le32(vmm_table[i]);
+								vmm_entries_ac[i] = ac;
+
+								i++;
+								sum += vmm_sz;
+								tqe_q[ac] = wilc_wlan_txq_get_next(wilc, tqe_q[ac]);
+							} else {
+								max_size_over = 1;
+								break;
+							}
 						}
-
-						vmm_table[i] = vmm_sz / 4;
-						if (tqe_q[ac]->type == WILC_CFG_PKT)
-							vmm_table[i] |= BIT(10);
-						vmm_table[i] = cpu_to_le32(vmm_table[i]);
-						vmm_entries_ac[i] = ac;
-
-						i++;
-						sum += vmm_sz;
-						tqe_q[ac] = wilc_wlan_txq_get_next(wilc, tqe_q[ac]);
-					} else {
-						max_size_over = 1;
-						break;
 					}
 				}
-			}
-		}
 				num_pkts_to_add = ac_preserve_ratio;
-		} while (!max_size_over && ac_exist);
+			} while (!max_size_over && ac_exist);
 
-		if (i == 0)
-			break;
-		vmm_table[i] = 0x0;
-
-		acquire_bus(wilc, ACQUIRE_AND_WAKEUP);
-		counter = 0;
-		do {
-			ret = wilc->hif_func->hif_read_reg(wilc,
-							   WILC_HOST_TX_CTRL,
-							   &reg);
-			if (!ret)
+			if (i == 0)
 				break;
+			vmm_table[i] = 0x0;
 
-			if ((reg & 0x1) == 0){
-				ac_pkt_count(reg, ac_fw_count);
-				ac_acm_bit(wilc, reg);
-				break;
-			}
-
-			counter++;
-			if (counter > 200) {
-				counter = 0;
-				ret = wilc->hif_func->hif_write_reg(wilc, WILC_HOST_TX_CTRL, 0);
-				break;
-			}
-		} while (!wilc->quit);
-
-		if (!ret)
-			goto _end_;
-
-		timeout = 200;
-		do {
-			ret = wilc->hif_func->hif_block_tx(wilc, WILC_VMM_TBL_RX_SHADOW_BASE, (u8 *)vmm_table, ((i + 1) * 4));
-			if (!ret)
-				break;
-
-			if (wilc->chip != WILC_3000) {
-				ret = wilc->hif_func->hif_write_reg(wilc,
-								    WILC_HOST_VMM_CTL,
-								    0x2);
-				if (!ret)
-					break;
-
-				do {
-					ret = wilc->hif_func->hif_read_reg(wilc,
-									   WILC_HOST_VMM_CTL,
-									   &reg);
-					if (!ret)
-						break;
-					if ((reg >> 2) & 0x1) {
-						entries = ((reg >> 3) & 0x3f);
-						break;
-					}
-				} while (--timeout);
-			} else {
-				ret = wilc->hif_func->hif_write_reg(wilc,
-								    WILC_HOST_VMM_CTL,
-								    0);
-				if (!ret)
-					break;
-
-				/* interrupt firmware */
-				ret = wilc->hif_func->hif_write_reg(wilc,
-								    WILC_INTERRUPT_CORTUS_0,
-								    1);
-				if (!ret)
-					break;
-
-				do {
-					ret = wilc->hif_func->hif_read_reg(wilc,
-									   WILC_INTERRUPT_CORTUS_0,
-									   &reg);
-					if (!ret)
-						break;
-
-					if (reg == 0) {
-						// Get the entries
-
-						ret = wilc->hif_func->hif_read_reg(wilc,
-										   WILC_HOST_VMM_CTL,
-										   &reg);
-						if (!ret)
-							break;
-						entries = ((reg >> 3) & 0x3f);
-						break;
-					}
-				} while (--timeout);
-			}
-			if (timeout <= 0) {
-				ret = wilc->hif_func->hif_write_reg(wilc,
-								    WILC_HOST_VMM_CTL,
-								    0x0);
-				break;
-			}
-
-			if (!ret)
-				break;
-
-			if (entries == 0) {
+			acquire_bus(wilc, ACQUIRE_AND_WAKEUP);
+			counter = 0;
+			do {
 				ret = wilc->hif_func->hif_read_reg(wilc,
 								   WILC_HOST_TX_CTRL,
 								   &reg);
 				if (!ret)
 					break;
-				reg &= ~BIT(0);
-				ret = wilc->hif_func->hif_write_reg(wilc,
-								    WILC_HOST_TX_CTRL,
-								    reg);
-				if (!ret)
+
+				if ((reg & 0x1) == 0){
+					ac_pkt_count(reg, ac_fw_count);
+					ac_acm_bit(wilc, reg);
 					break;
-				break;
-			}
-			break;
-		} while (1);
-
-		if (!ret)
-			goto _end_;
-
-		if (entries == 0) {
-			ret = WILC_TX_ERR_NO_BUF;
-			goto _end_;
-		}
-
-		release_bus(wilc, RELEASE_ALLOW_SLEEP);
-		offset = 0;
-		i = 0;
-		do {
-			struct txq_entry_t *tqe;
-			tqe = wilc_wlan_txq_remove_from_head(dev,
-							     vmm_entries_ac[i]);
-			ac_pkt_num_to_chip[vmm_entries_ac[i]]++;
-			if (tqe && (vmm_table[i] != 0)) {
-				u32 header, buffer_offset;
-
-				vmm_table[i] = cpu_to_le32(vmm_table[i]);
-				vmm_sz = (vmm_table[i] & 0x3ff);
-				vmm_sz *= 4;
-				header = (tqe->type << 31) |
-					 (tqe->buffer_size << 15) |
-					 vmm_sz;
-				if (tqe->type == WILC_MGMT_PKT)
-					header |= BIT(30);
-				else
-					header &= ~BIT(30);
-
-				header = cpu_to_le32(header);
-				memcpy(&txb[offset], &header, 4);
-				if (tqe->type == WILC_CFG_PKT) {
-					buffer_offset = ETH_CONFIG_PKT_HDR_OFFSET;
-				} else if (tqe->type == WILC_NET_PKT) {
-					char *bssid = ((struct tx_complete_data *)(tqe->priv))->bssid;
-					int prio = tqe->q_num;
-
-					buffer_offset = ETH_ETHERNET_HDR_OFFSET;
-					memcpy(&txb[offset + 4], &prio, sizeof(prio));
-					memcpy(&txb[offset + 8], bssid ,6);
-				} else {
-					buffer_offset = HOST_HDR_OFFSET;
 				}
 
-				memcpy(&txb[offset + buffer_offset],
-				       tqe->buffer, tqe->buffer_size);
-				offset += vmm_sz;
-				i++;
-				tqe->status = 1;
-				if (tqe->tx_complete_func)
-					tqe->tx_complete_func(tqe->priv,
-							      tqe->status);
-				if (tqe->tcp_pending_ack_idx != NOT_TCP_ACK &&
-				    tqe->tcp_pending_ack_idx < MAX_PENDING_ACKS)
-					pending_acks_info[tqe->tcp_pending_ack_idx].txqe = NULL;
-				kfree(tqe);
-			} else {
+				counter++;
+				if (counter > 200) {
+					counter = 0;
+					ret = wilc->hif_func->hif_write_reg(wilc, WILC_HOST_TX_CTRL, 0);
+					break;
+				}
+			} while (!wilc->quit);
+
+			if (!ret)
+				goto _end_;
+
+			timeout = 200;
+			do {
+				ret = wilc->hif_func->hif_block_tx(wilc, WILC_VMM_TBL_RX_SHADOW_BASE, (u8 *)vmm_table, ((i + 1) * 4));
+				if (!ret)
+					break;
+
+				if (wilc->chip != WILC_3000) {
+					ret = wilc->hif_func->hif_write_reg(wilc,
+									    WILC_HOST_VMM_CTL,
+									    0x2);
+					if (!ret)
+						break;
+
+					do {
+						ret = wilc->hif_func->hif_read_reg(wilc,
+										   WILC_HOST_VMM_CTL,
+										   &reg);
+						if (!ret)
+							break;
+						if ((reg >> 2) & 0x1) {
+							entries = ((reg >> 3) & 0x3f);
+							break;
+						}
+					} while (--timeout);
+				} else {
+					ret = wilc->hif_func->hif_write_reg(wilc,
+									    WILC_HOST_VMM_CTL,
+									    0);
+					if (!ret)
+						break;
+
+					/* interrupt firmware */
+					ret = wilc->hif_func->hif_write_reg(wilc,
+									    WILC_INTERRUPT_CORTUS_0,
+									    1);
+					if (!ret)
+						break;
+
+					do {
+						ret = wilc->hif_func->hif_read_reg(wilc,
+										   WILC_INTERRUPT_CORTUS_0,
+										   &reg);
+						if (!ret)
+							break;
+
+						if (reg == 0) {
+							// Get the entries
+
+							ret = wilc->hif_func->hif_read_reg(wilc,
+											   WILC_HOST_VMM_CTL,
+											   &reg);
+							if (!ret)
+								break;
+							entries = ((reg >> 3) & 0x3f);
+							break;
+						}
+					} while (--timeout);
+				}
+				if (timeout <= 0) {
+					ret = wilc->hif_func->hif_write_reg(wilc,
+									    WILC_HOST_VMM_CTL,
+									    0x0);
+					break;
+				}
+
+				if (!ret)
+					break;
+
+				if (entries == 0) {
+					ret = wilc->hif_func->hif_read_reg(wilc,
+									   WILC_HOST_TX_CTRL,
+									   &reg);
+					if (!ret)
+						break;
+					reg &= ~BIT(0);
+					ret = wilc->hif_func->hif_write_reg(wilc,
+									    WILC_HOST_TX_CTRL,
+									    reg);
+					if (!ret)
+						break;
+					break;
+				}
 				break;
+			} while (1);
+
+			if (!ret)
+				goto _end_;
+
+			if (entries == 0) {
+				ret = WILC_TX_ERR_NO_BUF;
+				goto _end_;
 			}
-		} while (--entries);
+
+			release_bus(wilc, RELEASE_ALLOW_SLEEP);
+			offset = 0;
+			i = 0;
+			do {
+				struct txq_entry_t *tqe;
+				tqe = wilc_wlan_txq_remove_from_head(dev,
+								     vmm_entries_ac[i]);
+				ac_pkt_num_to_chip[vmm_entries_ac[i]]++;
+				if (tqe && (vmm_table[i] != 0)) {
+					u32 header, buffer_offset;
+
+					vmm_table[i] = cpu_to_le32(vmm_table[i]);
+					vmm_sz = (vmm_table[i] & 0x3ff);
+					vmm_sz *= 4;
+					header = (tqe->type << 31) |
+						 (tqe->buffer_size << 15) |
+						 vmm_sz;
+					if (tqe->type == WILC_MGMT_PKT)
+						header |= BIT(30);
+					else
+						header &= ~BIT(30);
+
+					header = cpu_to_le32(header);
+					memcpy(&txb[offset], &header, 4);
+					if (tqe->type == WILC_CFG_PKT) {
+						buffer_offset = ETH_CONFIG_PKT_HDR_OFFSET;
+					} else if (tqe->type == WILC_NET_PKT) {
+						char *bssid = ((struct tx_complete_data *)(tqe->priv))->bssid;
+						int prio = tqe->q_num;
+
+						buffer_offset = ETH_ETHERNET_HDR_OFFSET;
+						memcpy(&txb[offset + 4], &prio, sizeof(prio));
+						memcpy(&txb[offset + 8], bssid ,6);
+					} else {
+						buffer_offset = HOST_HDR_OFFSET;
+					}
+
+					memcpy(&txb[offset + buffer_offset],
+					       tqe->buffer, tqe->buffer_size);
+					offset += vmm_sz;
+					i++;
+					tqe->status = 1;
+					if (tqe->tx_complete_func)
+						tqe->tx_complete_func(tqe->priv,
+								      tqe->status);
+					if (tqe->tcp_pending_ack_idx != NOT_TCP_ACK &&
+					    tqe->tcp_pending_ack_idx < MAX_PENDING_ACKS)
+						pending_acks_info[tqe->tcp_pending_ack_idx].txqe = NULL;
+					kfree(tqe);
+				} else {
+					break;
+				}
+			} while (--entries);
 			for(i = 0; i < NQUEUES; i++)
 				ac_fw_count[i] += ac_pkt_num_to_chip[i];
 
-		acquire_bus(wilc, ACQUIRE_AND_WAKEUP);
+			acquire_bus(wilc, ACQUIRE_AND_WAKEUP);
 
-		ret = wilc->hif_func->hif_clear_int_ext(wilc, ENABLE_TX_VMM);
-		if (!ret)
-			goto _end_;
+			ret = wilc->hif_func->hif_clear_int_ext(wilc, ENABLE_TX_VMM);
+			if (!ret)
+				goto _end_;
 
-		wilc->hif_func->hif_block_tx_ext(wilc, 0, txb, offset);
+			wilc->hif_func->hif_block_tx_ext(wilc, 0, txb, offset);
 
 _end_:
 
-		release_bus(wilc, RELEASE_ALLOW_SLEEP);
-		if (ret != 1)
-			break;
-	} while (0);
-	mutex_unlock(&wilc->txq_add_to_head_cs);
+			release_bus(wilc, RELEASE_ALLOW_SLEEP);
+			if (ret != 1)
+				break;
+		} while (0);
+		mutex_unlock(&wilc->txq_add_to_head_cs);
 	}
 	wilc->txq_exit = 1;
 	*txq_count = wilc->txq_entries;
@@ -1658,8 +1659,8 @@ int wilc_send_config_pkt(struct wilc_vif *vif, u8 mode, struct wid *wids,
 	int ret = 0;
 
 	if(wait_for_recovery){
-	while(wait_for_recovery)
-		msleep(300);
+		while(wait_for_recovery)
+			msleep(300);
 	}
 
 	if (mode == GET_CFG) {
