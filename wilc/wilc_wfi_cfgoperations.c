@@ -2452,19 +2452,11 @@ static int del_virtual_intf(struct wiphy *wiphy, struct wireless_dev *wdev)
 }
 
 static int wilc_suspend(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
-{
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
-	
+{	
 	if(!wow)
 		PRINT_D(GENERIC_DBG,"No wake up triggers defined\n");
 	else if(wow->any == 0)
 		PRINT_D(GENERIC_DBG,"The only supported wake up trigger (any) is not set\n");
-
-	if(wilc_wlan_get_num_conn_ifcs(vif->wilc) )
-		vif->wilc->suspend_event = true;
-	else
-		vif->wilc->suspend_event = false;
 
 	return 0;
 }
@@ -2473,7 +2465,6 @@ static int wilc_resume(struct wiphy *wiphy)
 {
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
-	vif->wilc->suspend_event = false;
 
 	netdev_info(vif->ndev, "cfg resume\n");
 	return 0;

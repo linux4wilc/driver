@@ -166,18 +166,10 @@ static int wilc_spi_suspend(struct device *dev)
 
 	if (mutex_is_locked(&wilc->hif_cs))
 		mutex_unlock(&wilc->hif_cs);
-	/*if there is no events , put the chip in low power mode */
-	if(wilc->suspend_event== 0){
-		/*BugID_5213*/
-		/*Allow chip sleep, only if both interfaces are not connected*/
-		if(!wilc_wlan_get_num_conn_ifcs(wilc))
-			wilc_chip_sleep_manually(wilc, 0);
-	}
-	else{
-		/*notify the chip that host will sleep*/
-		host_sleep_notify(wilc, 0);
-		chip_allow_sleep(wilc, 0);
-	}
+
+	/*notify the chip that host will sleep*/
+	host_sleep_notify(wilc, 0);
+	chip_allow_sleep(wilc, 0);
 	mutex_lock(&wilc->hif_cs);
 
  	return 0 ;
@@ -196,8 +188,7 @@ static int wilc_spi_resume(struct device *dev)
 	if (mutex_is_locked(&wilc->hif_cs))
 		mutex_unlock(&wilc->hif_cs);
 
-	if(wilc->suspend_event == 1)
-		host_wakeup_notify(wilc, 0);
+	host_wakeup_notify(wilc, 0);
 	
 	mutex_lock(&wilc->hif_cs);
 		

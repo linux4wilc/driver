@@ -905,20 +905,6 @@ void chip_wakeup(struct wilc *wilc, int source)
 }
 EXPORT_SYMBOL_GPL(chip_wakeup);
 
-void wilc_chip_sleep_manually(struct wilc *wilc, int source)
-{
-	acquire_bus(wilc, ACQUIRE_ONLY, source);
-
-	chip_allow_sleep(wilc, source);
-	if (wilc->chip == WILC_1000)
-		wilc->hif_func->hif_write_reg(wilc, 0x10a8, 1);
-	else
-		wilc->hif_func->hif_write_reg(wilc, 0x10B8, 1);
-
-	release_bus(wilc, RELEASE_ONLY, source);
-}
-EXPORT_SYMBOL_GPL(wilc_chip_sleep_manually);
-
 void host_wakeup_notify(struct wilc *wilc, int source)
 {
 	acquire_bus(wilc, ACQUIRE_ONLY,source);

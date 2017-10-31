@@ -218,7 +218,6 @@ struct wilc {
 	const struct firmware *firmware;
 
 	struct device *dev;
-	bool suspend_event;
 
 	struct rf_info dummy_statistics;
 

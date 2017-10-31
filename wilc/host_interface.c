@@ -2901,15 +2901,11 @@ static void host_if_work(struct work_struct *work)
 		del_timer(&msg->vif->hif_drv->scan_timer);
 		PRINT_D(HOSTINF_DBG, "scan completed successfully\n");
 
-		if (!wilc_wlan_get_num_conn_ifcs(wilc))
-			wilc_chip_sleep_manually(wilc, PWR_DEV_SRC_WIFI);
-
 		Handle_ScanDone(msg->vif, SCAN_EVENT_DONE);
 
 		if (msg->vif->hif_drv->remain_on_ch_pending)
 			Handle_RemainOnChan(msg->vif,
 					    &msg->body.remain_on_ch);
-
 		break;
 
 	case HOST_IF_MSG_GET_RSSI:

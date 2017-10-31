@@ -199,16 +199,12 @@ static int wilc_sdio_suspend(struct device *dev)
 
 	chip_wakeup(wilc, 0);
 
-	if (mutex_is_locked(&wilc->hif_cs))
+	if (mutex_is_locked(&wilc->hif_cs)){
 		mutex_unlock(&wilc->hif_cs);
-	
-	if (!wilc->suspend_event) {
-		if(!wilc_wlan_get_num_conn_ifcs(wilc))
-			wilc_chip_sleep_manually(wilc, 0);
-	} else {
-		host_sleep_notify(wilc, 0);
-		chip_allow_sleep(wilc, 0);
 	}
+
+	host_sleep_notify(wilc, 0);
+	chip_allow_sleep(wilc, 0);
 
 	mutex_lock(&wilc->hif_cs);
 
@@ -235,9 +231,7 @@ static int wilc_sdio_resume(struct device *dev)
 	if (mutex_is_locked(&wilc->hif_cs))
 		mutex_unlock(&wilc->hif_cs);
 
-	/*if there is an event , notify the chip that the host is awake now*/
-	if (wilc->suspend_event)
-		host_wakeup_notify(wilc, 0);
+	host_wakeup_notify(wilc, 0);
 
 	mutex_lock(&wilc->hif_cs);
 
