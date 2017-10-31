@@ -10,14 +10,14 @@ extern void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
 		   status);
 static CHIP_PS_STATE_T chip_ps_state = CHIP_WAKEDUP;
 
-static inline void acquire_bus(struct wilc *wilc, BUS_ACQUIRE_T acquire)
+static inline void acquire_bus(struct wilc *wilc, enum BUS_ACQUIRE acquire)
 {
 	mutex_lock(&wilc->hif_cs);
 	if (acquire == ACQUIRE_AND_WAKEUP)
 		chip_wakeup(wilc);
 }
 
-static inline void release_bus(struct wilc *wilc, BUS_RELEASE_T release)
+static inline void release_bus(struct wilc *wilc, enum BUS_RELEASE release)
 {
 	if (release == RELEASE_ALLOW_SLEEP)
 		chip_allow_sleep(wilc);

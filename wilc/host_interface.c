@@ -42,7 +42,6 @@
 #define HOST_IF_MSG_SET_OPERATION_MODE          27
 #define HOST_IF_MSG_GET_STATISTICS              31
 #define HOST_IF_MSG_SET_MULTICAST_FILTER        32
-#define HOST_IF_MSG_DEL_BA_SESSION              34
 #define HOST_IF_MSG_DEL_ALL_STA                 36
 #define HOST_IF_MSG_SET_TX_POWER		38
 #define HOST_IF_MSG_GET_TX_POWER		39
@@ -232,7 +231,7 @@ struct host_if_msg {
 };
 
 struct join_bss_param {
-	BSSTYPE_T bss_type;
+	enum BSSTYPE bss_type;
 	u8 dtim_period;
 	u16 beacon_period;
 	u16 cap_info;
