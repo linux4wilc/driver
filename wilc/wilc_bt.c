@@ -643,14 +643,16 @@ static void wilc_cmd_handle_bt_power_up(char* param)
 {
 	PRINT_D(PWRDEV_DBG, "AT PWR: bt_power_up\n");
 	bt_init_done=0;
-	acquire_bus(wilc_bt, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_BT);
-	if(!wilc_bt->initialized)
+
+	if(!wilc_bt->initialized && !wilc_bt->hif_func->hif_is_init()) {
+		acquire_bus(wilc_bt, ACQUIRE_ONLY, PWR_DEV_SRC_BT);
 		if (!wilc_bt->hif_func->hif_init(wilc_bt, false)) {
-			release_bus(wilc_bt, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
+			release_bus(wilc_bt, RELEASE_ONLY, PWR_DEV_SRC_BT);
 			return;
 		}
+		release_bus(wilc_bt, RELEASE_ONLY, PWR_DEV_SRC_BT);
+	}
 
-	release_bus(wilc_bt, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 	wilc_bt_power_up(wilc_bt, PWR_DEV_SRC_BT);
 }
 

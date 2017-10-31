@@ -1975,13 +1975,13 @@ int wilc_wlan_init(struct net_device *dev)
 
 	if(!wilc->hif_func->hif_is_init())
 	{
-		acquire_bus(wilc, ACQUIRE_AND_WAKEUP , PWR_DEV_SRC_WIFI);
+		acquire_bus(wilc, ACQUIRE_ONLY , PWR_DEV_SRC_WIFI);
 		if (!wilc->hif_func->hif_init(wilc, false)) {
 			ret = -EIO;
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
+			release_bus(wilc, RELEASE_ONLY, PWR_DEV_SRC_WIFI);
 			goto _fail_;
 		}
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
+		release_bus(wilc, RELEASE_ONLY, PWR_DEV_SRC_WIFI);
 	}
 
 	if (!wilc_wlan_cfg_init()) {
