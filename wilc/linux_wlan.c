@@ -1178,7 +1178,6 @@ static int wilc_mac_open(struct net_device *ndev)
 
 	unsigned char mac_add[ETH_ALEN] = {0};
 	int ret = 0;
-	int i = 0;
 	struct wilc *wl;
 
 	vif = netdev_priv(ndev);
@@ -1644,18 +1643,17 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		vif = netdev_priv(ndev);
 		memset(vif, 0, sizeof(struct wilc_vif));
 
-		if (i == 0) {
-                        strcpy(ndev->name, "wlan%d");
-                        vif->ifc_id = 1;
-                } else {
-                        strcpy(ndev->name, "p2p%d");
-                        vif->ifc_id = 0;
-                }
+		if (i == 0)
+			strcpy(ndev->name, "wlan%d");
+		else
+			strcpy(ndev->name, "p2p%d");
+
+		wl->vif_num = i;
 		vif->idx = wl->vif_num;
 		vif->wilc = *wilc;
 		vif->ndev = ndev;
 		wl->vif[i] = vif;
-		wl->vif_num = i;
+
 
 		ndev->netdev_ops = &wilc_netdev_ops;
 
