@@ -272,6 +272,7 @@ struct wilc_hif_func {
 	int (*enable_interrupt)(struct wilc *nic);
 	void (*disable_interrupt)(struct wilc *nic);
 	int (*hif_reset)(struct wilc *);
+	bool (*hif_is_init)(void);
 };
 
 /********************************************

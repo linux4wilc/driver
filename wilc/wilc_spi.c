@@ -24,6 +24,7 @@
 struct wilc_spi {
 	int crc_off;
 	int nint;
+	bool is_init;
 };
 
 static struct wilc_spi g_spi;
@@ -1004,11 +1005,18 @@ int wilc_spi_reset(struct wilc *wilc)
 	return 1;
 }
 
+static bool wilc_spi_is_init(void)
+{
+	return g_spi.is_init;
+}
+
 static int _wilc_spi_deinit(struct wilc *wilc)
 {
 	/**
 	 *      TODO:
 	 **/
+	g_spi.is_init = false;
+	
 	return 1;
 }
 
@@ -1016,9 +1024,8 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 {
 	u32 reg;
 	u32 chipid;
-	static int init_done;
-
-	if (init_done) {
+	
+	if (g_spi.is_init) {
 		if (!wilc_spi_read_reg(wilc, 0x1000, &chipid)) {
 			PRINT_ER("Fail cmd read chip id...\n");
 			return 0;
@@ -1083,7 +1090,7 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 	}
 		
 _pass_:
-	init_done = 1;
+	g_spi.is_init = true;
 	return 1;
 
 _fail_:
@@ -1203,4 +1210,5 @@ static const struct wilc_hif_func wilc_hif_spi = {
 	.hif_block_rx_ext = wilc_spi_read,
 	.hif_sync_ext = wilc_spi_sync_ext,
 	.hif_reset = wilc_spi_reset,
+	.hif_is_init = wilc_spi_is_init,
 };

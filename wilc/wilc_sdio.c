@@ -45,6 +45,7 @@ struct wilc_sdio {
 	bool irq_gpio;
 	u32 block_size;
 	int nint;
+	bool is_init;
 };
 
 static struct wilc_sdio g_sdio;
@@ -186,6 +187,11 @@ static int wilc_sdio_reset(struct wilc *wilc)
 	if (!ret)
 		dev_err(&func->dev, "Fail cmd 52, reset cmd\n");
 	return ret;
+}
+
+static bool sdio_is_init(void)
+{
+	return g_sdio.is_init;
 }
 
 static int wilc_sdio_suspend(struct device *dev)
@@ -710,6 +716,8 @@ _fail_:
 
 static int sdio_deinit(struct wilc *wilc)
 {
+	g_sdio.is_init = false;
+
 	return 1;
 }
 
@@ -719,10 +727,6 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	struct sdio_cmd52 cmd;
 	int loop, ret;
 	u32 chipid;
-
-	if (!resume) {
-		memset(&g_sdio, 0, sizeof(struct wilc_sdio));
-	}
 
 	PRINT_D(INIT_DBG, "SDIO speed: %d\n", 
 		func->card->host->ios.clock);
@@ -830,7 +834,9 @@ static int sdio_init(struct wilc *wilc, bool resume)
 		}
 		PRINT_D(BUS_DBG, "chipid %08x\n", chipid);
 	}
-		
+
+	g_sdio.is_init = true;
+	
 	return 1;
 
 _fail_:
@@ -1238,5 +1244,6 @@ static const struct wilc_hif_func wilc_hif_sdio = {
 	.enable_interrupt = wilc_sdio_enable_interrupt,
 	.disable_interrupt = wilc_sdio_disable_interrupt,
 	.hif_reset = wilc_sdio_reset,
+	.hif_is_init = sdio_is_init,
 };
 

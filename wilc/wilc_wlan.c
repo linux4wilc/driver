@@ -1973,9 +1973,15 @@ int wilc_wlan_init(struct net_device *dev)
 	
 	PRINT_D(INIT_DBG,"Initializing WILC_Wlan ...\n");
 
-	if (!wilc->hif_func->hif_init(wilc, false)) {
-		ret = -EIO;
-		goto _fail_;
+	if(!wilc->hif_func->hif_is_init())
+	{
+		acquire_bus(wilc, ACQUIRE_AND_WAKEUP , PWR_DEV_SRC_WIFI);
+		if (!wilc->hif_func->hif_init(wilc, false)) {
+			ret = -EIO;
+			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
+			goto _fail_;
+		}
+		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
 	}
 
 	if (!wilc_wlan_cfg_init()) {
