@@ -8,7 +8,6 @@
 extern struct wilc *g_wilc;
 extern void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset, u8
 		   status);
-static CHIP_PS_STATE_T chip_ps_state = CHIP_WAKEDUP;
 
 static inline void acquire_bus(struct wilc *wilc, enum BUS_ACQUIRE acquire)
 {
@@ -698,20 +697,17 @@ void chip_wakeup(struct wilc *wilc)
 			} while ((clk_status_reg & 0x1) == 0);
 		}
 
-		if (chip_ps_state == CHIP_SLEEPING_MANUAL) {
-			if (wilc_get_chipid(wilc, false) < 0x1002b0) {
-				u32 val32;
+		if (wilc_get_chipid(wilc, false) < 0x1002b0) {
+			u32 val32;
 
-				wilc->hif_func->hif_read_reg(wilc, 0x1e1c, &val32);
-				val32 |= BIT(6);
-				wilc->hif_func->hif_write_reg(wilc, 0x1e1c, val32);
+			wilc->hif_func->hif_read_reg(wilc, 0x1e1c, &val32);
+			val32 |= BIT(6);
+			wilc->hif_func->hif_write_reg(wilc, 0x1e1c, val32);
 
-				wilc->hif_func->hif_read_reg(wilc, 0x1e9c, &val32);
-				val32 |= BIT(6);
-				wilc->hif_func->hif_write_reg(wilc, 0x1e9c, val32);
-			}
+			wilc->hif_func->hif_read_reg(wilc, 0x1e9c, &val32);
+			val32 |= BIT(6);
+			wilc->hif_func->hif_write_reg(wilc, 0x1e9c, val32);
 		}
-		chip_ps_state = CHIP_WAKEDUP;
 	} else {
 		u32 wakeup_reg_val, clk_status_reg_val, trials = 0;
 		u32 wakeup_reg = 0xf0;
@@ -776,7 +772,6 @@ void chip_wakeup(struct wilc *wilc)
 		} while (((clk_status_reg_val & clk_sts_bit) == 0) &&
 			(wake_seq_trials-- > 0));
 
-		chip_ps_state = CHIP_WAKEDUP;
 
 		}
 	}
@@ -786,8 +781,6 @@ EXPORT_SYMBOL_GPL(chip_wakeup);
 
 void wilc_chip_sleep_manually(struct wilc *wilc)
 {
-	if (chip_ps_state != CHIP_WAKEDUP)
-		return;
 	acquire_bus(wilc, ACQUIRE_ONLY);
 
 	chip_allow_sleep(wilc);
@@ -796,7 +789,6 @@ void wilc_chip_sleep_manually(struct wilc *wilc)
 	else
 		wilc->hif_func->hif_write_reg(wilc, 0x10B8, 1);
 
-	chip_ps_state = CHIP_SLEEPING_MANUAL;
 	release_bus(wilc, RELEASE_ONLY);
 }
 EXPORT_SYMBOL_GPL(wilc_chip_sleep_manually);
