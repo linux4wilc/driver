@@ -159,7 +159,7 @@ static void linux_sdio_remove(struct sdio_func *func)
 	wilc_bt_deinit();
 }
 
-static int sdio_reset(struct wilc *wilc)
+static int wilc_sdio_reset(struct wilc *wilc)
 {
 	struct sdio_cmd52 cmd;
 	int ret;
@@ -171,11 +171,9 @@ static int sdio_reset(struct wilc *wilc)
 	cmd.address = 0x6;
 	cmd.data = 0x8;
 	ret = wilc_sdio_cmd52(wilc, &cmd);
-	if (!ret) {
-		dev_err(&func->dev, "Fail cmd 52, reset cmd ...\n");
-		return ret;
-	}
-	return 0;
+	if (!ret)
+		dev_err(&func->dev, "Fail cmd 52, reset cmd\n");
+	return ret;
 }
 
 static int wilc_sdio_suspend(struct device *dev)
@@ -202,7 +200,7 @@ static int wilc_sdio_suspend(struct device *dev)
 
 	mutex_lock(&wilc->hif_cs);
 
-	ret = sdio_reset(wilc);
+	ret = wilc_sdio_reset(wilc);
 	if (ret) {
 		dev_err(&func->dev, "Fail reset sdio\n");
 		return ret;
@@ -1225,5 +1223,6 @@ static const struct wilc_hif_func wilc_hif_sdio = {
 	.hif_sync_ext = sdio_sync_ext,
 	.enable_interrupt = wilc_sdio_enable_interrupt,
 	.disable_interrupt = wilc_sdio_disable_interrupt,
+	.hif_reset = wilc_sdio_reset,
 };
 

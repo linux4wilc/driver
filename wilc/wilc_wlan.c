@@ -25,6 +25,14 @@ void release_bus(struct wilc *wilc, enum BUS_RELEASE release, int source)
 	mutex_unlock(&wilc->hif_cs);
 }
 
+uint8_t reset_bus(struct wilc *wilc)
+{
+	uint8_t ret = 0;
+	if((wilc->io_type & 0x1) == HIF_SPI)
+		return wilc->hif_func->hif_reset(wilc);
+	return ret;
+}
+
 static void wilc_wlan_txq_remove(struct wilc *wilc, u8 q_num,
 				 struct txq_entry_t *tqe)
 {
@@ -800,6 +808,8 @@ void chip_wakeup_wilc1000(struct wilc *wilc, int source)
 		val32 |= (1 << 6);
 		wilc->hif_func->hif_write_reg(wilc, 0x1e9c , val32);
 	}
+	/*workaround sometimes spi fail to read clock regs after reading/writing clockless registers*/
+	reset_bus(wilc);
 
 _fail_:
 	return;

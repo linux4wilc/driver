@@ -33,6 +33,7 @@ static const struct wilc_hif_func wilc_hif_spi;
 static int wilc_spi_read(struct wilc *wilc, u32, u8 *, u32);
 static int wilc_spi_write(struct wilc *wilc, u32, u8 *, u32);
 static int wilc_spi_rx(struct wilc *wilc, u8 *rb, u32 rlen);
+static int wilc_spi_reset(struct wilc *wilc);
 
 /********************************************
  *
@@ -876,6 +877,19 @@ static int wilc_spi_read(struct wilc *wilc, u32 addr, u8 *buf, u32 size)
  *
  ********************************************/
 
+int wilc_spi_reset(struct wilc *wilc)
+{
+	int result = N_OK;
+	
+	result = spi_cmd_complete(wilc, CMD_RESET, 0, 0 ,0, 0);
+	if (result != N_OK) {
+		PRINT_ER("Failed cmd reset \n");	
+		return 0;
+	}
+
+	return 1;
+}
+
 static int _wilc_spi_deinit(struct wilc *wilc)
 {
 	/**
@@ -1208,4 +1222,5 @@ static const struct wilc_hif_func wilc_hif_spi = {
 	.hif_block_tx_ext = wilc_spi_write,
 	.hif_block_rx_ext = wilc_spi_read,
 	.hif_sync_ext = wilc_spi_sync_ext,
+	.hif_reset = wilc_spi_reset,
 };
