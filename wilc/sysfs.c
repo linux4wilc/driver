@@ -62,6 +62,8 @@ void p2p_sysfs_init(struct wilc_vif *vi)
 		return;
 	}
 
+	vif->p2p_mode = 1;
+	
 	retval = sysfs_create_group(p2p_kobj, &attr_group);
 	device_created = 1;
 }
