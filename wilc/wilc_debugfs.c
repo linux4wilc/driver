@@ -22,13 +22,13 @@ static struct dentry *wilc_dir;
 /*
  * ----------------------------------------------------------------------------
  */
-#define DEBUG           BIT(0)
-#define INFO            BIT(1)
-#define WRN             BIT(2)
-#define ERR             BIT(3)
+#define DEBUG_BIT           BIT(0)
+#define INFO_BIT            BIT(1)
+#define WRN_BIT             BIT(2)
+#define ERR_BIT             BIT(3)
 
-#define DBG_LEVEL_ALL	(DEBUG | INFO | WRN | ERR)
-static atomic_t WILC_DEBUG_LEVEL = ATOMIC_INIT(ERR);
+#define DBG_LEVEL_ALL	(DEBUG_BIT | INFO_BIT | WRN_BIT | ERR_BIT)
+static atomic_t WILC_DEBUG_LEVEL = ATOMIC_INIT(ERR_BIT);
 EXPORT_SYMBOL_GPL(WILC_DEBUG_LEVEL);
 
 /*
@@ -99,7 +99,7 @@ static struct wilc_debugfs_info_t debugfs_info[] = {
 	{
 		"wilc_debug_level",
 		0666,
-		(DEBUG | ERR),
+		(DEBUG_BIT | ERR_BIT),
 		FOPS(NULL, wilc_debug_level_read, wilc_debug_level_write, NULL),
 	},
 };
