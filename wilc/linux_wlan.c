@@ -15,7 +15,9 @@
 
 #include <linux/init.h>
 #include <linux/netdevice.h>
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 #include <linux/inetdevice.h>
+#endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 #include <linux/etherdevice.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -29,7 +31,7 @@
 
 #include "linux_wlan.h"
 
-//#define PREVENT_SDIO_HOST_FROM_SUSPEND
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 bool g_ignore_PS_state = false;
 #define duringIP_TIME		15000
 extern struct timer_list wilc_during_ip_timer;
@@ -146,6 +148,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 static struct notifier_block g_dev_notifier = {
 	.notifier_call = dev_state_ev_handler
 };
+#endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
 static int wlan_deinit_locks(struct net_device *dev);
 static void wlan_deinitialize_threads(struct net_device *dev);
@@ -184,10 +187,10 @@ static int debug_thread(void *arg)
 	struct wilc *wl;
 	struct wilc_priv *priv;
 	struct net_device *dev = arg;
-        signed long timeout;
+	signed long timeout;
 	struct host_if_drv *hif_drv;
+	
 	vif = netdev_priv(dev);
-
 
 	priv = wiphy_priv(vif->ndev->ieee80211_ptr->wiphy);
 	hif_drv = (struct host_if_drv *)priv->hif_drv;
@@ -233,7 +236,10 @@ static int debug_thread(void *arg)
 			strDisconnectNotifInfo.ie_len = 0;
 
 			if (hif_drv->usr_conn_req.conn_result) {
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+
 				handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+#endif
 
 				hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
 								  NULL,
@@ -266,6 +272,7 @@ static int debug_thread(void *arg)
 	return 0;
 }
 
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 static int dev_state_ev_handler(struct notifier_block *this,
 				unsigned long event, void *ptr)
 {
@@ -319,10 +326,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 			handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 		}
 
-		if (memcmp(dev_iface->ifa_label, wlan_dev_name,5) == 0){
-			wilc_set_power_mgmt(vif, 0, 0);
-			wilc_optaining_ip = false;
-		}
+		
 		wilc_resolve_disconnect_aberration(vif);
 
 		netdev_dbg(dev, "[%s] Down IP\n", dev_iface->ifa_label);
@@ -339,6 +343,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 
 	return NOTIFY_DONE;
 }
+#endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
 static irqreturn_t isr_uh_routine(int irq, void *user_data)
 {
@@ -1580,6 +1585,10 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 		}
 	}
 
+	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+		unregister_inetaddr_notifier(&g_dev_notifier);
+	#endif
+
 	kfree(wilc);
 	p2p_sysfs_exit();
 }
@@ -1602,7 +1611,9 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	wl->gpio = gpio;
 	wl->hif_func = ops;
 
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	register_inetaddr_notifier(&g_dev_notifier);
+#endif
 
 	for (i = 0; i < NUM_CONCURRENT_IFC; i++) {
 		ndev = alloc_etherdev(sizeof(struct wilc_vif));

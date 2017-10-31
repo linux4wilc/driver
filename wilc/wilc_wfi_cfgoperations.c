@@ -94,7 +94,9 @@ static const struct wiphy_wowlan_support wowlan_support = {
 
 static struct network_info last_scanned_shadow[MAX_NUM_SCANNED_NETWORKS_SHADOW];
 static u32 last_scanned_cnt;
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 struct timer_list wilc_during_ip_timer;
+#endif
 static struct timer_list hAgingTimer;
 static u8 op_ifcs;
 struct timer_list eap_buff_timer;
@@ -554,7 +556,9 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 					pstrConnectInfo->resp_ies, pstrConnectInfo->resp_ies_len,
 					u16ConnectStatus, GFP_KERNEL);
 	} else if (enuConnDisconnEvent == CONN_DISCONN_EVENT_DISCONN_NOTIF)    {
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		wilc_optaining_ip = false;
+#endif
 		p2p_local_random = 0x01;
 		p2p_recv_random = 0x00;
 		wilc_ie = false;
@@ -1902,7 +1906,9 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 	p2p_local_random = 0x01;
 	p2p_recv_random = 0x00;
 	wilc_ie = false;
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	handle_pwrsave_during_obtainingIP(NULL, IP_STATE_DEFAULT);
+#endif
 
 	switch (type) {
 	case NL80211_IFTYPE_STATION:
@@ -1952,7 +1958,9 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		break;
 
 	case NL80211_IFTYPE_P2P_GO:
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		handle_pwrsave_during_obtainingIP(vif, IP_STATE_GO_ASSIGNING);
+#endif
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
 		vif->iftype = GO_MODE;
@@ -2413,7 +2421,9 @@ int wilc_init_host_int(struct net_device *net)
 	priv = wdev_priv(net->ieee80211_ptr);
 	if (op_ifcs == 0) {
 		setup_timer(&hAgingTimer, remove_network_from_shadow, 0);
+	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		setup_timer(&wilc_during_ip_timer, clear_duringIP, 0);
+	#endif
 		setup_timer(&eap_buff_timer, eap_buff_timeout, 0);
 	}
 	op_ifcs++;
@@ -2448,10 +2458,12 @@ int wilc_deinit_host_int(struct net_device *net)
 	s32Error = wilc_deinit(vif);
 
 	clear_shadow_scan();
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	if (op_ifcs == 0){
 		del_timer_sync(&wilc_during_ip_timer);
 		del_timer_sync(&eap_buff_timer);
 	}
+#endif
 
 	if (s32Error)
 		netdev_err(net, "Error while deinitializing host interface\n");

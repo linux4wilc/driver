@@ -290,6 +290,9 @@ struct host_if_drv {
 
 	bool IFC_UP;
 	int driver_handler_id;
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+	bool pwrsave_current_state;
+#endif
 };
 
 struct add_sta_param {
@@ -400,7 +403,9 @@ extern u8 wilc_multicast_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
 extern int wilc_connecting;
 extern u8 wilc_initialized;
 extern struct timer_list eap_buff_timer;
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 extern struct timer_list wilc_during_ip_timer;
+#endif
 s32 Handle_ScanDone(struct wilc_vif *vif, enum scan_event enuEvent);
 
 #endif

@@ -255,7 +255,9 @@ struct join_bss_param {
 };
 
 static struct host_if_drv *terminated_handle;
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 bool wilc_optaining_ip;
+#endif
 static u8 P2P_LISTEN_STATE;
 static struct workqueue_struct *hif_workqueue;
 static struct completion hif_thread_comp;
@@ -797,12 +799,18 @@ static s32 handle_scan(struct wilc_vif *vif, struct scan_attr *scan_info)
 		result = -EBUSY;
 		goto ERRORHANDLER;
 	}
-
-	if (wilc_optaining_ip || wilc_connecting) {
+	if(wilc_connecting) {
+		netdev_info(vif->ndev, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
+		result = -EBUSY;
+		goto ERRORHANDLER;
+	}
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+	if (wilc_optaining_ip) {
 		netdev_err(vif->ndev, "Don't do obss scan\n");
 		result = -EBUSY;
 		goto ERRORHANDLER;
 	}
+#endif
 
 	hif_drv->usr_scan_req.rcvd_ch_cnt = 0;
 
@@ -1470,8 +1478,10 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 
 				hif_drv->hif_state = HOST_IF_CONNECTED;
 
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 
 				handle_pwrsave_during_obtainingIP(vif, IP_STATE_OBTAINING);
+#endif
 			} else {
 				hif_drv->hif_state = HOST_IF_IDLE;
 				scan_while_connected = false;
@@ -1504,7 +1514,9 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 			strDisconnectNotifInfo.ie_len = 0;
 
 			if (hif_drv->usr_conn_req.conn_result) {
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 				handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+#endif
 
 				hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
 								  NULL,
@@ -1821,7 +1833,9 @@ static void Handle_Disconnect(struct wilc_vif *vif)
 	wid.size = sizeof(char);
 
 
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+#endif
 	eth_zero_addr(wilc_connected_ssid);
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
@@ -2289,10 +2303,17 @@ static int Handle_RemainOnChan(struct wilc_vif *vif,
 		goto ERRORHANDLER;
 	}
 
-	if (wilc_optaining_ip || wilc_connecting) {
+	if(wilc_connecting) {
+		netdev_info(vif->ndev, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
 		result = -EBUSY;
 		goto ERRORHANDLER;
 	}
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+	if (wilc_optaining_ip) {
+		result = -EBUSY;
+		goto ERRORHANDLER;
+	}
+#endif
 
 	u8remain_on_chan_flag = true;
 	wid.id = (u16)WID_REMAIN_ON_CHAN;
@@ -3481,8 +3502,11 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 			hif_drv->driver_handler_id = i + 1;
 			break;
 		}
+	
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 
 	wilc_optaining_ip = false;
+#endif
 
 	if (clients_count == 0)	{
 		init_completion(&hif_thread_comp);
