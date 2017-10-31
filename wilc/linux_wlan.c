@@ -311,13 +311,6 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		netdev_dbg(dev, "IP add=%d:%d:%d:%d\n",
 			   ip_addr_buf[0], ip_addr_buf[1],
 			   ip_addr_buf[2], ip_addr_buf[3]);
-		wilc_setup_ipaddress(vif, ip_addr_buf, vif->idx);
-
-		if (wilc_enable_ps && (ip_addr_buf[0] != 169)){
-			msleep(500);
-			wilc_set_power_mgmt(vif, 1, 0);
-			wilc_optaining_ip = false;
-		}
 		break;
 
 	case NETDEV_DOWN:
@@ -338,9 +331,6 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		netdev_dbg(dev, "IP add=%d:%d:%d:%d\n",
 			   ip_addr_buf[0], ip_addr_buf[1],
 			   ip_addr_buf[2], ip_addr_buf[3]);
-
-		wilc_setup_ipaddress(vif, ip_addr_buf, vif->idx);
-
 		break;
 
 	default:

@@ -40,8 +40,6 @@
 #define HOST_IF_MSG_SET_WFIDRV_HANDLER          24
 #define HOST_IF_MSG_GET_MAC_ADDRESS             26
 #define HOST_IF_MSG_SET_OPERATION_MODE          27
-#define HOST_IF_MSG_SET_IPADDRESS               28
-#define HOST_IF_MSG_GET_IPADDRESS               29
 #define HOST_IF_MSG_GET_STATISTICS              31
 #define HOST_IF_MSG_SET_MULTICAST_FILTER        32
 #define HOST_IF_MSG_DEL_BA_SESSION              34
@@ -175,11 +173,6 @@ struct power_mgmt_param {
 	u32 timeout;
 };
 
-struct set_ip_addr {
-	u8 *ip_addr;
-	u8 idx;
-};
-
 struct sta_inactive_t {
 	u8 mac[6];
 };
@@ -213,7 +206,6 @@ union message_body {
 	struct add_sta_param edit_sta_info;
 	struct power_mgmt_param pwr_mgmt_info;
 	struct sta_inactive_t mac_info;
-	struct set_ip_addr ip_info;
 	struct drv_handler drv;
 	struct set_multicast multicast_info;
 	struct op_mode mode;
@@ -285,8 +277,6 @@ static u8 rcv_assoc_resp[MAX_ASSOC_RESP_FRAME_SIZE];
 bool scan_while_connected;
 
 static s8 rssi;
-static u8 set_ip[2][4];
-static u8 get_ip[2][4];
 static u32 inactive_time;
 static u8 del_beacon;
 static u32 clients_count;
@@ -461,56 +451,6 @@ static void handle_set_operation_mode(struct wilc_vif *vif,
 
 	if (ret)
 		netdev_err(vif->ndev, "Failed to set driver handler\n");
-}
-extern int recovery_on;
-static void handle_set_ip_address(struct wilc_vif *vif, u8 *ip_addr, u8 idx)
-{
-	int ret = 0;
-	struct wid wid;
-
-	if (ip_addr[0] < 192)
-		ip_addr[0] = 0;
-
-	memcpy(set_ip[idx], ip_addr, IP_ALEN);
-
-	wid.id = (u16)WID_IP_ADDRESS;
-	wid.type = WID_STR;
-	wid.val = (u8 *)ip_addr;
-	wid.size = IP_ALEN;
-
-	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
-				   wilc_get_vif_idx(vif));
-
-
-	if (ret) {
-		netdev_err(vif->ndev, "Failed to set IP address\n");
-		recovery_on = 1;
-
-	}
-}
-
-static void handle_get_ip_address(struct wilc_vif *vif, u8 idx)
-{
-	int ret = 0;
-	struct wid wid;
-
-	wid.id = (u16)WID_IP_ADDRESS;
-	wid.type = WID_STR;
-	wid.val = kmalloc(IP_ALEN, GFP_KERNEL);
-	wid.size = IP_ALEN;
-
-	ret = wilc_send_config_pkt(vif, GET_CFG, &wid, 1,
-				   wilc_get_vif_idx(vif));
-
-	memcpy(get_ip[idx], wid.val, IP_ALEN);
-
-	kfree(wid.val);
-
-	if (memcmp(get_ip[idx], set_ip[idx], IP_ALEN) != 0)
-		wilc_setup_ipaddress(vif, set_ip[idx], idx);
-
-	if (ret)
-		netdev_err(vif->ndev, "Failed to get IP address\n");
 }
 
 static void handle_get_mac_address(struct wilc_vif *vif,
@@ -2732,16 +2672,6 @@ static void host_if_work(struct work_struct *work)
 		handle_set_operation_mode(msg->vif, &msg->body.mode);
 		break;
 
-	case HOST_IF_MSG_SET_IPADDRESS:
-		handle_set_ip_address(msg->vif,
-				      msg->body.ip_info.ip_addr,
-				      msg->body.ip_info.idx);
-		break;
-
-	case HOST_IF_MSG_GET_IPADDRESS:
-		handle_get_ip_address(msg->vif, msg->body.ip_info.idx);
-		break;
-
 	case HOST_IF_MSG_GET_MAC_ADDRESS:
 		handle_get_mac_address(msg->vif,
 				       &msg->body.get_mac_info);
@@ -4223,28 +4153,6 @@ static void *host_int_ParseJoinBssParam(struct network_info *ptstrNetworkInfo)
 	}
 
 	return (void *)pNewJoinBssParam;
-}
-
-int wilc_setup_ipaddress(struct wilc_vif *vif, u8 *ip_addr, u8 idx)
-{
-	int result = 0;
-	struct host_if_msg msg;
-
-	memset(&msg, 0, sizeof(struct host_if_msg));
-
-	msg.id = HOST_IF_MSG_SET_IPADDRESS;
-	if(!hif_workqueue)
-		return 0;
-
-	msg.body.ip_info.ip_addr = ip_addr;
-	msg.vif = vif;
-	msg.body.ip_info.idx = idx;
-
-	result = wilc_enqueue_cmd(&msg);
-	if (result)
-		netdev_err(vif->ndev, "wilc_mq_send fail\n");
-
-	return result;
 }
 
 int wilc_set_tx_power(struct wilc_vif *vif, u8 tx_power)
