@@ -647,12 +647,11 @@ int wilc_wlan_get_firmware(struct net_device *dev)
 		netdev_info(dev, "Detect chip WILC3000\n");
 		firmware = FIRMWARE_WILC3000_WIFI;
 	}
-	else if (chip_id < 0x1003a0) {
-		firmware = FIRMWARE_1002;
-	}
-	else {
+	else if (chip_id == 0x1003a0) {
 		netdev_info(dev, "Detect chip WILC1000\n");
-		firmware = FIRMWARE_1003;
+		firmware = FIRMWARE_WILC1000_WIFi;
+	} else {
+		return -1;
 	}
 
 	netdev_info(dev, "loading firmware %s\n", firmware);

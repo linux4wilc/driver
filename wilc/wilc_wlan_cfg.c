@@ -102,7 +102,6 @@ static struct wilc_cfg_hword g_cfg_hword[] = {
 	{WID_SHORT_RETRY_LIMIT, 0},
 	{WID_LONG_RETRY_LIMIT, 0},
 	{WID_BEACON_INTERVAL, 0},
-	{WID_RX_SENSE, 0},
 	{WID_ACTIVE_SCAN_TIME, 0},
 	{WID_PASSIVE_SCAN_TIME, 0},
 	{WID_SITE_SURVEY_SCAN_TIME, 0},
