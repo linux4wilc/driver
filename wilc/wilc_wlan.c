@@ -1214,7 +1214,6 @@ static void wilc_sleeptimer_isr_ext(struct wilc *wilc, u32 int_stats1)
 
 static void wilc_wlan_handle_isr_ext(struct wilc *wilc, u32 int_status)
 {
-	u32 offset = wilc->rx_buffer_offset;
 	u8 *buffer = NULL;
 	u32 size;
 	u32 retries = 0;
@@ -1230,28 +1229,25 @@ static void wilc_wlan_handle_isr_ext(struct wilc *wilc, u32 int_status)
 	}
 
 	if (size > 0) {
-		if (LINUX_RX_SIZE - offset < size)
-			offset = 0;
-
-		if (wilc->rx_buffer)
-			buffer = &wilc->rx_buffer[offset];
-		else
+		buffer = kmalloc(size, GFP_KERNEL);
+		if (NULL == buffer) {
+			msleep(100);
 			goto _end_;
-
+		}
 		wilc->hif_func->hif_clear_int_ext(wilc,
 					      DATA_INT_CLR | ENABLE_RX_VMM);
 		ret = wilc->hif_func->hif_block_rx_ext(wilc, 0, buffer, size);
 
 _end_:
 		if (ret) {
-			offset += size;
-			wilc->rx_buffer_offset = offset;
 			rqe = kmalloc(sizeof(*rqe), GFP_KERNEL);
 			if (rqe) {
 				rqe->buffer = buffer;
 				rqe->buffer_size = size;
 				wilc_wlan_rxq_add(wilc, rqe);
 			}
+		} else {
+			kfree(buffer);
 		}
 	}
 	if (ret)
@@ -1381,27 +1377,10 @@ int wilc_wlan_start(struct wilc *wilc)
 	if (wilc->io_type == HIF_SDIO && wilc->dev_irq_num)
 		reg |= WILC_HAVE_SDIO_IRQ_GPIO;
 
-#ifdef WILC_DISABLE_PMU
-#else
-	reg |= WILC_HAVE_USE_PMU;
-#endif
-
 #ifdef WILC_SLEEP_CLK_SRC_XO
 	reg |= WILC_HAVE_SLEEP_CLK_SRC_XO;
 #elif defined WILC_SLEEP_CLK_SRC_RTC
 	reg |= WILC_HAVE_SLEEP_CLK_SRC_RTC;
-#endif
-
-#ifdef WILC_EXT_PA_INV_TX_RX
-	reg |= WILC_HAVE_EXT_PA_INV_TX_RX;
-#endif
-	reg |= WILC_HAVE_USE_IRQ_AS_HOST_WAKE;
-	reg |= WILC_HAVE_LEGACY_RF_SETTINGS;
-#ifdef XTAL_24
-	reg |= WILC_HAVE_XTAL_24;
-#endif
-#ifdef DISABLE_WILC_UART
-	reg |= WILC_HAVE_DISABLE_WILC_UART;
 #endif
 
 #ifdef ANT_SWTCH_SNGL_GPIO_CTRL
@@ -1536,11 +1515,10 @@ void wilc_wlan_cleanup(struct net_device *dev)
 		rqe = wilc_wlan_rxq_remove(wilc);
 		if (!rqe)
 			break;
+		kfree(rqe->buffer);
 		kfree(rqe);
 	} while (1);
 
-	kfree(wilc->rx_buffer);
-	wilc->rx_buffer = NULL;
 	kfree(wilc->tx_buffer);
 	wilc->tx_buffer = NULL;
 
@@ -1824,7 +1802,6 @@ int wilc_wlan_init(struct net_device *dev)
 	struct wilc *wilc;
 
 	wilc = vif->wilc;
-
 	wilc->quit = 0;
 
 	if (!wilc->hif_func->hif_init(wilc, false)) {
@@ -1848,14 +1825,6 @@ int wilc_wlan_init(struct net_device *dev)
 		goto _fail_;
 	}
 
-	if (!wilc->rx_buffer)
-		wilc->rx_buffer = kmalloc(LINUX_RX_SIZE, GFP_KERNEL);
-
-	if (!wilc->rx_buffer) {
-		ret = -ENOBUFS;
-		goto _fail_;
-	}
-
 	if (!init_chip(dev)) {
 		ret = -EIO;
 		goto _fail_;
@@ -1864,9 +1833,6 @@ int wilc_wlan_init(struct net_device *dev)
 	return 1;
 
 _fail_:
-
-	kfree(wilc->rx_buffer);
-	wilc->rx_buffer = NULL;
 	kfree(wilc->tx_buffer);
 	wilc->tx_buffer = NULL;
 

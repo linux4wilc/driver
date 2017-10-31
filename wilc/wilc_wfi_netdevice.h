@@ -41,6 +41,7 @@
 #include <asm/checksum.h>
 #include "host_interface.h"
 #include "wilc_wlan.h"
+#include "wilc_wlan_if.h"
 #include <linux/wireless.h>
 #include <linux/completion.h>
 #include <linux/mutex.h>
@@ -62,11 +63,6 @@ struct WILC_WFI_stats {
 	u64 tx_time;
 
 };
-
-/*
- * This structure is private to each device. It is used to pass
- * packets in and out, so there is place for a packet
- */
 
 #define num_reg_frame 2
 
@@ -107,10 +103,8 @@ struct wilc_buffered_eap {
 struct wilc_priv {
 	struct wireless_dev *wdev;
 	struct cfg80211_scan_request *pstrScanReq;
-
 	struct wilc_wfi_p2pListenParams strRemainOnChanParams;
 	u64 u64tx_cookie;
-
 	bool bCfgScanning;
 	u32 u32RcvdChCount;
 
@@ -138,7 +132,7 @@ struct wilc_priv {
 	struct wilc_wfi_key *wilc_gtk[MAX_NUM_STA];
 	struct wilc_wfi_key *wilc_ptk[MAX_NUM_STA];
 	u8 wilc_groupkey;
-	/* mutexes */
+
 	struct mutex scan_req_lock;
 	/*  */
 	bool gbAutoRateAdjusted;
@@ -166,7 +160,6 @@ struct wilc_vif {
 	struct host_if_drv *hif_drv;
 	struct net_device *ndev;
 	u8 ifc_id;
-	bool ifc_open;
 	bool p2p_mode;
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	bool pwrsave_current_state;
@@ -187,7 +180,6 @@ struct wilc {
 
 	struct mutex txq_add_to_head_cs;
 	spinlock_t txq_spinlock;
-	spinlock_t cfg_pkt_spinlock;
 
 	struct mutex rxq_cs;
 	struct mutex hif_cs;
@@ -206,12 +198,9 @@ struct wilc {
 	u32 cfg_frame_offset;
 	int cfg_seq_no;
 
-	u8 *rx_buffer;
-	u32 rx_buffer_offset;
 	u8 *tx_buffer;
 
 	unsigned long txq_spinlock_flags;
-	unsigned long cfg_pkt_flags;
 
 	struct txq_entry_t *txq_head;
 	struct txq_entry_t *txq_tail;
@@ -245,7 +234,6 @@ int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif);
 
 //void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset);
 void wilc_mac_indicate(struct wilc *wilc, int flag);
-int wilc_lock_timeout(struct wilc *wilc, void *, u32 timeout);
 void wilc_netdev_cleanup(struct wilc *wilc);
 int wilc_netdev_init(struct wilc **wilc, struct device *, int io_type, int gpio,
 		     const struct wilc_hif_func *ops);

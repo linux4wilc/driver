@@ -44,8 +44,7 @@
  *
  ********************************************/
 #define WILC_PERIPH_REG_BASE		0x1000
-#define WILC_CHANGING_VIR_IF		0x108c
-#define WILC_CHIPID			WILC_PERIPH_REG_BASE
+#define WILC_CHIPID				WILC_PERIPH_REG_BASE
 #define WILC_GLB_RESET_0		(WILC_PERIPH_REG_BASE + 0x400)
 #define WILC_PIN_MUX_0			(WILC_PERIPH_REG_BASE + 0x408)
 #define WILC_HOST_TX_CTRL		(WILC_PERIPH_REG_BASE + 0x6c)
@@ -109,14 +108,8 @@
 #define WILC_COE_AUTO_PS_OFF_NULL_PKT	0x16046C
 
 #define WILC_HAVE_SDIO_IRQ_GPIO		BIT(0)
-#define WILC_HAVE_USE_PMU		BIT(1)
 #define WILC_HAVE_SLEEP_CLK_SRC_RTC	BIT(2)
 #define WILC_HAVE_SLEEP_CLK_SRC_XO	BIT(3)
-#define WILC_HAVE_EXT_PA_INV_TX_RX	BIT(4)
-#define WILC_HAVE_LEGACY_RF_SETTINGS	BIT(5)
-#define WILC_HAVE_XTAL_24		BIT(6)
-#define WILC_HAVE_DISABLE_WILC_UART	BIT(7)
-#define WILC_HAVE_USE_IRQ_AS_HOST_WAKE	BIT(8)
 #define WILC_HAVE_ANT_SWTCH_SNGL_GPIO_CTRL BIT(9)
 #define WILC_HAVE_ANT_SWTCH_DUAL_GPIO_CTRL BIT(10)
 
@@ -140,7 +133,6 @@
 #define WILC_PLL_TO_SPI		2
 #define ABORT_INT		BIT(31)
 
-#define LINUX_RX_SIZE		(96 * 1024)
 #define LINUX_TX_SIZE		(64 * 1024)
 
 #define MODALIAS		"WILC_SPI"
@@ -220,12 +212,6 @@
 #define ENABLE_TX_VMM		(SEL_VMM_TBL0 | EN_VMM)
 /*time for expiring the completion of cfg packets*/
 #define CFG_PKTS_TIMEOUT	2000
-/********************************************
- *
- *      Debug Type
- *
- ********************************************/
-typedef void (*wilc_debug_func)(u32, char *, ...);
 
 /********************************************
  *

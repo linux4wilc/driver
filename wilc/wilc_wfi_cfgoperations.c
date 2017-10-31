@@ -617,7 +617,7 @@ static int set_channel(struct wiphy *wiphy,
 	result = wilc_set_mac_chnl_num(vif, channelnum);
 
 	if (result != 0)
-		netdev_err(priv->dev, "Error in setting channel\n");
+		netdev_err(priv->dev, "Error in setting channel %d\n", channelnum);
 
 	return result;
 }
@@ -840,7 +840,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 				     pstrNetworkInfo->ch,
 				     pstrNetworkInfo->join_params);
 	if (s32Error != 0) {
-		netdev_err(dev, "wilc_set_join_req(): Error\n");
+		netdev_err(dev, "wilc_set_join_req(): Error(%d)\n", s32Error);
 		s32Error = -ENOENT;
 		wilc_connecting = 0;
 		return s32Error;
@@ -865,17 +865,6 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev, u16 reason_co
 
 	if (!wilc)
 		return -EIO;
-
-	if (wilc->close) {
-		/* already disconnected done */
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,1,0)
-		cfg80211_disconnected(dev, 0, NULL, 0, GFP_KERNEL);
-#else
-		cfg80211_disconnected(dev, 0, NULL, 0, true, GFP_KERNEL);
-#endif
-		return 0;
-	}
-
 	pstrWFIDrv = (struct host_if_drv *)priv->hif_drv;
 	if (!pstrWFIDrv->p2p_connect)
 		wlan_channel = INVALID_CHANNEL;
@@ -888,7 +877,7 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev, u16 reason_co
 
 	s32Error = wilc_disconnect(vif, reason_code);
 	if (s32Error != 0) {
-		netdev_err(priv->dev, "Error in disconnecting\n");
+		netdev_err(priv->dev, "Error in disconnecting: Error(%d)\n", s32Error);
 		s32Error = -EINVAL;
 	}
 
@@ -1028,78 +1017,76 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 			break;
 		}
 
-		{
-			u8mode = 0;
-			if (!pairwise) {
-				if (params->key_len > 16 && params->cipher == WLAN_CIPHER_SUITE_TKIP) {
-					pu8RxMic = params->key + 24;
-					pu8TxMic = params->key + 16;
-					KeyLen = params->key_len - 16;
-				}
-
-				if (!g_gtk_keys_saved && netdev == wl->vif[0]->ndev) {
-					g_add_gtk_key_params.key_idx = key_index;
-					g_add_gtk_key_params.pairwise = pairwise;
-					if (!mac_addr) {
-						g_add_gtk_key_params.mac_addr = NULL;
-					} else {
-						g_add_gtk_key_params.mac_addr = kmalloc(ETH_ALEN, GFP_KERNEL);
-						memcpy(g_add_gtk_key_params.mac_addr, mac_addr, ETH_ALEN);
-					}
-					g_key_gtk_params.key_len = params->key_len;
-					g_key_gtk_params.seq_len = params->seq_len;
-					g_key_gtk_params.key =  kmalloc(params->key_len, GFP_KERNEL);
-					memcpy(g_key_gtk_params.key, params->key, params->key_len);
-					if (params->seq_len > 0) {
-						g_key_gtk_params.seq =  kmalloc(params->seq_len, GFP_KERNEL);
-						memcpy(g_key_gtk_params.seq, params->seq, params->seq_len);
-					}
-					g_key_gtk_params.cipher = params->cipher;
-					g_gtk_keys_saved = true;
-				}
-
-				wilc_add_rx_gtk(vif, params->key, KeyLen,
-						key_index, params->seq_len,
-						params->seq, pu8RxMic,
-						pu8TxMic, STATION_MODE,
-						u8mode);
-			} else {
-				if (params->key_len > 16 && params->cipher == WLAN_CIPHER_SUITE_TKIP) {
-					pu8RxMic = params->key + 24;
-					pu8TxMic = params->key + 16;
-					KeyLen = params->key_len - 16;
-				}
-
-				if (!g_ptk_keys_saved && netdev == wl->vif[0]->ndev) {
-					g_add_ptk_key_params.key_idx = key_index;
-					g_add_ptk_key_params.pairwise = pairwise;
-					if (!mac_addr) {
-						g_add_ptk_key_params.mac_addr = NULL;
-					} else {
-						g_add_ptk_key_params.mac_addr = kmalloc(ETH_ALEN, GFP_KERNEL);
-						memcpy(g_add_ptk_key_params.mac_addr, mac_addr, ETH_ALEN);
-					}
-					g_key_ptk_params.key_len = params->key_len;
-					g_key_ptk_params.seq_len = params->seq_len;
-					g_key_ptk_params.key =  kmalloc(params->key_len, GFP_KERNEL);
-					memcpy(g_key_ptk_params.key, params->key, params->key_len);
-					if (params->seq_len > 0) {
-						g_key_ptk_params.seq =  kmalloc(params->seq_len, GFP_KERNEL);
-						memcpy(g_key_ptk_params.seq, params->seq, params->seq_len);
-					}
-					g_key_ptk_params.cipher = params->cipher;
-					g_ptk_keys_saved = true;
-				}
-
-				wilc_add_ptk(vif, params->key, KeyLen,
-					     mac_addr, pu8RxMic, pu8TxMic,
-					     STATION_MODE, u8mode, key_index);
+		u8mode = 0;
+		if (!pairwise) {
+			if (params->key_len > 16 && params->cipher == WLAN_CIPHER_SUITE_TKIP) {
+				pu8RxMic = params->key + 24;
+				pu8TxMic = params->key + 16;
+				KeyLen = params->key_len - 16;
 			}
+
+			if (!g_gtk_keys_saved && netdev == wl->vif[0]->ndev) {
+				g_add_gtk_key_params.key_idx = key_index;
+				g_add_gtk_key_params.pairwise = pairwise;
+				if (!mac_addr) {
+					g_add_gtk_key_params.mac_addr = NULL;
+				} else {
+					g_add_gtk_key_params.mac_addr = kmalloc(ETH_ALEN, GFP_KERNEL);
+					memcpy(g_add_gtk_key_params.mac_addr, mac_addr, ETH_ALEN);
+				}
+				g_key_gtk_params.key_len = params->key_len;
+				g_key_gtk_params.seq_len = params->seq_len;
+				g_key_gtk_params.key =  kmalloc(params->key_len, GFP_KERNEL);
+				memcpy(g_key_gtk_params.key, params->key, params->key_len);
+				if (params->seq_len > 0) {
+					g_key_gtk_params.seq =  kmalloc(params->seq_len, GFP_KERNEL);
+					memcpy(g_key_gtk_params.seq, params->seq, params->seq_len);
+				}
+				g_key_gtk_params.cipher = params->cipher;
+				g_gtk_keys_saved = true;
+			}
+
+			wilc_add_rx_gtk(vif, params->key, KeyLen,
+					key_index, params->seq_len,
+					params->seq, pu8RxMic,
+					pu8TxMic, STATION_MODE,
+					u8mode);
+		} else {
+			if (params->key_len > 16 && params->cipher == WLAN_CIPHER_SUITE_TKIP) {
+				pu8RxMic = params->key + 24;
+				pu8TxMic = params->key + 16;
+				KeyLen = params->key_len - 16;
+			}
+
+			if (!g_ptk_keys_saved && netdev == wl->vif[0]->ndev) {
+				g_add_ptk_key_params.key_idx = key_index;
+				g_add_ptk_key_params.pairwise = pairwise;
+				if (!mac_addr) {
+					g_add_ptk_key_params.mac_addr = NULL;
+				} else {
+					g_add_ptk_key_params.mac_addr = kmalloc(ETH_ALEN, GFP_KERNEL);
+					memcpy(g_add_ptk_key_params.mac_addr, mac_addr, ETH_ALEN);
+				}
+				g_key_ptk_params.key_len = params->key_len;
+				g_key_ptk_params.seq_len = params->seq_len;
+				g_key_ptk_params.key =  kmalloc(params->key_len, GFP_KERNEL);
+				memcpy(g_key_ptk_params.key, params->key, params->key_len);
+				if (params->seq_len > 0) {
+					g_key_ptk_params.seq =  kmalloc(params->seq_len, GFP_KERNEL);
+					memcpy(g_key_ptk_params.seq, params->seq, params->seq_len);
+				}
+				g_key_ptk_params.cipher = params->cipher;
+				g_ptk_keys_saved = true;
+			}
+
+			wilc_add_ptk(vif, params->key, KeyLen,
+				     mac_addr, pu8RxMic, pu8TxMic,
+				     STATION_MODE, u8mode, key_index);
 		}
 		break;
 
 	default:
-		netdev_err(netdev, "Not supported cipher\n");
+		netdev_err(netdev, "Not supported cipher: Error(%d)\n", s32Error);
 		s32Error = -ENOTSUPP;
 	}
 
@@ -1114,6 +1101,7 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 	struct wilc_priv *priv;
 	struct wilc *wl;
 	struct wilc_vif *vif;
+	int ret = 0;
 
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(netdev);
@@ -1163,13 +1151,13 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 			memset(priv->WILC_WFI_wep_key[key_index], 0,
 			       priv->WILC_WFI_wep_key_len[key_index]);
 			priv->WILC_WFI_wep_key_len[key_index] = 0;
-			wilc_remove_wep_key(vif, key_index);
+			ret = wilc_remove_wep_key(vif, key_index);
 		}
 	} else {
-		wilc_remove_key(vif, mac_addr);
+		ret = wilc_remove_key(vif, mac_addr);
 	}
 
-	return 0;
+	return ret;
 }
 
 static int get_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
@@ -1226,6 +1214,7 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 	u32 i = 0;
 	u32 associatedsta = 0;
 	u32 inactive_time = 0;
+
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
@@ -1368,11 +1357,8 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 {
 	u32 i;
 	s32 s32Error = 0;
-
 	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif;
 
-	vif = netdev_priv(priv->dev);
 
 	for (i = 0; i < priv->pmkid_list.numpmkid; i++)	{
 		if (!memcmp(pmksa->bssid, priv->pmkid_list.pmkidlist[i].bssid,
@@ -1408,11 +1394,10 @@ static int flush_pmksa(struct wiphy *wiphy, struct net_device *netdev)
 	return 0;
 }
 
-static void WILC_WFI_CfgParseRxAction(u8 *buf, u32 len, bool p2p_mode)
+static void WILC_WFI_CfgParseRxAction(u8 * buf,u32 len, bool p2p_mode)
 {
 	u32 index = 0;
 	u32 i = 0, j = 0;
-
 	u8 op_channel_attr_index = 0;
 	u8 channel_list_attr_index = 0;
 
@@ -1423,7 +1408,6 @@ static void WILC_WFI_CfgParseRxAction(u8 *buf, u32 len, bool p2p_mode)
 			else
 				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x00 << 1);
 		}
-
 		if (buf[index] ==  CHANLIST_ATTR_ID)
 			channel_list_attr_index = index;
 		else if (buf[index] ==  OPERCHAN_ATTR_ID)
@@ -1448,7 +1432,7 @@ static void WILC_WFI_CfgParseRxAction(u8 *buf, u32 len, bool p2p_mode)
 	}
 }
 
-static void WILC_WFI_CfgParseTxAction(u8 *buf, u32 len, bool bOperChan, bool p2p_mode)
+static void WILC_WFI_CfgParseTxAction(u8 * buf,u32 len,bool bOperChan, u8 p2p_mode)
 {
 	u32 index = 0;
 	u32 i = 0, j = 0;
@@ -1458,13 +1442,10 @@ static void WILC_WFI_CfgParseTxAction(u8 *buf, u32 len, bool bOperChan, bool p2p
 
 	while (index < len) {
 		if (buf[index] == GO_INTENT_ATTR_ID) {
-if(!p2p_mode) {
-			buf[index + 3] = (buf[index + 3]  & 0x01) | (0x00 << 1);
-}
-else {
-			buf[index + 3] = (buf[index + 3]  & 0x01) | (0x0f << 1);
-}
-
+			if(!p2p_mode)
+				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x00 << 1);
+			else
+				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x0f << 1);
 			break;
 		}
 
@@ -1474,6 +1455,7 @@ else {
 			op_channel_attr_index = index;
 		index += buf[index + 1] + 3;
 	}
+
 	if (wlan_channel != INVALID_CHANNEL && bOperChan) {
 		if (channel_list_attr_index) {
 			for (i = channel_list_attr_index + 3; i < ((channel_list_attr_index + 3) + buf[channel_list_attr_index + 1]); i++) {
@@ -1567,7 +1549,7 @@ void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 						}
 					}
 
-					if ((buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_REQ || buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_RSP) && (wilc_ie))	{
+					if ((buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_REQ || buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_RSP) && (wilc_ie)) {
 						cfg80211_rx_mgmt(priv->wdev, s32Freq, 0, buff, size - 7, 0);
 						return;
 					}
@@ -1729,7 +1711,6 @@ static int mgmt_tx(struct wiphy *wiphy,
 					break;
 
 				case PUBLIC_ACT_VENDORSPEC:
-				{
 					if (!memcmp(p2p_oui, &buf[ACTION_SUBTYPE_ID + 1], 4)) {
 						if ((buf[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_REQ || buf[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_RSP)) {
 							if (p2p_local_random == 1 && p2p_recv_random < p2p_local_random) {
@@ -1744,7 +1725,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 								for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < len; i++) {
 									if (buf[i] == P2PELEM_ATTR_ID && !(memcmp(p2p_oui, &buf[i + 2], 4))) {
 										if (buf[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_REQ || buf[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_RSP)
-											WILC_WFI_CfgParseTxAction(&mgmt_tx->buff[i + 6], len - (i + 6), true, vif->iftype);
+											WILC_WFI_CfgParseTxAction(&mgmt_tx->buff[i + 6], len - (i + 6), true, vif->p2p_mode);
 										else
 											WILC_WFI_CfgParseTxAction(&mgmt_tx->buff[i + 6], len - (i + 6), false, vif->p2p_mode);
 										break;
@@ -1764,13 +1745,10 @@ static int mgmt_tx(struct wiphy *wiphy,
 					}
 
 					break;
-				}
 
 				default:
-				{
 					netdev_dbg(vif->ndev, "NOT HANDLED PUBLIC ACTION FRAME TYPE:%x\n", buf[ACTION_SUBTYPE_ID]);
 					break;
-				}
 				}
 			}
 
@@ -1871,7 +1849,6 @@ static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 
 	wilc_get_rssi(vif, &sinfo->signal);
 
-	memcpy(mac, priv->au8AssociatedBss, ETH_ALEN);
 	return 0;
 }
 
@@ -2016,26 +1993,21 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 		    struct cfg80211_ap_settings *settings)
 {
-	struct cfg80211_beacon_data *beacon = &(settings->beacon);
+	struct cfg80211_beacon_data *beacon = &settings->beacon;
 	struct wilc_priv *priv;
-	s32 s32Error = 0;
-	struct wilc *wl;
 	struct wilc_vif *vif;
+	s32 s32Error = 0;
 
-	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(dev);
-	wl = vif->wilc;
+	priv = wiphy_priv(wiphy);
+	
 
 	s32Error = set_channel(wiphy, &settings->chandef);
 
 	if (s32Error != 0)
 		netdev_err(dev, "Error in setting channel\n");
 
-	
-	if(wl->vif[1]->ndev == dev)
-		wilc_wlan_set_bssid(dev, wl->vif[1]->src_addr, AP_MODE);
-	else
-		wilc_wlan_set_bssid(dev, wl->vif[0]->src_addr, AP_MODE);
+	wilc_wlan_set_bssid(dev,vif->src_addr,AP_MODE);
 
 	wilc_set_power_mgmt(vif, 0, 0);
 
@@ -2258,8 +2230,13 @@ static int wilc_suspend(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
 {
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
+	
+	if(!wow)
+		PRINT_D(GENERIC_DBG,"No wake up triggers defined\n");
+	else if(wow->any == 0)
+		PRINT_D(GENERIC_DBG,"The only supported wake up trigger (any) is not set\n");
 
-	if (!wow && wilc_wlan_get_num_conn_ifcs(vif->wilc))
+	if(wilc_wlan_get_num_conn_ifcs(vif->wilc) )
 		vif->wilc->suspend_event = true;
 	else
 		vif->wilc->suspend_event = false;
@@ -2271,6 +2248,7 @@ static int wilc_resume(struct wiphy *wiphy)
 {
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
+	vif->wilc->suspend_event = false;
 
 	netdev_info(vif->ndev, "cfg resume\n");
 	return 0;
@@ -2317,7 +2295,7 @@ static int get_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
 	/* If firmware is not started, return. */
 	if (!wl->initialized)
 		return -EIO;
-
+	*dbm=0;
 	ret = wilc_get_tx_power(vif, (u8 *)dbm);
 	if (ret)
 		netdev_err(vif->ndev, "Failed to get tx power\n");
@@ -2430,9 +2408,7 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net, struct device *de
 	priv = wdev_priv(wdev);
 	priv->wdev = wdev;
 	wdev->wiphy->max_scan_ssids = MAX_NUM_PROBED_SSID;
-#ifdef CONFIG_PM
 	wdev->wiphy->wowlan = &wowlan_support;
-#endif
 	wdev->wiphy->max_num_pmkids = WILC_MAX_NUM_PMKIDS;
 	wdev->wiphy->max_scan_ie_len = 1000;
 	wdev->wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
