@@ -130,9 +130,6 @@
 #define WILC_CFG_RSP		1
 #define WILC_CFG_RSP_STATUS	2
 #define WILC_CFG_RSP_SCAN	3
-
-#define WILC_PLL_TO_SDIO	4
-#define WILC_PLL_TO_SPI		2
 #define ABORT_INT		BIT(31)
 
 #define LINUX_TX_SIZE		(64 * 1024)
@@ -174,8 +171,7 @@
 #define INT_2			BIT(IRG_FLAGS_OFFSET + 2)
 #define INT_3			BIT(IRG_FLAGS_OFFSET + 3)
 #define INT_4			BIT(IRG_FLAGS_OFFSET + 4)
-#define INT_5			BIT(IRG_FLAGS_OFFSET + 5)
-#define MAX_NUM_INT		6
+#define MAX_NUM_INT		5
 
 /*******************************************/
 /*        E0 and later Interrupt flags.    */
@@ -201,14 +197,10 @@
 #define EN_VMM			BIT(8)
 
 #define DATA_INT_EXT		INT_0
-#define PLL_INT_EXT		INT_1
-#define SLEEP_INT_EXT		INT_2
-#define ALL_INT_EXT		(DATA_INT_EXT | PLL_INT_EXT | SLEEP_INT_EXT)
-#define NUM_INT_EXT		3
+#define ALL_INT_EXT		(DATA_INT_EXT)
+#define NUM_INT_EXT		1
 
 #define DATA_INT_CLR		CLR_INT0
-#define PLL_INT_CLR		CLR_INT1
-#define SLEEP_INT_CLR		CLR_INT2
 
 #define ENABLE_RX_VMM		(SEL_VMM_TBL1 | EN_VMM)
 #define ENABLE_TX_VMM		(SEL_VMM_TBL0 | EN_VMM)
