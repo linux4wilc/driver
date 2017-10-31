@@ -47,9 +47,7 @@
 #define HOST_IF_MSG_GET_TX_POWER		39
 #define HOST_IF_MSG_SET_ANTENNA_MODE		40
 #define HOST_IF_MSG_SEND_BUFFERED_EAP		41
-#ifdef WILC_BT_COEXISTENCE
 #define HOST_IF_MSG_CHANGE_BT_COEX_MODE		42
-#endif
 #define HOST_IF_MSG_EXIT                        100
 
 #define HOST_IF_SCAN_TIMEOUT                    4000
@@ -179,11 +177,10 @@ struct sta_inactive_t {
 struct tx_power {
 	u8 tx_pwr;
 };
-#ifdef WILC_BT_COEXISTENCE
+
 struct bt_coex_mode {
 	u8 bt_coex;
 };
-#endif /* WILC_BT_COEXISTENCE */
 
 struct host_if_set_ant {
 	u8 mode;
@@ -217,9 +214,7 @@ union message_body {
 	struct send_buffered_eap send_buff_eap;
 	struct tx_power tx_power;
 	struct host_if_set_ant set_ant;
-#ifdef WILC_BT_COEXISTENCE
 	struct bt_coex_mode bt_coex_mode;
-#endif /* WILC_BT_COEXISTENCE */
 };
 
 struct host_if_msg {
@@ -2592,12 +2587,9 @@ static void host_if_work(struct work_struct *work)
 		handle_set_channel(msg->vif, &msg->body.channel_info);
 		break;
 
-#ifdef WILC_BT_COEXISTENCE
 	case HOST_IF_MSG_CHANGE_BT_COEX_MODE:
 		handle_bt_coex_mode_change(msg->vif, &msg->body.bt_coex_mode);
 		break;
-
-#endif
 
 	case HOST_IF_MSG_DISCONNECT:
 		Handle_Disconnect(msg->vif);
@@ -3231,7 +3223,6 @@ int wilc_set_mac_chnl_num(struct wilc_vif *vif, u8 channel)
 	return 0;
 }
 
-#ifdef WILC_BT_COEXISTENCE
 int wilc_change_bt_coex_mode(struct wilc_vif *vif,
 				    enum coex_mode bt_coex_mode)
 {
@@ -3252,7 +3243,7 @@ int wilc_change_bt_coex_mode(struct wilc_vif *vif,
 
 	return 0;
 }
-#endif /* WILC_BT_COEXISTENCE */
+
 int wilc_set_wfi_drv_handler(struct wilc_vif *vif, int index, u8 mode,
 			     u8 ifc_id)
 {

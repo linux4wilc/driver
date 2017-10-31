@@ -355,9 +355,8 @@ enum WID_E {
 	 *  -----------------------------------------------------------
 	 */
 	WID_STATUS			= 0x0005,
-#ifdef WILC_BT_COEXISTENCE
+
 	WID_BT_COEX_MODE		= 0x0006,
-#endif
 
 	/*
 	 *  Scan type
@@ -453,7 +452,6 @@ enum WID_E {
 	 */
 	WID_ACK_POLICY			= 0x0011,
 
-#ifdef WILC_BT_COEXISTENCE
 	/*
 	 *  Set coex null frames transmission mode 
 	 * --------------------------------------------------------------
@@ -462,7 +460,6 @@ enum WID_E {
 	 * --------------------------------------------------------------
 	 */
 	WID_COEX_NULL_FRAMES_MODE               = 0x0013,
-#endif
 
 	/*
 	 *  Reset MAC (Set only)
