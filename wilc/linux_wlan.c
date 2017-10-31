@@ -1264,6 +1264,9 @@ static int mac_init_fn(struct net_device *ndev)
 	return 0;
 }
 
+int wilc_bt_power_up(struct wilc *wilc, int source);
+int wilc_bt_power_down(struct wilc *wilc, int source);
+	
 static int wilc_mac_open(struct net_device *ndev)
 {
 	struct wilc_vif *vif;
@@ -1281,6 +1284,9 @@ static int wilc_mac_open(struct net_device *ndev)
 	}
 
 	netdev_dbg(ndev, "MAC OPEN[%p] %s\n",ndev, ndev->name);
+
+	if(wl->open_ifcs == 0)
+		wilc_bt_power_up(wl, PWR_DEV_SRC_WIFI);
 
 	if(!recovery_on){
 		ret = wilc_init_host_int(ndev);
@@ -1326,7 +1332,7 @@ static int wilc_mac_open(struct net_device *ndev)
 				 vif->frame_reg[1].type,
 				 vif->frame_reg[1].reg);
 #if defined(ANT_SWTCH_DUAL_GPIO_CTRL) || defined(ANT_SWTCH_SNGL_GPIO_CTRL)
-	wilc_set_antenna(priv->hif_drv,DIVERSITY);
+	wilc_set_antenna(vif,DIVERSITY);
 #endif
 	netif_wake_queue(ndev);
 	wl->open_ifcs++;
@@ -1513,6 +1519,7 @@ static int wilc_mac_close(struct net_device *ndev)
 	}
 
 	vif->mac_opened = 0;
+	wilc_bt_power_down(wl, PWR_DEV_SRC_WIFI);
 
 	return 0;
 }
