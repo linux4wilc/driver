@@ -161,7 +161,7 @@ struct disconnect_info {
 	size_t ie_len;
 };
 
-s32 wilc_parse_network_info(u8 *msg_buffer,
+s32 wilc_parse_network_info(struct wilc_vif *vif, u8 *msg_buffer,
 			    struct network_info **ret_network_info);
 s32 wilc_parse_assoc_resp_info(u8 *buffer, u32 buffer_len,
 			       struct connect_resp_info **ret_connect_resp_info);

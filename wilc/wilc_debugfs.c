@@ -15,27 +15,21 @@
 #include <linux/poll.h>
 #include <linux/sched.h>
 
-#include "wilc_wlan_if.h"
+#include "wilc_debugfs.h"
 
 static struct dentry *wilc_dir;
 
 /*
  * ----------------------------------------------------------------------------
  */
-#define DEBUG_BIT           BIT(0)
-#define INFO_BIT            BIT(1)
-#define WRN_BIT             BIT(2)
-#define ERR_BIT             BIT(3)
-
-#define DBG_LEVEL_ALL	(DEBUG_BIT | INFO_BIT | WRN_BIT | ERR_BIT)
-static atomic_t WILC_DEBUG_LEVEL = ATOMIC_INIT(ERR_BIT);
-EXPORT_SYMBOL_GPL(WILC_DEBUG_LEVEL);
+atomic_t WILC_DEBUG_REGION = ATOMIC_INIT(INIT_DBG|GENERIC_DBG|CFG80211_DBG | HOSTAPD_DBG | PWRDEV_DBG);
+EXPORT_SYMBOL_GPL(WILC_DEBUG_REGION);
 
 /*
  * ----------------------------------------------------------------------------
  */
 
-static ssize_t wilc_debug_level_read(struct file *file, char __user *userbuf,
+static ssize_t wilc_debug_region_read(struct file *file, char __user *userbuf,
 				     size_t count, loff_t *ppos)
 {
 	char buf[128];
@@ -45,12 +39,12 @@ static ssize_t wilc_debug_level_read(struct file *file, char __user *userbuf,
 	if (*ppos > 0)
 		return 0;
 
-	res = scnprintf(buf, sizeof(buf), "Debug Level: %x\n", atomic_read(&WILC_DEBUG_LEVEL));
+	res = scnprintf(buf, sizeof(buf), "Debug Region: (0x%08x)\n", atomic_read(&WILC_DEBUG_REGION));
 
 	return simple_read_from_buffer(userbuf, count, ppos, buf, res);
 }
 
-static ssize_t wilc_debug_level_write(struct file *filp,
+static ssize_t wilc_debug_region_write(struct file *filp,
 				      const char __user *buf, size_t count,
 				      loff_t *ppos)
 {
@@ -61,17 +55,15 @@ static ssize_t wilc_debug_level_write(struct file *filp,
 	if (ret)
 		return ret;
 
-	if (flag > DBG_LEVEL_ALL) {
-		printk("%s, value (0x%08x) is out of range, stay previous flag (0x%08x)\n", __func__, flag, atomic_read(&WILC_DEBUG_LEVEL));
+	if (flag > DBG_REGION_ALL) {
+		pr_err("%s, value (0x%08x) is out of range, stay previous flag (0x%08x)\n", __func__, flag, atomic_read(&WILC_DEBUG_REGION));
+		pr_err("allowed bits are 0 to 15\n");
 		return -EINVAL;
 	}
 
-	atomic_set(&WILC_DEBUG_LEVEL, (int)flag);
+	atomic_set(&WILC_DEBUG_REGION, (int)flag);
 
-	if (flag == 0)
-		printk(KERN_INFO "Debug-level disabled\n");
-	else
-		printk(KERN_INFO "Debug-level enabled\n");
+	pr_info("Debug region set to %x\n", atomic_read(&WILC_DEBUG_REGION));
 
 	return count;
 }
@@ -97,19 +89,23 @@ struct wilc_debugfs_info_t {
 
 static struct wilc_debugfs_info_t debugfs_info[] = {
 	{
-		"wilc_debug_level",
+		"wilc_debug_region",
 		0666,
-		(DEBUG_BIT | ERR_BIT),
-		FOPS(NULL, wilc_debug_level_read, wilc_debug_level_write, NULL),
+		0,
+		FOPS(NULL, wilc_debug_region_read, wilc_debug_region_write, NULL),
 	},
 };
 
-static int __init wilc_debugfs_init(void)
+int wilc_debugfs_init(void)
 {
 	int i;
 	struct wilc_debugfs_info_t *info;
 
-	wilc_dir = debugfs_create_dir("wilc_wifi", NULL);
+	wilc_dir = debugfs_create_dir("wilc", NULL);
+	if(wilc_dir == NULL) {
+		pr_err("Error creating debugfs\n");
+		return -EFAULT;
+	}
 	for (i = 0; i < ARRAY_SIZE(debugfs_info); i++) {
 		info = &debugfs_info[i];
 		debugfs_create_file(info->name,
@@ -121,11 +117,13 @@ static int __init wilc_debugfs_init(void)
 	return 0;
 }
 module_init(wilc_debugfs_init);
+EXPORT_SYMBOL_GPL(wilc_debugfs_init);
 
-static void __exit wilc_debugfs_remove(void)
+void wilc_debugfs_remove(void)
 {
 	debugfs_remove_recursive(wilc_dir);
 }
 module_exit(wilc_debugfs_remove);
+EXPORT_SYMBOL_GPL(wilc_debugfs_remove);
 
 #endif

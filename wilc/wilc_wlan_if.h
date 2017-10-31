@@ -70,6 +70,7 @@ struct tx_complete_data {
 	void *buff;
 	u8 *bssid;
 	struct sk_buff *skb;
+	struct wilc_vif *vif;
 };
 
 typedef void (*wilc_tx_complete_func_t)(void *, int);

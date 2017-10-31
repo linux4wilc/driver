@@ -28,13 +28,13 @@ static ssize_t wilc_sysfs_store(struct kobject *kobj, struct kobj_attribute *att
 	int attr_val;
 
 	if(kstrtoint(buf, 10, &attr_val))
-		PRINT_ER("Failed to convert p2p_mode string");
+		PRINT_ER(vif->ndev, "Failed to convert p2p_mode string");
 	if (strcmp(attr->attr.name, "p2p_mode") == 0)
 		vif->attr_sysfs.p2p_mode = (attr_val?1:0);
 	else if(strcmp(attr->attr.name, "ant_swtch_mode") == 0)
 		{
 			if (attr_val > ANT_SWTCH_DUAL_GPIO_CTRL)
-				PRINT_ER("Valid antenna modes: \n1-Single Antenna, 2-Dual Antenna & 0-Disable\n");
+				PRINT_ER(vif->ndev, "Valid antenna modes: \n1-Single Antenna, 2-Dual Antenna & 0-Disable\n");
 			else
 				vif->attr_sysfs.ant_swtch_mode = attr_val;
 		}

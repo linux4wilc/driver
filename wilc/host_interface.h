@@ -291,9 +291,6 @@ struct host_if_drv {
 
 	bool IFC_UP;
 	int driver_handler_id;
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	bool pwrsave_current_state;
-#endif
 };
 
 struct add_sta_param {

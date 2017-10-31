@@ -43,8 +43,8 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 	{	
 	case IP_STATE_OBTAINING:
 		
-		PRINT_D(GENERIC_DBG, "Obtaining an IP, Disable (Scan-Set PowerSave)\n");
-		PRINT_D(GENERIC_DBG, "Save the Current state of the PS = %d\n", vif->hif_drv->pwrsave_current_state);
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "Obtaining an IP, Disable (Scan-Set PowerSave)\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "Save the Current state of the PS = %d\n", vif->pwrsave_current_state);
 
 		wilc_optaining_ip = true;
 
@@ -61,8 +61,8 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 	
 	case IP_STATE_OBTAINED:
 
-		PRINT_D(GENERIC_DBG, "IP obtained , Enable (Scan-Set PowerSave)\n");
-		PRINT_D(GENERIC_DBG, "Recover the state of the PS = %d\n", vif->hif_drv->pwrsave_current_state);
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP obtained , Enable (Scan-Set PowerSave)\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
 
 		wilc_optaining_ip = false;
 
@@ -124,12 +124,12 @@ void clear_duringIP(unsigned long arg)
 {
 	struct wilc_vif *vif = (struct wilc_vif *)arg;
 	
-	netdev_err(vif->ndev, "Unable to Obtain IP\n");
+	PRINT_ER(vif->ndev, "Unable to Obtain IP\n");
 
 	/* Clear the wilc_optaining_ip flag */
 	wilc_optaining_ip = false;
 
-	netdev_info(vif->ndev, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
 
 	/* Recover PS previous state */
 	if(wilc_enable_ps == true)
@@ -203,14 +203,14 @@ static int debug_thread(void *arg)
 			if (wait_for_completion_timeout(&wl->debug_thread_started, msecs_to_jiffies(6000))) {
 				while (!kthread_should_stop())
 					schedule();
-				PRINT_D(GENERIC_DBG, "Exit debug thread\n");
+				PRINT_INFO(vif->ndev, GENERIC_DBG, "Exit debug thread\n");
 				return 0;
 			}
 
 			if (debug_running) {
-				netdev_info(dev, "*** Debug Thread Running ***\n");
+				PRINT_INFO(dev, GENERIC_DBG, "*** Debug Thread Running ***\n");
 				if(cfg_packet_timeout >= 5){
-					netdev_info(dev, "<Recover>\n");
+					PRINT_INFO(dev, GENERIC_DBG, "<Recover>\n");
 					cfg_packet_timeout = 0;
 					timeout = 10;
 					recovery_on = 1;
@@ -222,15 +222,15 @@ static int debug_thread(void *arg)
 							msleep(100);
 
 						if (timeout == 0)
-							PRINT_WRN(GENERIC_DBG, "Couldn't restart interface %d again\n", i);
+							PRINT_WRN(vif->ndev, GENERIC_DBG, "Couldn't restart interface %d again\n", i);
 					}
 					if(hif_drv->hif_state == HOST_IF_CONNECTED) {
 						struct disconnect_info strDisconnectNotifInfo;
 
-						PRINT_D(GENERIC_DBG, "notify the upper layer with the wlan Disconnection\n");
+						PRINT_INFO(vif->ndev, GENERIC_DBG, "notify the upper layer with the wlan Disconnection\n");
 						memset(&strDisconnectNotifInfo, 0, sizeof(struct disconnect_info));
 						if (hif_drv->usr_scan_req.scan_result) {
-							PRINT_D(GENERIC_DBG, "\n\n<< Abort the running OBSS Scan >>\n\n");
+							PRINT_INFO(vif->ndev, GENERIC_DBG, "\n\n<< Abort the running OBSS Scan >>\n\n");
 							del_timer(&hif_drv->scan_timer);
 							Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
 						}
@@ -250,7 +250,7 @@ static int debug_thread(void *arg)
 											  &strDisconnectNotifInfo,
 											  hif_drv->usr_conn_req.arg);
 						} else {
-							netdev_err(vif->ndev, "Connect result NULL\n");
+							PRINT_ER(vif->ndev, "Connect result NULL\n");
 						}
 						eth_zero_addr(hif_drv->assoc_bssid);
 
@@ -299,56 +299,56 @@ static int dev_state_ev_handler(struct notifier_block *this,
 	u8 null_ip[4] = {0};
 
 	if (!dev_iface || !dev_iface->ifa_dev ||!dev_iface->ifa_dev->dev) {
-		PRINT_ER("dev_iface = NULL\n");
-		return NOTIFY_DONE;
-	}
-
-	if (memcmp(dev_iface->ifa_label, IFC_0, 5) &&
-	    memcmp(dev_iface->ifa_label, IFC_1, 4)) {
-		PRINT_D(GENERIC_DBG, "Interface is neither WLAN0 nor P2P0\n");
+		pr_err("dev_iface = NULL\n");
 		return NOTIFY_DONE;
 	}
 
 	dev  = (struct net_device *)dev_iface->ifa_dev->dev;
 	if (!dev->ieee80211_ptr|| !dev->ieee80211_ptr->wiphy) {
-		PRINT_WRN(GENERIC_DBG, "No Wireless registerd\n");
+		pr_err("No Wireless registerd\n");
 		return NOTIFY_DONE;
 	}
 
 	priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
 	if (!priv) {
-		PRINT_WRN(GENERIC_DBG, "No Wireless Priv\n");
+		pr_err("No Wireless Priv\n");
+		return NOTIFY_DONE;
+	}
+	hif_drv = (struct host_if_drv *)priv->hif_drv;
+	vif = netdev_priv(dev);
+
+	if (memcmp(dev_iface->ifa_label, IFC_0, 5) &&
+	    memcmp(dev_iface->ifa_label, IFC_1, 4)) {
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "Interface is neither WLAN0 nor P2P0\n");
 		return NOTIFY_DONE;
 	}
 
-	hif_drv = (struct host_if_drv *)priv->hif_drv;
-	vif = netdev_priv(dev);
 	if (!vif || !hif_drv) {
-		PRINT_WRN(GENERIC_DBG, "No Wireless Priv\n");
+		PRINT_WRN(vif->ndev, GENERIC_DBG, "No Wireless Priv\n");
 		return NOTIFY_DONE;
 	}
-	PRINT_D(GENERIC_DBG, "dev_state_ev_handler +++\n");
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "dev_state_ev_handler +++\n");
 
 	switch (event) {
 	case NETDEV_UP:
-		PRINT_D(GENERIC_DBG,"dev_state_ev_handler event=NETDEV_UP %p\n",dev);
-		PRINT_INFO(GENERIC_DBG,"\n ============== IP Address Obtained ===============\n\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG,"dev_state_ev_handler event=NETDEV_UP %p\n",dev);
+		PRINT_D(vif->ndev, GENERIC_DBG,"\n ============== IP Address Obtained ===============\n\n");
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
 			hif_drv->IFC_UP = 1;
 
 			handle_pwrsave_during_obtainingIP(vif, IP_STATE_OBTAINED);
 		}
-		PRINT_D(GENERIC_DBG, "[%s] Up IP\n", dev_iface->ifa_label);
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "[%s] Up IP\n", dev_iface->ifa_label);
 
 		ip_addr_buf = (char *)&dev_iface->ifa_address;
-		PRINT_D(GENERIC_DBG, "IP add=%d:%d:%d:%d\n",
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP add=%d:%d:%d:%d\n",
 			   ip_addr_buf[0], ip_addr_buf[1],
 			   ip_addr_buf[2], ip_addr_buf[3]);
 		break;
 
 	case NETDEV_DOWN:
-		PRINT_D(GENERIC_DBG,"dev_state_ev_handler event=NETDEV_DOWN %p\n",dev);
-		PRINT_INFO(GENERIC_DBG,"\n ============== IP Address Released ===============\n\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG,"dev_state_ev_handler event=NETDEV_DOWN %p\n",dev);
+		PRINT_D(vif->ndev, GENERIC_DBG,"\n ============== IP Address Released ===============\n\n");
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
 			hif_drv->IFC_UP = 0;
 			handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
@@ -357,16 +357,16 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		
 		wilc_resolve_disconnect_aberration(vif);
 
-		netdev_dbg(dev, "[%s] Down IP\n", dev_iface->ifa_label);
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "[%s] Down IP\n", dev_iface->ifa_label);
 
 		ip_addr_buf = null_ip;
-		netdev_dbg(dev, "IP add=%d:%d:%d:%d\n",
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP add=%d:%d:%d:%d\n",
 			   ip_addr_buf[0], ip_addr_buf[1],
 			   ip_addr_buf[2], ip_addr_buf[3]);
 		break;
 
 	default:
-		PRINT_D(GENERIC_DBG, "dev_state_ev_handler [%s] unknown dev event: %lu\n",
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "dev_state_ev_handler [%s] unknown dev event: %lu\n",
 			 dev_iface->ifa_label, event);
 		break;
 	}
@@ -378,10 +378,10 @@ static int dev_state_ev_handler(struct notifier_block *this,
 void linux_wlan_disable_irq(struct wilc* wilc, int wait)
 {
 	if (wait) {
-		PRINT_D(INT_DBG, "Disabling IRQ ...\n");
+		PRINT_INFO(wilc->vif[0]->ndev, INT_DBG, "Disabling IRQ ...\n");
 		disable_irq(wilc->dev_irq_num);
 	} else {
-		PRINT_D(INT_DBG, "Disabling IRQ ...\n");
+		PRINT_INFO(wilc->vif[0]->ndev, INT_DBG, "Disabling IRQ ...\n");
 		disable_irq_nosync(wilc->dev_irq_num);
 	}
 }
@@ -397,12 +397,13 @@ static irqreturn_t isr_uh_routine(int irq, void *user_data)
 	struct wilc *wilc;
 	struct net_device *dev = user_data;
 
-	PRINT_D(INT_DBG, "Interrupt received UH\n");
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
 
+	PRINT_INFO(vif->ndev, INT_DBG, "Interrupt received UH\n");
+
 	if (wilc->close) {
-		netdev_err(dev, "Can't handle UH interrupt\n");
+		PRINT_ER(dev, "Can't handle UH interrupt\n");
 		return IRQ_HANDLED;
 	}
 	return IRQ_WAKE_THREAD;
@@ -418,11 +419,11 @@ static irqreturn_t isr_bh_routine(int irq, void *userdata)
 	wilc = vif->wilc;
 
 	if (wilc->close) {
-		netdev_err(dev, "Can't handle BH interrupt\n");
+		PRINT_ER(dev, "Can't handle BH interrupt\n");
 		return IRQ_HANDLED;
 	}
 
-	PRINT_D(INT_DBG, "Interrupt received BH\n");
+	PRINT_INFO(vif->ndev, INT_DBG, "Interrupt received BH\n");
 	wilc_handle_isr(wilc);
 
 	return IRQ_HANDLED;
@@ -442,7 +443,7 @@ static int init_irq(struct net_device *dev)
 		wl->dev_irq_num = gpio_to_irq(wl->gpio);
 	} else {
 		ret = -1;
-		netdev_err(dev, "could not obtain gpio for WILC_INTR\n");
+		PRINT_ER(dev, "could not obtain gpio for WILC_INTR\n");
 	}
 
 	if ((wl->io_type & 0x1) == HIF_SPI || 
@@ -452,11 +453,11 @@ static int init_irq(struct net_device *dev)
 						      isr_bh_routine,
 						      IRQF_TRIGGER_LOW | IRQF_ONESHOT|IRQF_NO_SUSPEND,
 						      "WILC_IRQ", dev) < 0) {
-			netdev_err(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio);
+			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio);
 			gpio_free(wl->gpio);
 			ret = -1;
 		} else {
-			netdev_info(dev,
+			PRINT_INFO(dev, GENERIC_DBG,
 				   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
 				   wl->dev_irq_num, wl->gpio);
 			enable_irq_wake(wl->dev_irq_num);
@@ -466,11 +467,11 @@ static int init_irq(struct net_device *dev)
 						      host_wakeup_isr,
 						      IRQF_TRIGGER_FALLING | IRQF_NO_SUSPEND,
 						      "WILC_IRQ", dev) < 0) {
-			netdev_err(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio);
+			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio);
 			gpio_free(wl->gpio);
 			ret = -1;
 		} else {
-			netdev_info(dev,
+			PRINT_INFO(dev, GENERIC_DBG,
 				   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
 				   wl->dev_irq_num, wl->gpio);
 		}
@@ -498,7 +499,7 @@ void wilc_mac_indicate(struct wilc *wilc, int flag)
 	int status;
 
 	if (flag == WILC_MAC_INDICATE_STATUS) {
-		wilc_wlan_cfg_get_val(WID_STATUS,
+		wilc_wlan_cfg_get_val(wilc->vif[0], WID_STATUS,
 				      (unsigned char *)&status, 4);
 		if (wilc->mac_status == WILC_MAC_STATUS_INIT) {
 			wilc->mac_status = status;
@@ -507,7 +508,7 @@ void wilc_mac_indicate(struct wilc *wilc, int flag)
 			wilc->mac_status = status;
 		}
 	} else if (flag == WILC_MAC_INDICATE_SCAN) {
-		PRINT_D(GENERIC_DBG, "Scanning ...\n");
+		PRINT_INFO(wilc->vif[0]->ndev, GENERIC_DBG, "Scanning ...\n");
 	}
 }
 
@@ -553,7 +554,7 @@ void eap_buff_timeout(unsigned long user)
                                     priv->buffered_eap->pkt_offset,
                                     (void *)priv);
 	if (status)
-		netdev_err(vif->ndev, "Failed so send buffered eap\n");
+		PRINT_ER(vif->ndev, "Failed so send buffered eap\n");
 }
 
 
@@ -576,7 +577,7 @@ static struct net_device *get_if_handler(struct wilc *wilc, u8 *mac_header)
 				return wilc->vif[i]->ndev;
 	}
 
-	PRINT_WRN(GENERIC_DBG, "Invalide handle\n");
+	PRINT_WRN(wilc->vif[0]->ndev, GENERIC_DBG, "Invalide handle\n");
 	return NULL;
 }
 
@@ -588,10 +589,10 @@ int wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
 
 	wilc = vif->wilc;
 
-	PRINT_D(GENERIC_DBG, "set bssid on[%p]\n", wilc_netdev);
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "set bssid on[%p]\n", wilc_netdev);
 	for (i = 0; i <= wilc->vif_num; i++){
 		if (wilc_netdev == wilc->vif[i]->ndev) {
-			PRINT_D(GENERIC_DBG, "set bssid [%x][%x][%x]\n", bssid[0], bssid[1], bssid[2]);
+			PRINT_INFO(vif->ndev, GENERIC_DBG, "set bssid [%x][%x][%x]\n", bssid[0], bssid[1], bssid[2]);
 			memcpy(wilc->vif[i]->bssid, bssid, 6);
 			wilc->vif[i]->iftype = mode;
 		}
@@ -644,22 +645,22 @@ static int linux_wlan_txq_task(void *vp)
 
 	complete(&wl->txq_thread_started);
 	while (1) {
-		PRINT_D(TX_DBG, "txq_task Taking a nap\n");
+		PRINT_INFO(vif->ndev, TX_DBG, "txq_task Taking a nap\n");
 		wait_for_completion(&wl->txq_event);
-		PRINT_D(TX_DBG, "txq_task Who waked me up\n");
+		PRINT_INFO(vif->ndev, TX_DBG, "txq_task Who waked me up\n");
 		if (wl->close) {
 			complete(&wl->txq_thread_started);
 
 			while (!kthread_should_stop())
 				schedule();
-			PRINT_D(TX_DBG, "TX thread stopped\n");
+			PRINT_INFO(vif->ndev, TX_DBG, "TX thread stopped\n");
 			break;
 		}
-		PRINT_D(TX_DBG, "txq_task handle the sending packet and let me go to sleep.\n");
+		PRINT_INFO(vif->ndev, TX_DBG, "txq_task handle the sending packet and let me go to sleep.\n");
 		do {
 			ret = wilc_wlan_handle_txq(dev, &txq_count);
 			if (txq_count < FLOW_CONTROL_LOWER_THRESHOLD) {
-				PRINT_D(TX_DBG, "Waking up queue\n");
+				PRINT_INFO(vif->ndev, TX_DBG, "Waking up queue\n");
 				if (netif_queue_stopped(wl->vif[0]->ndev))
 					netif_wake_queue(wl->vif[0]->ndev);
 				if (netif_queue_stopped(wl->vif[1]->ndev))
@@ -703,25 +704,25 @@ int wilc_wlan_get_firmware(struct net_device *dev)
 	wilc = vif->wilc;
 
 	if (wilc->chip == WILC_3000) {
-		netdev_info(dev, "Detect chip WILC3000\n");
+		PRINT_INFO(dev, INIT_DBG, "Detect chip WILC3000\n");
 		firmware = FIRMWARE_WILC3000_WIFI;
 	} else if (wilc->chip == WILC_1000) {
-		netdev_info(dev, "Detect chip WILC1000\n");
+		PRINT_INFO(dev, INIT_DBG, "Detect chip WILC1000\n");
 		firmware = FIRMWARE_WILC1000_WIFi;
 	} else {
 		return -1;
 	}
 
-	netdev_info(dev, "loading firmware %s\n", firmware);
+	PRINT_INFO(dev, INIT_DBG, "loading firmware %s\n", firmware);
 
 	if (!(&vif->ndev->dev)) {
-		netdev_err(dev, "Dev  is NULL\n");
+		PRINT_ER(dev, "Dev  is NULL\n");
 		goto _fail_;
 	}
 
-	PRINT_WRN(INIT_DBG, "WLAN firmware: %s\n", firmware);
+	PRINT_INFO (vif->ndev, INIT_DBG, "WLAN firmware: %s\n", firmware);
 	if (request_firmware(&wilc_firmware, firmware, wilc->dev) != 0) {
-		netdev_err(dev, "%s - firmware not available\n", firmware);
+		PRINT_ER(dev, "%s - firmware not available\n", firmware);
 		ret = -1;
 		goto _fail_;
 	}
@@ -739,24 +740,24 @@ static int linux_wlan_start_firmware(struct net_device *dev)
 	struct wilc *wilc;
 	int ret = 0;
 
-	PRINT_D(INIT_DBG, "Starting Firmware ...\n");
-
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
 
+	PRINT_INFO(vif->ndev, INIT_DBG, "Starting Firmware ...\n");
+
 	ret = wilc_wlan_start(wilc);
 	if (ret < 0) {
-		netdev_err(dev, "Failed to start Firmware\n");
+		PRINT_ER(dev, "Failed to start Firmware\n");
 		return ret;
 	}
-	PRINT_D(INIT_DBG, "Waiting for Firmware to get ready ...\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Waiting for Firmware to get ready ...\n");
 
 	if (!wait_for_completion_timeout(&wilc->sync_event,
 					 msecs_to_jiffies(1000))) {
-		PRINT_D(INIT_DBG, "Firmware start timed out\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Firmware start timed out\n");
 		return -ETIME;
 	}
-	PRINT_D(INIT_DBG, "Firmware successfully started\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Firmware successfully started\n");
 
 	return 0;
 }
@@ -771,16 +772,16 @@ static int wilc_firmware_download(struct net_device *dev)
 	wilc = vif->wilc;
 
 	if (!wilc->firmware) {
-		netdev_err(dev, "Firmware buffer is NULL\n");
+		PRINT_ER(dev, "Firmware buffer is NULL\n");
 		ret = -ENOBUFS;
 	}
-	PRINT_D(INIT_DBG, "Downloading Firmware ...\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Downloading Firmware ...\n");
 	ret = wilc_wlan_firmware_download(wilc, wilc->firmware->data,
 					  wilc->firmware->size);
 	if (ret < 0)
 		goto _fail_;
 
-	netdev_dbg(dev, "Download Succeeded\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Download Succeeded\n");
 	
 _fail_:
 	release_firmware(wilc->firmware);
@@ -796,10 +797,10 @@ static int linux_wlan_init_test_config(struct net_device *dev,
 	struct wilc_priv *priv;
 	struct host_if_drv *hif_drv;
 
-	netdev_dbg(dev, "Start configuring Firmware\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Start configuring Firmware\n");
 	priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
 	hif_drv = (struct host_if_drv *)priv->hif_drv;
-	netdev_dbg(dev, "Host = %p\n", hif_drv);
+	PRINT_D(vif->ndev, INIT_DBG, "Host = %p\n", hif_drv);
 
 	*(int *)c_val = (unsigned int)vif->iftype;
 
@@ -996,14 +997,14 @@ void wilc_wlan_deinitialize(struct net_device *dev)
 	wl = vif->wilc;
 
 	if (wl->initialized) {
-		PRINT_D(INIT_DBG, "Deinitializing wilc  ...\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing wilc  ...\n");
 
 		if (!wl) {
-			netdev_err(dev, "wl is NULL\n");
+			PRINT_ER(dev, "wl is NULL\n");
 			return;
 		}
 
-		PRINT_D(INIT_DBG, "Disabling IRQ\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Disabling IRQ\n");
 		if ((wl->io_type & 0x1) == HIF_SPI ||
 			(wl->io_type & 0x2) == HIF_SDIO_GPIO_IRQ) {
 			linux_wlan_disable_irq(wl, 1);
@@ -1018,26 +1019,26 @@ void wilc_wlan_deinitialize(struct net_device *dev)
 		if (&wl->txq_event)
 			complete(&wl->txq_event);
 
-		PRINT_D(INIT_DBG, "Deinitializing Threads\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing Threads\n");
 		wlan_deinitialize_threads(dev);
-		PRINT_D(INIT_DBG, "Deinitializing IRQ\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing IRQ\n");
 		deinit_irq(dev);
 
 		ret = wilc_wlan_stop(wl);
 		if(ret == 0)
-			PRINT_ER("failed in wlan_stop\n");
+			PRINT_ER(dev, "failed in wlan_stop\n");
 
-		PRINT_D(INIT_DBG, "Deinitializing WILC Wlan\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing WILC Wlan\n");
 		wilc_wlan_cleanup(dev);
 
-		PRINT_D(INIT_DBG, "Deinitializing Locks\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing Locks\n");
 		wlan_deinit_locks(dev);
 
 		wl->initialized = false;
 
-		netdev_info(dev, "wilc deinitialization Done\n");
+		PRINT_INFO(dev, INIT_DBG, "wilc deinitialization Done\n");
 	} else {
-		netdev_info(dev, "wilc is not initialized\n");
+		PRINT_INFO(dev, INIT_DBG, "wilc is not initialized\n");
 	}
 }
 
@@ -1048,7 +1049,7 @@ static int wlan_init_locks(struct net_device *dev)
 
 	vif = netdev_priv(dev);
 	wl = vif->wilc;
-	PRINT_D(INIT_DBG, "Initializing Locks ...\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Initializing Locks ...\n");
 
 	mutex_init(&wl->rxq_cs);
 
@@ -1072,7 +1073,7 @@ static int wlan_deinit_locks(struct net_device *dev)
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
 	
-	PRINT_D(INIT_DBG, "De-Initializing Locks\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "De-Initializing Locks\n");
 
 	if (&wilc->hif_cs)
 		mutex_destroy(&wilc->hif_cs);
@@ -1091,26 +1092,26 @@ static int wlan_initialize_threads(struct net_device *dev)
 	struct wilc_vif *vif;
 	struct wilc *wilc;
 
-	PRINT_D(INIT_DBG, "Initializing Threads ...\n");
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
 
-	PRINT_D(INIT_DBG, "Creating kthread for transmission\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Initializing Threads ...\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Creating kthread for transmission\n");
 	wilc->txq_thread = kthread_run(linux_wlan_txq_task, (void *)dev,
 				     "K_TXQ_TASK");
 	if (IS_ERR(wilc->txq_thread)) {
-		netdev_err(dev, "couldn't create TXQ thread\n");
+		PRINT_ER(dev, "couldn't create TXQ thread\n");
 		wilc->close = 1;
 		return PTR_ERR(wilc->txq_thread);
 	}
 	wait_for_completion(&wilc->txq_thread_started);
 
 	if (!debug_running) {
-		PRINT_D(INIT_DBG, "Creating kthread for Debugging\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Creating kthread for Debugging\n");
 		wilc->debug_thread = kthread_run(debug_thread,(void *)dev,
 			"WILC_DEBUG");
 		if(IS_ERR(wilc->debug_thread)){
-			netdev_err(dev, "couldn't create debug thread\n");
+			PRINT_ER(dev, "couldn't create debug thread\n");
 			wilc->close = 1;
 			kthread_stop(wilc->txq_thread);
 			return PTR_ERR(wilc->debug_thread);
@@ -1130,9 +1131,9 @@ static void wlan_deinitialize_threads(struct net_device *dev)
 	vif = netdev_priv(dev);
 	wl = vif->wilc;
 	
-	PRINT_D(INIT_DBG, "Deinitializing Threads\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing Threads\n");
 	if (!recovery_on) {
-		PRINT_D(INIT_DBG, "Deinitializing debug Thread\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing debug Thread\n");
 		debug_running = false;
 		if (&wl->debug_thread_started)
 			complete(&wl->debug_thread_started);
@@ -1143,7 +1144,7 @@ static void wlan_deinitialize_threads(struct net_device *dev)
 	}
 
 	wl->close = 1;
-	PRINT_D(INIT_DBG,"Deinitializing Threads\n");
+	PRINT_INFO(vif->ndev, INIT_DBG,"Deinitializing Threads\n");
 
 	if (&wl->txq_event)
 		complete(&wl->txq_event);
@@ -1167,11 +1168,11 @@ int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 		wlan_init_locks(dev);
 		ret = wilc_wlan_init(dev);
 		if (ret < 0) {
-			netdev_err(dev, "Initializing WILC_Wlan FAILED\n");
+			PRINT_ER(dev, "Initializing WILC_Wlan FAILED\n");
 			ret = -EIO;
 			goto _fail_locks_;
 		}
-		PRINT_D(GENERIC_DBG, "WILC Initialization done\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "WILC Initialization done\n");
 		if (wl->gpio >= 0 && init_irq(dev)) {
 			ret = -EIO;
 			goto _fail_locks_;
@@ -1179,7 +1180,7 @@ int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 
 		ret = wlan_initialize_threads(dev);
 		if (ret < 0) {
-			netdev_err(dev, "Initializing Threads FAILED\n");
+			PRINT_ER(dev, "Initializing Threads FAILED\n");
 			ret = -EIO;
 			goto _fail_wilc_wlan_;
 		}
@@ -1187,27 +1188,27 @@ int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 		if (!wl->dev_irq_num &&
 		    wl->hif_func->enable_interrupt &&
 		    wl->hif_func->enable_interrupt(wl)) {
-			netdev_err(dev, "couldn't initialize IRQ\n");
+			PRINT_ER(dev, "couldn't initialize IRQ\n");
 			ret = -EIO;
 			goto _fail_irq_init_;
 		}
 
 		if (wilc_wlan_get_firmware(dev)) {
-			netdev_err(dev, "Can't get firmware\n");
+			PRINT_ER(dev, "Can't get firmware\n");
 			ret = -EIO;
 			goto _fail_irq_enable_;
 		}
 
 		ret = wilc_firmware_download(dev);
 		if (ret < 0) {
-			netdev_err(dev, "Failed to download firmware\n");
+			PRINT_ER(dev, "Failed to download firmware\n");
 			ret = -EIO;
 			goto _fail_irq_enable_;
 		}
 
 		ret = linux_wlan_start_firmware(dev);
 		if (ret < 0) {
-			netdev_err(dev, "Failed to start firmware\n");
+			PRINT_ER(dev, "Failed to start firmware\n");
 			ret = -EIO;
 			goto _fail_irq_enable_;
 		}
@@ -1216,16 +1217,16 @@ int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			int size;
 			char firmware_ver[50];
 
-			size = wilc_wlan_cfg_get_val(WID_FIRMWARE_VERSION,
+			size = wilc_wlan_cfg_get_val(vif, WID_FIRMWARE_VERSION,
 						     firmware_ver,
 						     sizeof(firmware_ver));
 			firmware_ver[size] = '\0';
-			netdev_info(dev, "WILC Firmware Ver = %s\n", firmware_ver);
+			PRINT_INFO(dev, INIT_DBG, "WILC Firmware Ver = %s\n", firmware_ver);
 		}
 		ret = linux_wlan_init_test_config(dev, vif);
 
 		if (ret < 0) {
-			netdev_err(dev, "Failed to configure firmware\n");
+			PRINT_ER(dev, "Failed to configure firmware\n");
 			ret = -EIO;
 			goto _fail_fw_start_;
 		}
@@ -1249,9 +1250,9 @@ _fail_wilc_wlan_:
 		wilc_wlan_cleanup(dev);
 _fail_locks_:
 		wlan_deinit_locks(dev);
-		netdev_err(dev, "WLAN Iinitialization FAILED\n");
+		PRINT_ER(dev, "WLAN Iinitialization FAILED\n");
 	} else {
-		netdev_dbg(dev, "wilc already initialized\n");
+		PRINT_D(vif->ndev, INIT_DBG, "wilc already initialized\n");
 	}
 	return ret;
 }
@@ -1279,11 +1280,11 @@ static int wilc_mac_open(struct net_device *ndev)
 	wl = vif->wilc;
 
 	if (!wl || !wl->dev) {
-		netdev_err(ndev, "device not ready\n");
+		PRINT_ER(ndev, "device not ready\n");
 		return -ENODEV;
 	}
 
-	netdev_dbg(ndev, "MAC OPEN[%p] %s\n",ndev, ndev->name);
+	PRINT_INFO(ndev, INIT_DBG, "MAC OPEN[%p] %s\n",ndev, ndev->name);
 
 	if(wl->open_ifcs == 0)
 		wilc_bt_power_up(wl, PWR_DEV_SRC_WIFI);
@@ -1291,15 +1292,15 @@ static int wilc_mac_open(struct net_device *ndev)
 	if(!recovery_on){
 		ret = wilc_init_host_int(ndev);
 		if (ret < 0) {
-			netdev_err(ndev, "Failed to initialize host interface\n");
+			PRINT_ER(ndev, "Failed to initialize host interface\n");
 			return ret;
 		}
 	}
 
-	PRINT_D(INIT_DBG,"*** re-init ***\n");
+	PRINT_INFO(vif->ndev, INIT_DBG,"*** re-init ***\n");
 	ret = wilc_wlan_initialize(ndev, vif);
 	if (ret < 0) {
-		netdev_err(ndev, "Failed to initialize wilc\n");
+		PRINT_ER(ndev, "Failed to initialize wilc\n");
 		if(!recovery_on)
 			wilc_deinit_host_int(ndev);
 		return ret;
@@ -1312,7 +1313,7 @@ static int wilc_mac_open(struct net_device *ndev)
 		vif->ifc_id = P2P_IFC;
 	else
 	{
-		PRINT_ER("Unknown interface name\n");
+		PRINT_ER(vif->ndev, "Unknown interface name\n");
 		wilc_deinit_host_int(ndev);
 		wilc_wlan_deinitialize(ndev);
 		return -ENODEV;
@@ -1322,13 +1323,13 @@ static int wilc_mac_open(struct net_device *ndev)
 				 vif->iftype, vif->ifc_id);
 	wilc_set_operation_mode(vif, vif->iftype);
 	wilc_get_mac_address(vif, mac_add);
-	PRINT_D(INIT_DBG, "Mac address: %pM\n", mac_add);
+	PRINT_INFO(vif->ndev, INIT_DBG, "Mac address: %pM\n", mac_add);
 	memcpy(vif->src_addr, mac_add, ETH_ALEN);
 
 	memcpy(ndev->dev_addr, vif->src_addr, ETH_ALEN);
 
 	if (!is_valid_ether_addr(ndev->dev_addr)) {
-		netdev_err(ndev, "Wrong MAC address\n");
+		PRINT_ER(ndev, "Wrong MAC address\n");
 		wilc_deinit_host_int(ndev);
 		wilc_wlan_deinitialize(ndev);
 		return -EINVAL;
@@ -1366,28 +1367,28 @@ static void wilc_set_multicast_list(struct net_device *dev)
 
 	vif = netdev_priv(dev);
 
-	PRINT_D(INIT_DBG,"Setting Multicast List with count = %d. \n",dev->mc.count);
+	PRINT_INFO(vif->ndev, INIT_DBG,"Setting Multicast List with count = %d. \n",dev->mc.count);
 	if (dev->flags & IFF_PROMISC) {
-		PRINT_D(INIT_DBG, "Set promiscuous mode ON, retrive all packets\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Set promiscuous mode ON, retrive all packets\n");
 		return;
 	}
 
 	if ((dev->flags & IFF_ALLMULTI) ||
 	    (dev->mc.count) > WILC_MULTICAST_TABLE_SIZE) {
-		PRINT_D(INIT_DBG, "Disable multicast filter, retrive all multicast packets\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Disable multicast filter, retrive all multicast packets\n");
 		wilc_setup_multicast_filter(vif, false, 0);
 		return;
 	}
 
 	if ((dev->mc.count) == 0) {
-		PRINT_D(INIT_DBG, "Enable multicast filter, retrive directed packets only.\n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Enable multicast filter, retrive directed packets only.\n");
 		wilc_setup_multicast_filter(vif, true, 0);
 		return;
 	}
 
 	netdev_for_each_mc_addr(ha, dev) {
 		memcpy(wilc_multicast_mac_addr_list[i], ha->addr, ETH_ALEN);
-		PRINT_D(INIT_DBG, "Entry[%d]: %x:%x:%x:%x:%x:%x\n", i,
+		PRINT_INFO(vif->ndev, INIT_DBG, "Entry[%d]: %x:%x:%x:%x:%x:%x\n", i,
 			   wilc_multicast_mac_addr_list[i][0],
 			   wilc_multicast_mac_addr_list[i][1],
 			   wilc_multicast_mac_addr_list[i][2],
@@ -1405,9 +1406,9 @@ static void linux_wlan_tx_complete(void *priv, int status)
 	struct tx_complete_data *pv_data = priv;
 
 	if (status == 1)
-		PRINT_D(TX_DBG,"Packet sent successfully - Size = %d - Address = %p - SKB = %p\n",pv_data->size,pv_data->buff, pv_data->skb);
+		PRINT_INFO(pv_data->vif->ndev, TX_DBG,"Packet sent successfully - Size = %d - Address = %p - SKB = %p\n",pv_data->size,pv_data->buff, pv_data->skb);
 	else
-		PRINT_D(TX_DBG,"Couldn't send packet - Size = %d - Address = %p - SKB = %p\n",pv_data->size,pv_data->buff, pv_data->skb);
+		PRINT_INFO(pv_data->vif->ndev, TX_DBG,"Couldn't send packet - Size = %d - Address = %p - SKB = %p\n",pv_data->size,pv_data->buff, pv_data->skb);
 	dev_kfree_skb(pv_data->skb);
 	kfree(pv_data);
 }
@@ -1425,15 +1426,15 @@ int wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 	vif = netdev_priv(ndev);
 	wilc = vif->wilc;
 
-	PRINT_D(TX_DBG, "Sending packet just received from TCP/IP\n");
+	PRINT_INFO(vif->ndev, TX_DBG, "Sending packet just received from TCP/IP\n");
 	if (skb->dev != ndev) {
-		netdev_err(ndev, "Packet not destined to this device\n");
+		PRINT_ER(ndev, "Packet not destined to this device\n");
 		return 0;
 	}
 
 	tx_data = kmalloc(sizeof(*tx_data), GFP_ATOMIC);
 	if (!tx_data) {
-		netdev_err(ndev, "Failed to allocate memory for tx_data structure\n");
+		PRINT_ER(ndev, "Failed to allocate memory for tx_data structure\n");
 		dev_kfree_skb(skb);
 		netif_wake_queue(ndev);
 		return 0;
@@ -1445,21 +1446,22 @@ int wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 
 	eth_h = (struct ethhdr *)(skb->data);
 	if (eth_h->h_proto == (0x8e88))
-		netdev_info(ndev," EAPOL transmitted\n");
+		PRINT_INFO(ndev,TX_DBG, " EAPOL transmitted\n");
 
 	ih = (struct iphdr *)(skb->data + sizeof(struct ethhdr));
 
 	udp_buf = (char *)ih + sizeof(struct iphdr);
 	if ((udp_buf[1] == 68 && udp_buf[3] == 67) ||
 	    (udp_buf[1] == 67 && udp_buf[3] == 68))
-		netdev_dbg(ndev, "DHCP Message transmitted, type:%x %x %x\n",
+		PRINT_INFO(ndev, GENERIC_DBG, "DHCP Message transmitted, type:%x %x %x\n",
 			   udp_buf[248], udp_buf[249], udp_buf[250]);
 
-	PRINT_D(TX_DBG,"Sending packet - Size = %d - Address = %p - SKB = %p\n",tx_data->size,tx_data->buff,tx_data->skb);
-	PRINT_D(TX_DBG, "Adding tx packet to TX Queue\n");
+	PRINT_D(vif->ndev, TX_DBG,"Sending packet - Size = %d - Address = %p - SKB = %p\n",tx_data->size,tx_data->buff,tx_data->skb);
+	PRINT_D(vif->ndev, TX_DBG, "Adding tx packet to TX Queue\n");
 	vif->netstats.tx_packets++;
 	vif->netstats.tx_bytes += tx_data->size;
 	tx_data->bssid = wilc->vif[vif->idx]->bssid;
+	tx_data->vif = vif;
 	queue_count = wilc_wlan_txq_add_net_pkt(ndev, (void *)tx_data,
 						tx_data->buff, tx_data->size,
 						linux_wlan_tx_complete);
@@ -1483,7 +1485,7 @@ static int wilc_mac_close(struct net_device *ndev)
 
 	if (!vif || !vif->ndev || !vif->ndev->ieee80211_ptr ||
 	    !vif->ndev->ieee80211_ptr->wiphy) {
-		netdev_err(ndev, "vif = NULL\n");
+		PRINT_ER(ndev, "vif = NULL\n");
 		return 0;
 	}
 
@@ -1491,27 +1493,27 @@ static int wilc_mac_close(struct net_device *ndev)
 	wl = vif->wilc;
 
 	if (!priv) {
-		netdev_err(ndev, "priv = NULL\n");
+		PRINT_ER(ndev, "priv = NULL\n");
 		return 0;
 	}
 
 	hif_drv = (struct host_if_drv *)priv->hif_drv;
-	PRINT_D(GENERIC_DBG, "Mac close\n");
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "Mac close\n");
 
 	if (!wl) {
-		netdev_err(ndev, "wilc = NULL\n");
+		PRINT_ER(ndev, "wilc = NULL\n");
 		return 0;
 	}
 
 	if (!hif_drv)	{
-		netdev_err(ndev, "pstrWFIDrv = NULL\n");
+		PRINT_ER(ndev, "pstrWFIDrv = NULL\n");
 		return 0;
 	}
 
 	if ((wl->open_ifcs) > 0) {
 		wl->open_ifcs--;
 	} else {
-		netdev_err(ndev, "ERROR: MAC close called while number of opened interfaces is zero\n");
+		PRINT_ER(ndev, "ERROR: MAC close called while number of opened interfaces is zero\n");
 		return 0;
 	}
 
@@ -1523,7 +1525,7 @@ static int wilc_mac_close(struct net_device *ndev)
 	}
 
 	if (wl->open_ifcs == 0) {
-		netdev_dbg(ndev, "Deinitializing wilc\n");
+		PRINT_INFO(ndev, GENERIC_DBG, "Deinitializing wilc\n");
 		wl->close = 1;
 		wilc_wlan_deinitialize(ndev);
 		WILC_WFI_deinit_mon_interface();
@@ -1563,21 +1565,21 @@ static int mac_ioctl(struct net_device *ndev, struct ifreq *req, int cmd)
 			if (IS_ERR(buff))
 				return PTR_ERR(buff);
 
-			PRINT_D(GENERIC_DBG, "IOCTRL priv: %s", buff);
+			PRINT_INFO(vif->ndev, GENERIC_DBG, "IOCTRL priv: %s", buff);
 
 			if (strncasecmp(buff, "RSSI", size) == 0) {
 				ret = wilc_get_rssi(vif, &rssi);
 				if (ret)
-					netdev_err(ndev, "Failed to send get rssi param's message queue ");
+					PRINT_ER(ndev, "Failed to send get rssi param's message queue ");
 
-				netdev_info(ndev, "RSSI :%d\n", rssi);
+				PRINT_INFO(vif->ndev, GENERIC_DBG, "RSSI :%d\n", rssi);
 
 				rssi += 5;
 
 				snprintf(buff, size, "rssi %d", rssi);
 
 				if (copy_to_user(wrq->u.data.pointer, buff, size)) {
-					netdev_err(ndev, "failed to copy\n");
+					PRINT_ER(ndev, "failed to copy\n");
 					ret = -EFAULT;
 					goto done;
 				}
@@ -1588,7 +1590,7 @@ static int mac_ioctl(struct net_device *ndev, struct ifreq *req, int cmd)
 
 	default:
 	{
-		netdev_info(ndev, "Command - %d - has been received\n", cmd);
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "Command - %d - has been received\n", cmd);
 		ret = -EOPNOTSUPP;
 		goto done;
 	}
@@ -1642,7 +1644,7 @@ void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset, u8
 					priv->buffered_eap->size = 0;
 					priv->buffered_eap->pkt_offset = 0;
 				} else {
-					netdev_err(wilc_netdev, "failed to alloc priv->buffered_eap\n");
+					PRINT_ER(wilc_netdev, "failed to alloc priv->buffered_eap\n");
 					return;
 				}
 			} else {
@@ -1661,15 +1663,15 @@ void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset, u8
 		}
 		skb = dev_alloc_skb(frame_len);
 		if (!skb){
-       	 	netdev_err(wilc_netdev, "Low memory - packet droped\n");
+       	 	PRINT_ER(wilc_netdev, "Low memory - packet droped\n");
 			return;
 		}
 
 		if (wilc == NULL || wilc_netdev == NULL)
-			netdev_err(wilc_netdev, "wilc_netdev in wilc is NULL");
+			PRINT_ER(wilc_netdev, "wilc_netdev in wilc is NULL");
 		skb->dev = wilc_netdev;
 		if (skb->dev == NULL)
-			netdev_err(wilc_netdev, "skb->dev is NULL\n");
+			PRINT_ER(wilc_netdev, "skb->dev is NULL\n");
 		memcpy(skb_put(skb, frame_len), buff_to_send, frame_len);
 
 		skb->protocol = eth_type_trans(skb, wilc_netdev);
@@ -1677,9 +1679,9 @@ void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset, u8
 		vif->netstats.rx_bytes += frame_len;
 		skb->ip_summed = CHECKSUM_UNNECESSARY;
 		stats = netif_rx(skb);
-		netdev_dbg(wilc_netdev, "netif_rx ret value is: %d\n", stats);
+		PRINT_D(wilc_netdev, RX_DBG, "netif_rx ret value is: %d\n", stats);
 	} else {
-		netdev_err(wilc_netdev, "Discard sending packet with len = %d\n", size);
+		PRINT_ER(wilc_netdev, "Discard sending packet with len = %d\n", size);
 	}
 }
 
@@ -1691,7 +1693,7 @@ void WILC_WFI_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size)
 	for (i = 0; i <= wilc->vif_num; i++) {
 		vif = netdev_priv(wilc->vif[i]->ndev);
 		if (vif->monitor_flag) {
-			WILC_WFI_monitor_rx(buff, size);
+			WILC_WFI_monitor_rx(vif, buff, size);
 			return;
 		}
 	}
@@ -1712,7 +1714,6 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	}
 
 	if (wilc && (wilc->vif[0]->ndev || wilc->vif[1]->ndev)) {
-		PRINT_D(INIT_DBG, "Waiting for mac_close ....\n");
 		for (i = 0; i < NUM_CONCURRENT_IFC; i++)
 			if (wilc->vif[i]->ndev)
 				if (wilc->vif[i]->mac_opened)
@@ -1720,11 +1721,11 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 
 		for (i = 0; i < NUM_CONCURRENT_IFC; i++) {
 			if(wilc->vif[i] && wilc->vif[i]->ndev) {
-				PRINT_D(INIT_DBG, "Unregistering netdev %p\n", wilc->vif[i]->ndev);
+				PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG, "Unregistering netdev %p\n", wilc->vif[i]->ndev);
 				unregister_netdev(wilc->vif[i]->ndev);
-				PRINT_D(INIT_DBG, "Freeing Wiphy...\n");
+				PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG, "Freeing Wiphy...\n");
 				wilc_free_wiphy(wilc->vif[i]->ndev);
-				PRINT_D(INIT_DBG, "Freeing netdev...\n");
+				PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG, "Freeing netdev...\n");
 			}
 			free_netdev(wilc->vif[i]->ndev);
 		}
@@ -1736,7 +1737,7 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 
 	kfree(wilc);
 	wilc_sysfs_exit();
-	PRINT_D(INIT_DBG, "Module_exit Done.\n");
+	pr_info("Module_exit Done.\n");
 }
 EXPORT_SYMBOL_GPL(wilc_netdev_cleanup);
 
@@ -1791,7 +1792,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 			SET_NETDEV_DEV(ndev, dev);
 
 		if (!wdev) {
-			netdev_err(ndev, "Can't register WILC Wiphy\n");
+			PRINT_ER(ndev, "Can't register WILC Wiphy\n");
 			return -1;
 		}
 
@@ -1805,7 +1806,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 
 		ret = register_netdev(ndev);
 		if (ret) {
-			netdev_err(ndev, "Device couldn't be registered - %s\n",
+			PRINT_ER(ndev, "Device couldn't be registered - %s\n",
 			       ndev->name);
 			return ret;
 		}
@@ -1821,7 +1822,7 @@ EXPORT_SYMBOL_GPL(wilc_netdev_init);
 
 static void wilc_wlan_power(int power)
 {
-	PRINT_D(INIT_DBG, "wifi_pm : %d \n", power);
+	pr_info("wifi_pm : %d \n", power);
 	if (gpio_request(GPIO_NUM_CHIP_EN, "CHIP_EN") == 0 &&
 	    gpio_request(GPIO_NUM_RESET, "RESET") == 0) {
 		gpio_direction_output(GPIO_NUM_CHIP_EN, 0);

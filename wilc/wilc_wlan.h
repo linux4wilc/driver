@@ -192,11 +192,11 @@
 #define CLR_INT3		BIT(3)
 #define CLR_INT4		BIT(4)
 #define CLR_INT5		BIT(5)
-#define SEL_VMM_TBL0		BIT(6)
-#define SEL_VMM_TBL1		BIT(7)
+#define SEL_VMM_TBL0	BIT(6)
+#define SEL_VMM_TBL1	BIT(7)
 #define EN_VMM			BIT(8)
 
-#define DATA_INT_EXT		INT_0
+#define DATA_INT_EXT	INT_0
 #define ALL_INT_EXT		(DATA_INT_EXT)
 #define NUM_INT_EXT		1
 
@@ -312,7 +312,7 @@ int wilc_wlan_cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 		      u32 buffer_size, int commit, u32 drv_handler);
 int wilc_wlan_cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 		      u32 drv_handler);
-int wilc_wlan_cfg_get_val(u16 wid, u8 *buffer, u32 buffer_size);
+int wilc_wlan_cfg_get_val(struct wilc_vif *vif, u16 wid, u8 *buffer, u32 buffer_size);
 int wilc_wlan_txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
 			       u32 buffer_size, wilc_tx_complete_func_t func);
 

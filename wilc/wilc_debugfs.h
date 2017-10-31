@@ -16,64 +16,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef LINUX_WLAN_COMMON_H
-#define LINUX_WLAN_COMMON_H
+#ifndef WILC_DEBUGFS_H
+#define WILC_DEBUGFS_H
 
+#include <linux/kern_levels.h>
 
-enum debug_region{
-	Generic_debug = 0,
-	Hostapd_debug,
-	Hostinf_debug,
-	CFG80211_debug,
-	Coreconfig_debug,
-	Interrupt_debug,
-	TX_debug,
-	RX_debug,
-	Lock_debug,
-	Tcp_enhance,
-	Spin_debug,
-	
-	Init_debug,
-	Bus_debug,
-	Mem_debug,
-	Firmware_debug,
-	PwrDev_debug,
-	COMP = 0xFFFFFFFF,
-};
+#define GENERIC_DBG	  		BIT(0)
+#define HOSTAPD_DBG       	BIT(1)
+#define HOSTINF_DBG	  		BIT(2)
+#define CORECONFIG_DBG  	BIT(3)
+#define CFG80211_DBG      	BIT(4)
+#define INT_DBG		  		BIT(5)
+#define TX_DBG		 		BIT(6)
+#define RX_DBG		 		BIT(7)
+#define TCP_ENH	  			BIT(8)
+#define INIT_DBG	  	  	BIT(9)
+#define PWRDEV_DBG	  		BIT(10)
+#define DBG_REGION_ALL		(BIT(11)-1)
 
-#define GENERIC_DBG	  		(1<<Generic_debug)
-#define HOSTAPD_DBG       	(1<<Hostapd_debug)
-#define HOSTINF_DBG	  		(1<<Hostinf_debug)
-#define CORECONFIG_DBG  	(1<<Coreconfig_debug)
-#define CFG80211_DBG      	(1<<CFG80211_debug)
-#define INT_DBG		  		(1<<Interrupt_debug)
-#define TX_DBG		 		(1<<TX_debug)
-#define RX_DBG		 		(1<<RX_debug)
-#define LOCK_DBG	  		(1<<Lock_debug)
-#define TCP_ENH	  			(1<<Tcp_enhance)
+extern atomic_t WILC_DEBUG_REGION;
 
-#define SPIN_DEBUG 			(1<<Spin_debug)
-
-#define INIT_DBG	  	  		(1<<Init_debug)
-#define BUS_DBG		  		(1<<Bus_debug)
-#define MEM_DBG		  		(1<<Mem_debug)
-#define FIRM_DBG	  		(1<<Firmware_debug)
-#define PWRDEV_DBG	  		(1<<PwrDev_debug)
-
-#define REGION	 INIT_DBG|GENERIC_DBG|CFG80211_DBG | FIRM_DBG | HOSTAPD_DBG | PWRDEV_DBG
-
-#define DEBUG	    1
-#define INFO        0
-#define WRN         0
-#define PRINT_D(region,...)	do{ if(DEBUG == 1 && ((REGION)&(region))){printk("DBG [%s: %d]",__FUNCTION__,__LINE__);\
-							printk(__VA_ARGS__);}}while(0)
+#define PRINT_D(netdev, region,format,...)	do{ if(atomic_read(&WILC_DEBUG_REGION)&(region))\
+	netdev_dbg(netdev, "DBG [%s: %d] "format,__FUNCTION__,__LINE__, ##__VA_ARGS__);}while(0)
 							
-#define PRINT_INFO(region,...) do{ if(INFO == 1 && ((REGION)&(region))){printk("INFO [%s]",__FUNCTION__);\
-							printk(__VA_ARGS__);}}while(0)
+#define PRINT_INFO(netdev, region, format,...) do{ if(atomic_read(&WILC_DEBUG_REGION)&(region))\
+	netdev_info(netdev, "INFO [%s]"format,__FUNCTION__, ##__VA_ARGS__);}while(0)
 
-#define PRINT_WRN(region,...) do{ if(WRN == 1 && ((REGION)&(region))){printk("WRN [%s: %d]",__FUNCTION__,__LINE__);\
-							printk(__VA_ARGS__);}}while(0)
+#define PRINT_WRN(netdev, region, format,...) do{ if(atomic_read(&WILC_DEBUG_REGION)&(region))\
+	netdev_warn(netdev, "WRN [%s: %d]"format,__FUNCTION__,__LINE__, ##__VA_ARGS__);}while(0)
 
-#define PRINT_ER(...)	do{ printk("ERR [%s: %d]",__FUNCTION__,__LINE__);\
-							printk(__VA_ARGS__);}while(0)
-#endif /* LINUX_WLAN_COMMON_H */
+#define PRINT_ER(netdev, format,...) do{ netdev_err(netdev, "ERR [%s: %d] "format,\
+	__FUNCTION__,__LINE__, ##__VA_ARGS__);}while(0)
+
+int wilc_debugfs_init(void);
+void wilc_debugfs_remove(void);
+#endif /* WILC_DEBUGFS_H */

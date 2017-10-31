@@ -94,7 +94,7 @@ static int wilc_sdio_cmd52(struct wilc *wilc, struct sdio_cmd52 *cmd)
 	sdio_release_host(func);
 
 	if (ret < 0) {
-		PRINT_ER("wilc_sdio_cmd52..failed, err(%d)\n", ret);
+		dev_err(&func->dev, "wilc_sdio_cmd52..failed, err(%d)\n", ret);
 		return 0;
 	}
 	return 1;
@@ -125,7 +125,7 @@ static int wilc_sdio_cmd53(struct wilc *wilc, struct sdio_cmd53 *cmd)
 	sdio_release_host(func);
 
 	if (ret < 0) {
-		PRINT_ER("wilc_sdio_cmd53..failed, err(%d)\n", ret);
+		dev_err(&func->dev, "wilc_sdio_cmd53..failed, err(%d)\n", ret);
 		return 0;
 	}
 
@@ -168,6 +168,7 @@ static void linux_sdio_remove(struct sdio_func *func)
 {
 	wilc_netdev_cleanup(sdio_get_drvdata(func));
 	wilc_bt_deinit();
+	wilc_debugfs_remove();
 }
 
 static int wilc_sdio_reset(struct wilc *wilc)
@@ -176,7 +177,7 @@ static int wilc_sdio_reset(struct wilc *wilc)
 	int ret;
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
 
-	PRINT_INFO(BUS_DBG, "De Init SDIO\n");
+	dev_info(&func->dev, "De Init SDIO\n");
 
 	cmd.read_write = 1;
 	cmd.function = 0;
@@ -200,7 +201,7 @@ static int wilc_sdio_suspend(struct device *dev)
 	struct wilc *wilc = sdio_get_drvdata(func);
 	int ret;
 
-	PRINT_D(INIT_DBG, "sdio suspend\n");
+	dev_info(&func->dev, "sdio suspend\n");
 	mutex_lock(&wilc->hif_cs);
 
 	chip_wakeup(wilc, 0);
@@ -229,7 +230,7 @@ static int wilc_sdio_resume(struct device *dev)
 	struct sdio_func *func = dev_to_sdio_func(dev);
 	struct wilc *wilc = sdio_get_drvdata(func);
 
-	PRINT_D(INIT_DBG, "sdio resume\n");
+	dev_info(&func->dev, "sdio resume\n");
 	sdio_release_host(func);
 	chip_wakeup(wilc, 0);
 	sdio_init(wilc, true);
@@ -280,7 +281,7 @@ static int wilc_sdio_enable_interrupt(struct wilc *dev)
 	sdio_release_host(func);
 
 	if (ret < 0) {
-		PRINT_ER("can't claim sdio_irq, err(%d)\n", ret);
+		dev_err(&func->dev, "can't claim sdio_irq, err(%d)\n", ret);
 		ret = -EIO;
 	}
 #endif /* WILC_SDIO_IRQ_GPIO */
@@ -293,7 +294,7 @@ static void wilc_sdio_disable_interrupt(struct wilc *dev)
 #ifndef WILC_SDIO_IRQ_GPIO
 	int ret;
 
-	PRINT_D(INIT_DBG, "wilc_sdio_disable_interrupt\n");
+	dev_info(&func->dev, "wilc_sdio_disable_interrupt\n");
 	
 	if (sdio_intr_lock  == WILC_SDIO_HOST_IRQ_TAKEN)
 		wait_event_interruptible(sdio_intr_waitqueue,
@@ -303,7 +304,7 @@ static void wilc_sdio_disable_interrupt(struct wilc *dev)
 	sdio_claim_host(func);
 	ret = sdio_release_irq(func);
 	if (ret < 0)
-		PRINT_ER("can't release sdio_irq, err(%d)\n", ret);
+		dev_err(&func->dev, "can't release sdio_irq, err(%d)\n", ret);
 	sdio_release_host(func);
 	sdio_intr_lock  = WILC_SDIO_HOST_NO_TAKEN;
 #endif /* WILC_SDIO_IRQ_GPIO */
@@ -377,7 +378,7 @@ static int sdio_set_func0_block_size(struct wilc *wilc, u32 block_size)
 	cmd.data = (u8)(block_size >> 8);
 	ret = wilc_sdio_cmd52(wilc, &cmd);
 	if (!ret) {
-		PRINT_ER("Failed cmd52, set 0x11 data\n");
+		dev_err(&func->dev, "Failed cmd52, set 0x11 data\n");
 		goto _fail_;
 	}
 
@@ -728,7 +729,7 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	int loop, ret;
 	u32 chipid;
 
-	PRINT_D(INIT_DBG, "SDIO speed: %d\n", 
+	dev_info(&func->dev, "SDIO speed: %d\n", 
 		func->card->host->ios.clock);
 #ifndef WILC_SDIO_IRQ_GPIO
 	init_waitqueue_head(&sdio_intr_waitqueue);
@@ -829,10 +830,10 @@ static int sdio_init(struct wilc *wilc, bool resume)
 		} else if(ISWILC1000(chipid)) {
 			wilc->chip = WILC_1000;
 		} else {
-			PRINT_ER("Unsupported chipid: %x\n", chipid);
+			dev_err(&func->dev, "Unsupported chipid: %x\n", chipid);
 			goto _fail_;
 		}
-		PRINT_D(BUS_DBG, "chipid %08x\n", chipid);
+		dev_info(&func->dev, "chipid %08x\n", chipid);
 	}
 
 	g_sdio.is_init = true;
@@ -981,7 +982,7 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 
 			ret = wilc_sdio_cmd52(wilc, &cmd);
 			if (!ret) {
-				PRINT_ER("Failed cmd52\n");
+				dev_err(&func->dev, "Failed cmd52\n");
 				goto _fail_;
 			}
 		}
@@ -1062,7 +1063,7 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 
 			ret = wilc_sdio_cmd52(wilc, &cmd);
 			if (!ret) {
-				PRINT_ER("Failed cmd52\n");
+				dev_err(&func->dev, "Failed cmd52\n");
 				goto _fail_;
 			}
 		}
@@ -1131,7 +1132,7 @@ static int sdio_sync_ext(struct wilc *wilc, int nint)
 		}
 		reg &= ~BIT(8);
 		if (!sdio_write_reg(WILC_MISC, reg)) {
-			PRINT_ER("Failed write misc reg\n");
+			dev_err(&func->dev, "Failed write misc reg\n");
 			return 0;
 		}
 	}
@@ -1147,7 +1148,7 @@ static int sdio_sync_ext(struct wilc *wilc, int nint)
 	reg |= BIT(8);
 	ret = sdio_write_reg(wilc, WILC_PIN_MUX_0, reg);
 	if (!ret) {
-		PRINT_ER("Failed write reg %08x\n", WILC_PIN_MUX_0);
+		dev_err(&func->dev, "Failed write reg %08x\n", WILC_PIN_MUX_0);
 		return 0;
 	}
 
