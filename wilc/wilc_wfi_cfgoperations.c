@@ -4,8 +4,8 @@
 #include <linux/errno.h>
 #include <linux/kernel.h>
 #include <linux/version.h>
+#include <net/cfg80211.h>
 
-#define NO_ENCRYPT		0
 #define ENCRYPT_ENABLED		BIT(0)
 #define WEP			BIT(1)
 #define WEP_EXTENDED		BIT(2)
@@ -101,6 +101,16 @@ static struct timer_list hAgingTimer;
 static u8 op_ifcs;
 struct timer_list eap_buff_timer;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
+#define CHAN2G(_channel, _freq, _flags) {	 \
+		.band             = IEEE80211_BAND_2GHZ, \
+		.center_freq      = (_freq),		 \
+		.hw_value         = (_channel),		 \
+		.flags            = (_flags),		 \
+		.max_antenna_gain = 0,			 \
+		.max_power        = 30,			 \
+}				
+#else
 #define CHAN2G(_channel, _freq, _flags) {	 \
 		.band             = NL80211_BAND_2GHZ, \
 		.center_freq      = (_freq),		 \
@@ -109,6 +119,7 @@ struct timer_list eap_buff_timer;
 		.max_antenna_gain = 0,			 \
 		.max_power        = 30,			 \
 }
+#endif
 
 static struct ieee80211_channel ieee80211_2ghz_channels[] = {
 	CHAN2G(1,  2412, 0),
@@ -241,7 +252,11 @@ static void refresh_scan(void *user_void, u8 all, bool direct_scan)
 			struct ieee80211_channel *channel;
 
 			if (network_info) {
+			#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 				freq = ieee80211_channel_to_frequency((s32)network_info->ch, NL80211_BAND_2GHZ);
+			#else
+				freq = ieee80211_channel_to_frequency((s32)network_info->ch, IEEE80211_BAND_2GHZ);
+			#endif
 				channel = ieee80211_get_channel(wiphy, freq);
 
 				rssi = get_rssi_avg(network_info);
@@ -1228,7 +1243,11 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 			return -ENOENT;
 		}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 		sinfo->filled |= BIT(NL80211_STA_INFO_INACTIVE_TIME);
+#else
+		sinfo->filled |= STATION_INFO_INACTIVE_TIME;
+#endif
 
 		wilc_get_inactive_time(vif, mac, &inactive_time);
 		sinfo->inactive_time = 1000 * inactive_time;
@@ -1240,13 +1259,16 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 			return -EBUSY;
 
 		wilc_get_statistics(vif, &strStatistics);
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 		sinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL) |
 						BIT(NL80211_STA_INFO_RX_PACKETS) |
 						BIT(NL80211_STA_INFO_TX_PACKETS) |
 						BIT(NL80211_STA_INFO_TX_FAILED) |
 						BIT(NL80211_STA_INFO_TX_BITRATE);
-
+#else
+		sinfo->filled |= STATION_INFO_SIGNAL | STATION_INFO_RX_PACKETS | STATION_INFO_TX_PACKETS
+			| STATION_INFO_TX_FAILED | STATION_INFO_TX_BITRATE;
+#endif
 		sinfo->signal = strStatistics.rssi;
 		sinfo->rx_packets = strStatistics.rx_cnt;
 		sinfo->tx_packets = strStatistics.tx_cnt + strStatistics.tx_fail_cnt;
@@ -1499,8 +1521,11 @@ void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 			return;
 		}
 	} else {
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 		s32Freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
-
+	 #else
+		s32Freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
+	 #endif
 		if (ieee80211_is_action(buff[FRAME_TYPE_ID])) {
 			if (priv->bCfgScanning && time_after_eq(jiffies, (unsigned long)pstrWFIDrv->p2p_timeout)) {
 				netdev_dbg(dev, "Receiving action wrong ch\n");
@@ -1838,7 +1863,11 @@ static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(priv->dev);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
 	sinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL);
+#else
+	sinfo->filled |= STATION_INFO_SIGNAL;
+#endif
 
 	wilc_get_rssi(vif, &sinfo->signal);
 
@@ -2105,9 +2134,15 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 }
 
 static int del_station(struct wiphy *wiphy, struct net_device *dev,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 		       struct station_del_parameters *params)
+#else
+				const u8 *mac)
+#endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 	const u8 *mac = params->mac;
+#endif
 	s32 s32Error = 0;
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
@@ -2175,7 +2210,13 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 	return s32Error;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
+static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy, 
+					     const char *name,
+					     enum nl80211_iftype type, 
+						 u32 *flags,
+					     struct vif_params *params)
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
 static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 					     const char *name,
 					     unsigned char name_assign_type,
@@ -2361,8 +2402,11 @@ static struct wireless_dev *WILC_WFI_CfgAlloc(void)
 	WILC_WFI_band_2ghz.ht_cap.ampdu_factor = IEEE80211_HT_MAX_AMPDU_8K;
 	WILC_WFI_band_2ghz.ht_cap.ampdu_density = IEEE80211_HT_MPDU_DENSITY_NONE;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 	wdev->wiphy->bands[NL80211_BAND_2GHZ] = &WILC_WFI_band_2ghz;
-
+#else
+	wdev->wiphy->bands[IEEE80211_BAND_2GHZ] = &WILC_WFI_band_2ghz;
+#endif
 	return wdev;
 
 _fail_mem_:

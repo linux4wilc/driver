@@ -23,5 +23,4 @@ void wilc_mgmt_frame_register(struct wiphy *wiphy, struct wireless_dev *wdev,
 			      u16 frame_type, bool reg);
 void p2p_sysfs_init(struct wilc_vif *vif);
 void p2p_sysfs_exit(void);
-
 #endif
