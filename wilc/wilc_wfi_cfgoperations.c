@@ -2237,6 +2237,7 @@ static void wilc_set_wakeup(struct wiphy *wiphy, bool enabled)
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	netdev_info(vif->ndev, "cfg set wake up = %d\n", enabled);
+	host_int_set_wowlan_trigger(vif,(u8)enabled);
 }
 
 static int set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,

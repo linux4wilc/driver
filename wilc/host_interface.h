@@ -392,10 +392,12 @@ void wilc_resolve_disconnect_aberration(struct wilc_vif *vif);
 int wilc_get_vif_idx(struct wilc_vif *vif);
 int wilc_set_tx_power(struct wilc_vif *vif, u8 tx_power);
 int wilc_get_tx_power(struct wilc_vif *vif, u8 *tx_power);
+/*0 select antenna 1 , 2 select antenna mode , 2 allow the firmware to choose the best antenna*/
 int wilc_set_antenna(struct wilc_vif *vif, u8 mode);
 int wilc_change_bt_coex_mode(struct wilc_vif *vif,
 			     enum coex_mode bt_coex_mode);
 
+signed int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger);
 extern bool wilc_optaining_ip;
 extern u8 wilc_connected_ssid[6];
 extern u8 wilc_multicast_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];

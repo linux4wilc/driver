@@ -175,7 +175,6 @@ static const struct net_device_ops wilc_netdev_ops = {
 	.ndo_do_ioctl = mac_ioctl,
 	.ndo_get_stats = mac_stats,
 	.ndo_set_rx_mode  = wilc_set_multicast_list,
-
 };
 
 int debug_running = 0;
@@ -283,7 +282,6 @@ static int dev_state_ev_handler(struct notifier_block *this,
 	u8 *ip_addr_buf;
 	struct wilc_vif *vif;
 	u8 null_ip[4] = {0};
-	char wlan_dev_name[5] = "wlan0";
 
 	if (!dev_iface || !dev_iface->ifa_dev || !dev_iface->ifa_dev->dev)
 		return NOTIFY_DONE;

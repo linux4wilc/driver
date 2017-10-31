@@ -48,6 +48,7 @@
 #define HOST_IF_MSG_SET_ANTENNA_MODE		40
 #define HOST_IF_MSG_SEND_BUFFERED_EAP		41
 #define HOST_IF_MSG_CHANGE_BT_COEX_MODE		42
+#define HOST_IF_MSG_SET_WOWLAN_TRIGGER 		43
 #define HOST_IF_MSG_EXIT                        100
 
 #define HOST_IF_SCAN_TIMEOUT                    4000
@@ -174,6 +175,10 @@ struct sta_inactive_t {
 	u8 mac[6];
 };
 
+struct host_if_wowlan_trigger {
+	u8 wowlan_trigger;
+};
+
 struct tx_power {
 	u8 tx_pwr;
 };
@@ -214,6 +219,7 @@ union message_body {
 	struct send_buffered_eap send_buff_eap;
 	struct tx_power tx_power;
 	struct host_if_set_ant set_ant;
+	struct host_if_wowlan_trigger wow_trigger;
 	struct bt_coex_mode bt_coex_mode;
 };
 
@@ -2508,6 +2514,23 @@ ERRORHANDLER:
 	kfree(wid.val);
 }
 
+static void Handle_SetWowlanTrigger(struct wilc_vif *vif, u8 u8WowlanTrigger)
+{	
+	int ret = 0;
+	struct wid wid;
+
+	wid.id = (u16)WID_WOWLAN_TRIGGER;
+	wid.type = WID_CHAR;
+	wid.val = (s8*)&u8WowlanTrigger;
+	wid.size = sizeof(s8);
+
+	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
+				   wilc_get_vif_idx(vif));
+
+	if (ret)
+		netdev_err(vif->ndev, "Failed to send wowlan trigger config packet\n");
+}
+
 static void handle_set_tx_pwr(struct wilc_vif *vif, u8 tx_pwr)
 {
 	int ret;
@@ -2724,6 +2747,10 @@ static void host_if_work(struct work_struct *work)
 
 	case HOST_IF_MSG_SET_ANTENNA_MODE:
 		handle_set_antenna_mode(msg->vif, &msg->body.set_ant);
+		break;
+
+	case HOST_IF_MSG_SET_WOWLAN_TRIGGER:
+		Handle_SetWowlanTrigger(msg->vif,msg->body.wow_trigger.wowlan_trigger);
 		break;
 
 	default:
@@ -4228,3 +4255,20 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 
 	return (ret);
 }
+
+int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger)
+{
+	int result = 0;
+	struct host_if_msg msg;
+
+	memset(&msg, 0, sizeof(struct host_if_msg));
+	msg.id = HOST_IF_MSG_SET_WOWLAN_TRIGGER;
+	msg.body.wow_trigger.wowlan_trigger = wowlan_trigger;
+	msg.vif = vif;
+
+	result = wilc_enqueue_cmd(&msg);
+
+	if(result)
+		netdev_err(vif->ndev, "Failed to send wowlan trigger param's message queue");
+	return result;
+}	
