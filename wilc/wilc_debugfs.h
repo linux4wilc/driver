@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Atmel WILC 802.11 b/g/n driver
  *

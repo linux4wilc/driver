@@ -1,4 +1,4 @@
-
+# SPDX-License-Identifier: GPL-2.0
 ccflags-y += -I$(src)/ -DWILC_ASIC_A0 -DWILC_DEBUGFS
 ccflags-y += -DDISABLE_PWRSAVE_AND_SCAN_DURING_IP
 

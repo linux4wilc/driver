@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 #include <linux/kobject.h>
 #include "wilc_wfi_cfgoperations.h"
 
