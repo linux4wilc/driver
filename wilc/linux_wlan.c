@@ -29,6 +29,8 @@
 #include <linux/mmc/sdio_func.h>
 #include <linux/pm_runtime.h>
 
+#include <linux/of_gpio.h>
+
 #include "linux_wlan.h"
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
@@ -40,9 +42,9 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 {
 
 	switch(state)
-	{	
+	{
 	case IP_STATE_OBTAINING:
-		
+
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "Obtaining an IP, Disable (Scan-Set PowerSave)\n");
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "Save the Current state of the PS = %d\n", vif->pwrsave_current_state);
 
@@ -58,7 +60,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		mod_timer(&wilc_during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
 
 		break;
-	
+
 	case IP_STATE_OBTAINED:
 
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP obtained , Enable (Scan-Set PowerSave)\n");
@@ -72,10 +74,10 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 			wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 		}
 
-		del_timer(&wilc_during_ip_timer);	
+		del_timer(&wilc_during_ip_timer);
 
 		break;
-	
+
 	case IP_STATE_GO_ASSIGNING:
 
 		/* Set the wilc_optaining_ip flag */
@@ -86,7 +88,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		mod_timer(&wilc_during_ip_timer, (jiffies + msecs_to_jiffies(duringIP_TIME)));
 
 		break;
-	
+
 	default: //IP_STATE_DEFAULT
 
 		/* Clear the wilc_optaining_ip flag */
@@ -123,7 +125,7 @@ void store_power_save_current_state(struct wilc_vif *vif, bool val)
 void clear_duringIP(unsigned long arg)
 {
 	struct wilc_vif *vif = (struct wilc_vif *)arg;
-	
+
 	PRINT_ER(vif->ndev, "Unable to Obtain IP\n");
 
 	/* Clear the wilc_optaining_ip flag */
@@ -183,7 +185,7 @@ static int debug_thread(void *arg)
 	signed long timeout;
 	struct host_if_drv *hif_drv;
 	int i = 0;
-	
+
 	vif = netdev_priv(dev);
 
 	priv = wiphy_priv(vif->ndev->ieee80211_ptr->wiphy);
@@ -354,7 +356,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 			handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 		}
 
-		
+
 		wilc_resolve_disconnect_aberration(vif);
 
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "[%s] Down IP\n", dev_iface->ifa_label);
@@ -438,42 +440,42 @@ static int init_irq(struct net_device *dev)
 	vif = netdev_priv(dev);
 	wl = vif->wilc;
 
-	if ((gpio_request(wl->gpio, "WILC_INTR") == 0) &&
-	    (gpio_direction_input(wl->gpio) == 0)) {
-		wl->dev_irq_num = gpio_to_irq(wl->gpio);
+	if ((gpio_request(wl->gpio_irq, "WILC_INTR") == 0) &&
+	    (gpio_direction_input(wl->gpio_irq) == 0)) {
+		wl->dev_irq_num = gpio_to_irq(wl->gpio_irq);
 	} else {
 		ret = -1;
 		PRINT_ER(dev, "could not obtain gpio for WILC_INTR\n");
 	}
 
-	if ((wl->io_type & 0x1) == HIF_SPI || 
+	if ((wl->io_type & 0x1) == HIF_SPI ||
 		(wl->io_type & 0x2) == HIF_SDIO_GPIO_IRQ) {
 		if (ret != -1 && request_threaded_irq(wl->dev_irq_num,
 						      isr_uh_routine,
 						      isr_bh_routine,
 						      IRQF_TRIGGER_LOW | IRQF_ONESHOT|IRQF_NO_SUSPEND,
 						      "WILC_IRQ", dev) < 0) {
-			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio);
-			gpio_free(wl->gpio);
+			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio_irq);
+			gpio_free(wl->gpio_irq);
 			ret = -1;
 		} else {
 			PRINT_INFO(dev, GENERIC_DBG,
 				   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
-				   wl->dev_irq_num, wl->gpio);
+				   wl->dev_irq_num, wl->gpio_irq);
 			enable_irq_wake(wl->dev_irq_num);
 		}
 	} else {
-		if (ret != -1 && request_irq(wl->dev_irq_num, 
+		if (ret != -1 && request_irq(wl->dev_irq_num,
 						      host_wakeup_isr,
 						      IRQF_TRIGGER_FALLING | IRQF_NO_SUSPEND,
 						      "WILC_IRQ", dev) < 0) {
-			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio);
-			gpio_free(wl->gpio);
+			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio_irq);
+			gpio_free(wl->gpio_irq);
 			ret = -1;
 		} else {
 			PRINT_INFO(dev, GENERIC_DBG,
 				   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
-				   wl->dev_irq_num, wl->gpio);
+				   wl->dev_irq_num, wl->gpio_irq);
 		}
 	}
 	return ret;
@@ -490,7 +492,7 @@ static void deinit_irq(struct net_device *dev)
 	/* Deinitialize IRQ */
 	if (wilc->dev_irq_num) {
 		free_irq(wilc->dev_irq_num, wilc);
-		gpio_free(wilc->gpio);
+		gpio_free(wilc->gpio_irq);
 	}
 }
 
@@ -532,10 +534,10 @@ void eap_buff_timeout(unsigned long user)
 {
     u8 null_bssid[ETH_ALEN] = {0};
     static u8 timeout = 5;
-    int status = -1; 
+    int status = -1;
     struct wilc_priv *priv;
     struct wilc_vif *vif ;
-	
+
     priv = (struct wilc_priv *)user;
     vif = netdev_priv(priv->dev);
     if (!(memcmp(priv->au8AssociatedBss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
@@ -782,7 +784,7 @@ static int wilc_firmware_download(struct net_device *dev)
 		goto _fail_;
 
 	PRINT_INFO(vif->ndev, INIT_DBG, "Download Succeeded\n");
-	
+
 _fail_:
 	release_firmware(wilc->firmware);
 	wilc->firmware = NULL;
@@ -827,7 +829,7 @@ static int linux_wlan_init_test_config(struct net_device *dev,
 	c_val[0] = G_AUTO_PREAMBLE;
 	if (!wilc_wlan_cfg_set(vif, 0, WID_PREAMBLE, c_val, 1, 0, 0))
 		goto _fail_;
-	
+
 	c_val[0] = AUTO_PROT;
 	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_PROT_MECH, c_val, 1, 0, 0))
 		goto _fail_;
@@ -970,7 +972,7 @@ static int linux_wlan_init_test_config(struct net_device *dev,
 	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_RIFS_PROT_ENABLE, c_val, 1, 0,
 			       0))
 		goto _fail_;
-	
+
 	c_val[0] = 7;
 	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_CURRENT_TX_MCS, c_val, 1, 0,
 			       0))
@@ -1072,7 +1074,7 @@ static int wlan_deinit_locks(struct net_device *dev)
 
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
-	
+
 	PRINT_INFO(vif->ndev, INIT_DBG, "De-Initializing Locks\n");
 
 	if (&wilc->hif_cs)
@@ -1080,7 +1082,7 @@ static int wlan_deinit_locks(struct net_device *dev)
 
 	if (&wilc->cs)
 		mutex_destroy(&wilc->cs);
-	
+
 	if (&wilc->rxq_cs)
 		mutex_destroy(&wilc->rxq_cs);
 
@@ -1130,7 +1132,7 @@ static void wlan_deinitialize_threads(struct net_device *dev)
 
 	vif = netdev_priv(dev);
 	wl = vif->wilc;
-	
+
 	PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing Threads\n");
 	if (!recovery_on) {
 		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing debug Thread\n");
@@ -1173,7 +1175,7 @@ int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			goto _fail_locks_;
 		}
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "WILC Initialization done\n");
-		if (wl->gpio >= 0 && init_irq(dev)) {
+		if (wl->gpio_irq >= 0 && init_irq(dev)) {
 			ret = -EIO;
 			goto _fail_locks_;
 		}
@@ -1267,7 +1269,7 @@ static int mac_init_fn(struct net_device *ndev)
 
 int wilc_bt_power_up(struct wilc *wilc, int source);
 int wilc_bt_power_down(struct wilc *wilc, int source);
-	
+
 static int wilc_mac_open(struct net_device *ndev)
 {
 	struct wilc_vif *vif;
@@ -1742,9 +1744,10 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 EXPORT_SYMBOL_GPL(wilc_netdev_cleanup);
 
 int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
-		     int gpio, const struct wilc_hif_func *ops)
+		     const struct wilc_hif_func *ops)
 {
 	int i, ret;
+
 	struct wilc_vif *vif;
 	struct net_device *ndev;
 	struct wilc *wl;
@@ -1757,7 +1760,6 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	*wilc = wl;
 
 	wl->io_type = io_type;
-	wl->gpio = gpio;
 	wl->hif_func = ops;
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
@@ -1820,36 +1822,38 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 }
 EXPORT_SYMBOL_GPL(wilc_netdev_init);
 
-static void wilc_wlan_power(int power)
+static void wilc_wlan_power(struct wilc *wilc, int power)
 {
 	pr_info("wifi_pm : %d \n", power);
-	if (gpio_request(GPIO_NUM_CHIP_EN, "CHIP_EN") == 0 &&
-	    gpio_request(GPIO_NUM_RESET, "RESET") == 0) {
-		gpio_direction_output(GPIO_NUM_CHIP_EN, 0);
-		gpio_direction_output(GPIO_NUM_RESET, 0);
+	if (gpio_request(wilc->gpio_chip_en, "CHIP_EN") == 0 &&
+	    gpio_request(wilc->gpio_reset, "RESET") == 0) {
+		gpio_direction_output(wilc->gpio_chip_en, 0);
+		gpio_direction_output(wilc->gpio_reset, 0);
 		if (power) {
-			gpio_set_value(GPIO_NUM_CHIP_EN, 1);
+			gpio_set_value(wilc->gpio_chip_en, 1);
 			mdelay(5);
-			gpio_set_value(GPIO_NUM_RESET, 1);
+			gpio_set_value(wilc->gpio_reset, 1);
 		} else {
-			gpio_set_value(GPIO_NUM_RESET, 0);
-			gpio_set_value(GPIO_NUM_CHIP_EN, 0);
+			gpio_set_value(wilc->gpio_reset, 0);
+			gpio_set_value(wilc->gpio_chip_en, 0);
 		}
-		gpio_free(GPIO_NUM_CHIP_EN);
-		gpio_free(GPIO_NUM_RESET);
+		gpio_free(wilc->gpio_chip_en);
+		gpio_free(wilc->gpio_reset);
+	} else {
+		dev_err(wilc->dev, "Error requesting GPIOs for CHIP_EN and RESET\r\n");
 	}
 }
 
-void wilc_wlan_power_on_sequence(void)
+void wilc_wlan_power_on_sequence(struct wilc *wilc)
 {
-	wilc_wlan_power(0);
-	wilc_wlan_power(1);
+	wilc_wlan_power(wilc, 0);
+	wilc_wlan_power(wilc, 1);
 }
 EXPORT_SYMBOL_GPL(wilc_wlan_power_on_sequence);
 
-void wilc_wlan_power_off_sequence(void)
+void wilc_wlan_power_off_sequence(struct wilc *wilc)
 {
-	wilc_wlan_power(0);
+	wilc_wlan_power(wilc, 0);
 }
 EXPORT_SYMBOL_GPL(wilc_wlan_power_off_sequence);
 

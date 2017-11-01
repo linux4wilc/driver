@@ -136,24 +136,64 @@ static int linux_sdio_probe(struct sdio_func *func,
 			    const struct sdio_device_id *id)
 {
 	struct wilc *wilc;
-	int gpio, ret;
+	int ret;
 	static bool init_power;
 
-	if (!init_power) {
-		wilc_wlan_power_on_sequence();
-		init_power = 1;
-	}
+	int gpio_reset = -1;
+	int gpio_chip_en = -1;
+	int gpio_irq = -1;
 
-	gpio = -1;
+	struct device_node *cnp;
+
+	cnp = of_get_child_by_name(func->card->host->parent->of_node, "wilc_sdio");
+
 	dev_dbg(&func->dev, "Initializing netdev\n");
-	ret = wilc_netdev_init(&wilc, &func->dev, HIF_SDIO, gpio,
-			       &wilc_hif_sdio);
+	ret = wilc_netdev_init(&wilc, &func->dev, HIF_SDIO, &wilc_hif_sdio);
 	if (ret) {
 		dev_err(&func->dev, "Couldn't initialize netdev\n");
 		return ret;
 	}
+
 	sdio_set_drvdata(func, wilc);
 	wilc->dev = &func->dev;
+
+	gpio_reset = of_get_named_gpio_flags(cnp, "gpio_reset", 0, NULL);
+	if (gpio_reset < 0) {
+		ret = gpio_reset;
+		gpio_reset = GPIO_NUM_RESET;
+		dev_warn(wilc->dev, "WILC setting default Reset GPIO to %d.  Got %d\r\n", gpio_reset, ret);
+	} else {
+		dev_info(wilc->dev, "WILC got %d for gpio_reset\r\n", gpio_reset);
+	}
+
+	gpio_chip_en = of_get_named_gpio_flags(cnp, "gpio_chip_en", 0, NULL);
+	if (gpio_chip_en < 0) {
+		ret = gpio_chip_en;
+		gpio_chip_en = GPIO_NUM_CHIP_EN;
+		dev_warn(wilc->dev, "WILC setting default Chip Enable GPIO to %d.  Got %d\r\n", gpio_chip_en, ret);
+	} else {
+		dev_info(wilc->dev, "WILC got %d for gpio_chip_en\r\n", gpio_chip_en);
+	}
+
+	if (IS_ENABLED(CONFIG_WILC1000_HW_OOB_INTR)) {
+		gpio_irq = of_get_named_gpio_flags(cnp, "gpio_irq", 0, NULL);
+		if (gpio_irq < 0) {
+			ret = gpio_irq;
+			gpio_irq = GPIO_NUM;
+			dev_warn(wilc->dev, "WILC setting default IRQ GPIO to %d.  Got %d\r\n", gpio_irq, ret);
+		} else {
+			dev_info(wilc->dev, "WILC got %d for gpio_irq\r\n", gpio_irq);
+		}
+	}
+
+	wilc->gpio_irq = gpio_irq;
+	wilc->gpio_chip_en = gpio_chip_en;
+	wilc->gpio_reset = gpio_reset;
+
+	if (!init_power) {
+		wilc_wlan_power_on_sequence(wilc);
+		init_power = 1;
+	}
 
 	mutex_init(&wilc->hif_cs);
 	mutex_init(&wilc->cs);
@@ -250,6 +290,12 @@ static int wilc_sdio_resume(struct device *dev)
 	return 0;
 }
 
+static const struct of_device_id wilc_of_match[] = {
+	{ .compatible = "atmel,wilc_sdio", },
+	{}
+};
+MODULE_DEVICE_TABLE(of, wilc_of_match);
+
 static const struct dev_pm_ops wilc_sdio_pm_ops = {
 	.suspend = wilc_sdio_suspend,
 	.resume = wilc_sdio_resume,
@@ -262,6 +308,7 @@ static struct sdio_driver wilc_sdio_driver = {
 	.remove		= linux_sdio_remove,
 	.drv = {
 		.pm = &wilc_sdio_pm_ops,
+		.of_match_table = wilc_of_match,
 	}
 };
 module_driver(wilc_sdio_driver,
@@ -295,7 +342,7 @@ static void wilc_sdio_disable_interrupt(struct wilc *dev)
 	int ret;
 
 	dev_info(&func->dev, "wilc_sdio_disable_interrupt\n");
-	
+
 	if (sdio_intr_lock  == WILC_SDIO_HOST_IRQ_TAKEN)
 		wait_event_interruptible(sdio_intr_waitqueue,
 				   sdio_intr_lock == WILC_SDIO_HOST_NO_TAKEN);
@@ -729,7 +776,7 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	int loop, ret;
 	u32 chipid;
 
-	dev_info(&func->dev, "SDIO speed: %d\n", 
+	dev_info(&func->dev, "SDIO speed: %d\n",
 		func->card->host->ios.clock);
 #ifndef WILC_SDIO_IRQ_GPIO
 	init_waitqueue_head(&sdio_intr_waitqueue);
@@ -837,7 +884,7 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	}
 
 	g_sdio.is_init = true;
-	
+
 	return 1;
 
 _fail_:
@@ -1092,7 +1139,7 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 				goto _fail_;
 			}
 		}
-	}	
+	}
 
 	return 1;
 _fail_:

@@ -125,28 +125,67 @@ static u8 crc7(u8 crc, const u8 *buffer, u32 len)
 
 static int wilc_bus_probe(struct spi_device *spi)
 {
-	int ret, gpio;
+	int ret;
+	static bool init_power;
 	struct wilc *wilc;
-	dev_info(&spi->dev, "spiModalias: %s, spiMax-Speed: %d\n", 
-			spi->modalias, spi->max_speed_hz);
-	wilc_wlan_power_on_sequence();
-	gpio = of_get_gpio(spi->dev.of_node, 0);
-	if (gpio < 0)
-		gpio = GPIO_NUM;
+	struct device *dev = &spi->dev;
 
-	ret = wilc_netdev_init(&wilc, NULL, HIF_SPI, GPIO_NUM, &wilc_hif_spi);
+	int gpio_reset = -1;
+	int gpio_chip_en = -1;
+	int gpio_irq = -1;
+
+	dev_info(&spi->dev, "spiModalias: %s, spiMax-Speed: %d\n",
+			spi->modalias, spi->max_speed_hz);
+
+	ret = wilc_netdev_init(&wilc, dev, HIF_SPI, &wilc_hif_spi);
 	if (ret)
 		return ret;
 
 	spi_set_drvdata(spi, wilc);
 	wilc->dev = &spi->dev;
-	
+
+	gpio_reset = of_get_named_gpio_flags(dev->of_node, "gpio_reset", 0, NULL);
+	if (gpio_reset < 0) {
+		ret = gpio_reset;
+		gpio_reset = GPIO_NUM_RESET;
+		dev_warn(dev, "WILC setting default Reset GPIO to %d.  Got %d\r\n", gpio_reset, ret);
+	} else {
+		dev_info(dev, "WILC got %d for gpio_reset\r\n", gpio_reset);
+	}
+
+	gpio_chip_en = of_get_named_gpio_flags(dev->of_node, "gpio_chip_en", 0, NULL);
+	if (gpio_chip_en < 0) {
+		ret = gpio_chip_en;
+		gpio_chip_en = GPIO_NUM_CHIP_EN;
+		dev_warn(dev, "WILC setting default Chip Enable GPIO to %d.  Got %d\r\n", gpio_chip_en, ret);
+	} else {
+		dev_info(dev, "WILC got %d for gpio_chip_en\r\n", gpio_chip_en);
+	}
+
+	gpio_irq = of_get_named_gpio_flags(dev->of_node, "gpio_irq", 0, NULL);
+	if (gpio_irq < 0) {
+		ret = gpio_irq;
+		gpio_irq = GPIO_NUM;
+		dev_warn(dev, "WILC setting default IRQ GPIO to %d.  Got %d\r\n", gpio_irq, ret);
+	} else {
+		dev_info(dev, "WILC got %d for gpio_irq\r\n", gpio_irq);
+	}
+
+	wilc->gpio_irq = gpio_irq;
+	wilc->gpio_chip_en = gpio_chip_en;
+	wilc->gpio_reset = gpio_reset;
+
+	if (!init_power) {
+		wilc_wlan_power_on_sequence(wilc);
+		init_power = 1;
+	}
+
 	mutex_init(&wilc->hif_cs);
 	mutex_init(&wilc->cs);
 	wilc_bt_init(wilc);
 	wilc_debugfs_init();
-	
-	dev_info(&spi->dev, "WILC SPI probe success\n");
+
+	dev_info(dev, "WILC SPI probe success\n");
 	return 0;
 }
 
@@ -162,7 +201,7 @@ static int wilc_spi_suspend(struct device *dev)
 {
 	struct spi_device *spi = to_spi_device(dev);
 	struct wilc *wilc = spi_get_drvdata(spi);
-	
+
 	dev_info(&spi->dev, "\n\n << SUSPEND >>\n\n");
 	mutex_lock(&wilc->hif_cs);
 	chip_wakeup(wilc, 0);
@@ -182,9 +221,9 @@ static int wilc_spi_resume(struct device *dev)
 {
 	struct spi_device *spi = to_spi_device(dev);
 	struct wilc *wilc = spi_get_drvdata(spi);
-	
+
 	dev_info(&spi->dev, "\n\n  <<RESUME>> \n\n");
-	
+
 	/*wake the chip to compelete the re-intialization*/
 	chip_wakeup(wilc, 0);
 
@@ -192,11 +231,11 @@ static int wilc_spi_resume(struct device *dev)
 		mutex_unlock(&wilc->hif_cs);
 
 	host_wakeup_notify(wilc, 0);
-	
+
 	mutex_lock(&wilc->hif_cs);
-		
+
 	chip_allow_sleep(wilc, 0);
-	
+
 	if (mutex_is_locked(&wilc->hif_cs))
 		mutex_unlock(&wilc->hif_cs);
 
@@ -208,8 +247,8 @@ static const struct of_device_id wilc_of_match[] = {
 	{}
 };
 MODULE_DEVICE_TABLE(of, wilc_of_match);
-static const struct dev_pm_ops wilc_spi_pm_ops = {	
-     .suspend = wilc_spi_suspend,    
+static const struct dev_pm_ops wilc_spi_pm_ops = {
+     .suspend = wilc_spi_suspend,
      .resume    = wilc_spi_resume,
     	};
 
@@ -795,7 +834,7 @@ _FAIL_:
 		dev_err(&spi->dev, "Reset and retry %d %x\n",retry, adr);
 		msleep(1);
 		retry--;
-		if(retry) 
+		if(retry)
 			goto _RETRY_;
 	}
 	return result;
@@ -825,7 +864,7 @@ _FAIL_:
 		dev_err(&spi->dev, "Reset and retry %d %x\n",retry, adr);
 		msleep(1);
 		retry--;
-		if(retry) 
+		if(retry)
 			goto _RETRY_;
 	}
 	return result;
@@ -846,7 +885,7 @@ static int wilc_spi_write_reg(struct wilc *wilc, u32 addr, u32 data)
 	u8 clockless = 0;
 
 	data = cpu_to_le32(data);
-_RETRY_:	
+_RETRY_:
 	if (addr <= 0x30) {
 		/* Clockless register*/
 		cmd = CMD_INTERNAL_WRITE;
@@ -860,7 +899,7 @@ _RETRY_:
 
 	result = spi_cmd_complete(wilc, cmd, addr, (u8 *)&data, 4, clockless);
 	if (result != N_OK) {
-		dev_err(&spi->dev, "Failed cmd, write reg (%08x)...\n", addr);		
+		dev_err(&spi->dev, "Failed cmd, write reg (%08x)...\n", addr);
 		goto _FAIL_;
 	}
 
@@ -871,7 +910,7 @@ _FAIL_:
 		dev_err(&spi->dev, "Reset and retry %d %x %d\n",retry, addr, data);
 		msleep(1);
 		retry--;
-		if(retry) 
+		if(retry)
 			goto _RETRY_;
 	}
 	return result;
@@ -893,7 +932,7 @@ static int wilc_spi_write(struct wilc *wilc, u32 addr, u8 *buf, u32 size)
 _RETRY_:
 	result = spi_cmd_complete(wilc, cmd, addr, NULL, size, 0);
 	if (result != N_OK) {
-		dev_err(&spi->dev, "Failed cmd, write block (%08x)...\n", addr);		
+		dev_err(&spi->dev, "Failed cmd, write block (%08x)...\n", addr);
 		goto _FAIL_;
 	}
 
@@ -913,7 +952,7 @@ _RETRY_:
 		dev_err(&spi->dev, "Failed block data write...\n");
 		goto _FAIL_;
 	}
-	
+
 _FAIL_:
 	if (result != N_OK)	{
 		msleep(1);
@@ -921,7 +960,7 @@ _FAIL_:
 		dev_err(&spi->dev, "Reset and retry %d %x %d\n",retry, addr, size);
 		msleep(1);
 		retry--;
-		if(retry) 
+		if(retry)
 			goto _RETRY_;
 	}
 	return result;
@@ -961,9 +1000,9 @@ _FAIL_:
 		dev_warn(&spi->dev, "Reset and retry %d %x\n",retry, addr);
 		msleep(1);
 		retry--;
-		if(retry) 
+		if(retry)
 			goto _RETRY_;
-	}	
+	}
 	return result;
 }
 
@@ -991,7 +1030,7 @@ _FAIL_:
 		dev_warn(&spi->dev, "Reset and retry %d %x %d\n",retry, addr, size);
 		msleep(1);
 		retry--;
-		if(retry) 
+		if(retry)
 			goto _RETRY_;
 	}
 	return result;
@@ -1007,10 +1046,10 @@ int wilc_spi_reset(struct wilc *wilc)
 {
 	struct spi_device *spi = to_spi_device(wilc->dev);
 	int result = N_OK;
-	
+
 	result = spi_cmd_complete(wilc, CMD_RESET, 0, 0 ,0, 0);
 	if (result != N_OK) {
-		dev_err(&spi->dev, "Failed cmd reset \n");	
+		dev_err(&spi->dev, "Failed cmd reset \n");
 		return 0;
 	}
 
@@ -1028,7 +1067,7 @@ static int _wilc_spi_deinit(struct wilc *wilc)
 	 *      TODO:
 	 **/
 	g_spi.is_init = false;
-	
+
 	return 1;
 }
 
@@ -1037,7 +1076,7 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 	struct spi_device *spi = to_spi_device(wilc->dev);
 	u32 reg;
 	u32 chipid;
-	
+
 	if (g_spi.is_init) {
 		if (!wilc_spi_read_reg(wilc, 0x1000, &chipid)) {
 			dev_err(&spi->dev, "Fail cmd read chip id...\n");
@@ -1101,7 +1140,7 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 		}
 		dev_dbg(&spi->dev, "chipid %08x\n", chipid);
 	}
-		
+
 _pass_:
 	g_spi.is_init = true;
 	return 1;
