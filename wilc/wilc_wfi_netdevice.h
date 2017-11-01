@@ -170,7 +170,7 @@ struct wilc_vif {
 	struct host_if_drv *hif_drv;
 	struct net_device *ndev;
 	u8 ifc_id;
-	
+
 	sysfs_attr_group attr_sysfs;
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	bool pwrsave_current_state;
@@ -181,7 +181,9 @@ struct wilc {
 	const struct wilc_hif_func *hif_func;
 	int io_type;
 	int mac_status;
-	int gpio;
+	int gpio_irq;
+	int gpio_reset;
+	int gpio_chip_en;
 	bool initialized;
 	int dev_irq_num;
 	int close;
@@ -202,7 +204,7 @@ struct wilc {
 	struct completion debug_thread_started;
 	struct task_struct *txq_thread;
 	struct task_struct *debug_thread;
-	
+
 	int quit;
 	int cfg_frame_in_use;
 	struct wilc_cfg_frame cfg_frame;

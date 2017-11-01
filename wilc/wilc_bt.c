@@ -149,16 +149,16 @@ static void wilc_bt_create_device(void)
 		unregister_chrdev_region(chc_dev_no, 1);
 		return;
 	}
-	mutex_init(&wilc_bt->cs);	
+	mutex_init(&wilc_bt->cs);
 	device_created = 1;
 }
 
 static void wilc_cmd_handle_wilc_cca_threshold(char* param)
 {
 	int carrier_thrshold, noise_thrshold;
-	unsigned int carr_thrshold_frac, noise_thrshold_frac, carr_thrshold_int, 
+	unsigned int carr_thrshold_frac, noise_thrshold_frac, carr_thrshold_int,
 		noise_thrshold_int, reg;
-	
+
 	if(param == NULL) {
 		pr_err("Invalid parameter\n");
 		return;
@@ -172,7 +172,7 @@ static void wilc_cmd_handle_wilc_cca_threshold(char* param)
 			"to -62.5 and -82.6\n\n");
 		return;
 	}
-	
+
 	pr_info("Changing CCA noise threshold to %d and carrier thresholds to %d \n",
 		noise_thrshold, carrier_thrshold);
 
@@ -192,12 +192,12 @@ static void wilc_cmd_handle_wilc_cca_threshold(char* param)
 	reg &= ~(0x7FF0000);
 	reg |= ((noise_thrshold_frac & 0x7) | ((noise_thrshold_int & 0x1FF) << 3)) << 16;
 	wilc_bt->hif_func->hif_write_reg(wilc_bt, CCA_CTL_2, reg);
-	
+
 	wilc_bt->hif_func->hif_read_reg(wilc_bt, CCA_CTL_7, &reg);
 	reg &= ~(0x7FF0000);
 	reg |= ((carr_thrshold_frac & 0x7) | ((carr_thrshold_int & 0x1FF) << 3)) << 16;
 	wilc_bt->hif_func->hif_write_reg(wilc_bt, CCA_CTL_7, reg);
-	
+
 	return;
 }
 
@@ -206,7 +206,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 	int count=0;
 	int ret;
 	int reg;
-	
+
 	mutex_lock(&wilc->cs);
 
 	pr_debug("source: %s, current bus status Wifi: %d, BT: %d\n",
@@ -245,8 +245,8 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 					break;
 				}
 			}
-			/*An additional wait to give BT firmware time to do CPLL update as the time 
-			measured since the start of BT Fw till the end of function "rf_nmi_init_tuner" was 71.2 ms */	
+			/*An additional wait to give BT firmware time to do CPLL update as the time
+			measured since the start of BT Fw till the end of function "rf_nmi_init_tuner" was 71.2 ms */
 			msleep(100);
 		}
 	}
@@ -268,7 +268,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 		if(wilc->power_status[PWR_DEV_SRC_WIFI] == false)
 		{
 			acquire_bus(wilc, ACQUIRE_AND_WAKEUP,PWR_DEV_SRC_BT);
-		
+
 			ret = wilc->hif_func->hif_read_reg(wilc, WILC_COEXIST_CTL, &reg);
 			if (!ret) {
 				pr_err("[wilc start]: fail read reg %x ...\n", WILC_COEXIST_CTL);
@@ -310,8 +310,8 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 				pr_err( "[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_OFF_NULL_PKT);
 				goto _fail_;
 			}
-			
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);	
+
+			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 		}
 
 		// Enable BT wakeup
@@ -437,7 +437,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 
 		bt_init_done=0;
 	}
-	
+
 	mutex_lock(&wilc->cs);
 
 	pr_info("source: %s, current bus status Wifi: %d, BT: %d\n",
@@ -455,7 +455,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		pr_warn("Another device is preventing power down. request source is %s\n",
 			(source == PWR_DEV_SRC_WIFI ? "Wifi" : "BT"));
 	} else {
-		wilc_wlan_power_off_sequence();
+		wilc_wlan_power_off_sequence(wilc);
 	}
 	wilc->power_status[source] = false;
 
@@ -495,7 +495,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	ret = wilc->hif_func->hif_write_reg(wilc, 0x4f0000, 0x71);
 	if (!ret) {
 		pr_err("[wilc start]: fail write reg 0x4f0000 ...\n");
-		release_bus(wilc,RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);	
+		release_bus(wilc,RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 		goto _fail_1;
 	}
 

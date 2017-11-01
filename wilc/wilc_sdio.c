@@ -139,12 +139,6 @@ static int linux_sdio_probe(struct sdio_func *func,
 	int gpio, ret;
 	static bool init_power;
 
-	if (!init_power) {
-		wilc_wlan_power_on_sequence();
-		init_power = 1;
-	}
-
-	gpio = -1;
 	dev_dbg(&func->dev, "Initializing netdev\n");
 	ret = wilc_netdev_init(&wilc, &func->dev, HIF_SDIO, gpio,
 			       &wilc_hif_sdio);
@@ -152,6 +146,12 @@ static int linux_sdio_probe(struct sdio_func *func,
 		dev_err(&func->dev, "Couldn't initialize netdev\n");
 		return ret;
 	}
+
+	if (!init_power) {
+		wilc_wlan_power_on_sequence(wilc);
+		init_power = 1;
+	}
+
 	sdio_set_drvdata(func, wilc);
 	wilc->dev = &func->dev;
 
@@ -295,7 +295,7 @@ static void wilc_sdio_disable_interrupt(struct wilc *dev)
 	int ret;
 
 	dev_info(&func->dev, "wilc_sdio_disable_interrupt\n");
-	
+
 	if (sdio_intr_lock  == WILC_SDIO_HOST_IRQ_TAKEN)
 		wait_event_interruptible(sdio_intr_waitqueue,
 				   sdio_intr_lock == WILC_SDIO_HOST_NO_TAKEN);
@@ -729,7 +729,7 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	int loop, ret;
 	u32 chipid;
 
-	dev_info(&func->dev, "SDIO speed: %d\n", 
+	dev_info(&func->dev, "SDIO speed: %d\n",
 		func->card->host->ios.clock);
 #ifndef WILC_SDIO_IRQ_GPIO
 	init_waitqueue_head(&sdio_intr_waitqueue);
@@ -837,7 +837,7 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	}
 
 	g_sdio.is_init = true;
-	
+
 	return 1;
 
 _fail_:
@@ -1092,7 +1092,7 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 				goto _fail_;
 			}
 		}
-	}	
+	}
 
 	return 1;
 _fail_:
