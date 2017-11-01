@@ -33,13 +33,13 @@ config WILC_SPI
 	  VDDIO. Select this if your platform is using the SPI bus.
 	  WILC3000 additionally supports BT 4.0 and BLE modes.
 
-config WILC1000_HW_OOB_INTR
-	bool "WILC1000 out of band interrupt"
-	depends on WILC1000_SDIO
+config WILC_HW_OOB_INTR
+	bool "WILC out of band interrupt"
+	depends on WILC_SDIO
 	default n
 	---help---
-	  This option enables out-of-band interrupt support for the WILC1000
-	  chipset. This OOB interrupt is intended to provide a faster interrupt
-	  mechanism for SDIO host controllers that don't support SDIO interrupt.
-	  Select this option If the SDIO host controller in your platform
-	  doesn't support SDIO time devision interrupt.
+	  This option enables out-of-band interrupt support for the WILC1000 &
+	  WILC3000 chipset. This OOB interrupt is intended to provide a faster
+	  interrupt mechanism for SDIO host controllers that don't support SDIO
+	  interrupt. Select this option If the SDIO host controller in your
+	  platform doesn't support SDIO time devision interrupt.
