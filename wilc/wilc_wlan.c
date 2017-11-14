@@ -1513,10 +1513,9 @@ int wilc_wlan_start(struct wilc *wilc)
 		return -EIO;
 	}
 	reg = 0;
-#ifdef WILC_SDIO_IRQ_GPIO
-		reg |= WILC_HAVE_SDIO_IRQ_GPIO;
 
-#endif
+	if (wilc->io_type == HIF_SDIO_GPIO_IRQ)
+		reg |= WILC_HAVE_SDIO_IRQ_GPIO;
 
 	if(wilc->chip == WILC_3000)
 		reg |= WILC_HAVE_SLEEP_CLK_SRC_RTC;
@@ -1789,7 +1788,7 @@ int wilc_wlan_cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 
 		if (!wait_for_completion_timeout(&wilc->cfg_event,
 						 msecs_to_jiffies(CFG_PKTS_TIMEOUT))) {
-			PRINT_INFO(vif->ndev, TX_DBG, "Set Timed Out\n");
+			PRINT_ER(vif->ndev, "Set Timed Out\n");
 			ret_size = 0;
 		}
 
