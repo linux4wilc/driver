@@ -136,7 +136,7 @@ static int linux_sdio_probe(struct sdio_func *func,
 			    const struct sdio_device_id *id)
 {
 	struct wilc *wilc;
-	int ret;
+	int ret, io_type;
 	static bool init_power;
 
 	int gpio_reset = -1;
@@ -147,8 +147,12 @@ static int linux_sdio_probe(struct sdio_func *func,
 
 	cnp = of_get_child_by_name(func->card->host->parent->of_node, "wilc_sdio");
 
+	if (IS_ENABLED(CONFIG_WILC1000_HW_OOB_INTR))
+		io_type = HIF_SDIO_GPIO_IRQ;
+	else
+		io_type = HIF_SDIO;
 	dev_dbg(&func->dev, "Initializing netdev\n");
-	ret = wilc_netdev_init(&wilc, &func->dev, HIF_SDIO, &wilc_hif_sdio);
+	ret = wilc_netdev_init(&wilc, &func->dev, io_type, &wilc_hif_sdio);
 	if (ret) {
 		dev_err(&func->dev, "Couldn't initialize netdev\n");
 		return ret;
@@ -175,15 +179,13 @@ static int linux_sdio_probe(struct sdio_func *func,
 		dev_info(wilc->dev, "WILC got %d for gpio_chip_en\r\n", gpio_chip_en);
 	}
 
-	if (IS_ENABLED(CONFIG_WILC1000_HW_OOB_INTR)) {
-		gpio_irq = of_get_named_gpio_flags(cnp, "gpio_irq", 0, NULL);
-		if (gpio_irq < 0) {
-			ret = gpio_irq;
-			gpio_irq = GPIO_NUM;
-			dev_warn(wilc->dev, "WILC setting default IRQ GPIO to %d.  Got %d\r\n", gpio_irq, ret);
-		} else {
-			dev_info(wilc->dev, "WILC got %d for gpio_irq\r\n", gpio_irq);
-		}
+	gpio_irq = of_get_named_gpio_flags(cnp, "gpio_irq", 0, NULL);
+	if (gpio_irq < 0) {
+		ret = gpio_irq;
+		gpio_irq = GPIO_NUM;
+		dev_warn(wilc->dev, "WILC setting default IRQ GPIO to %d.  Got %d\r\n", gpio_irq, ret);
+	} else {
+		dev_info(wilc->dev, "WILC got %d for gpio_irq\r\n", gpio_irq);
 	}
 
 	wilc->gpio_irq = gpio_irq;

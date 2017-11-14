@@ -26,7 +26,7 @@ void release_bus(struct wilc *wilc, enum BUS_RELEASE release, int source)
 uint8_t reset_bus(struct wilc *wilc)
 {
 	uint8_t ret = 0;
-	if((wilc->io_type & 0x1) == HIF_SPI)
+	if(wilc->io_type == HIF_SPI)
 		return wilc->hif_func->hif_reset(wilc);
 	return ret;
 }
@@ -699,7 +699,8 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 			u32 to_host_from_fw_reg, to_host_from_fw_bit;
 			u32 from_host_to_fw_reg, from_host_to_fw_bit;
 			
-			if((wilc->io_type & 0x1) == HIF_SDIO) {
+			if(wilc->io_type == HIF_SDIO ||
+				wilc->io_type == HIF_SDIO_GPIO_IRQ) {
 				wakeup_reg = 0xf0;
 				wakeup_bit = BIT(0);
 				from_host_to_fw_reg = 0xfa;
@@ -740,7 +741,8 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 				if(!ret) goto _fail_;
 			}
 		} else {
-			if((wilc->io_type & 0x1) == HIF_SDIO) {
+			if(wilc->io_type == HIF_SDIO ||
+				wilc->io_type == HIF_SDIO_GPIO_IRQ) {
 				wilc->hif_func->hif_read_reg(wilc, 0xf0, &reg);
 				wilc->hif_func->hif_write_reg(wilc, 0xf0, reg & ~BIT(0));
 			} else {
@@ -765,7 +767,8 @@ void chip_wakeup_wilc1000(struct wilc *wilc, int source)
 	u32 to_host_from_fw_reg, to_host_from_fw_bit;
 	u32 from_host_to_fw_reg, from_host_to_fw_bit;
 	
-	if((wilc->io_type & 0x1) == HIF_SDIO) {
+	if(wilc->io_type == HIF_SDIO ||
+		wilc->io_type == HIF_SDIO_GPIO_IRQ) {
 		wakeup_reg = 0xf0;
 		clk_status_reg = 0xf1;
 		wakeup_bit = BIT(0);
@@ -850,7 +853,8 @@ void chip_wakeup_wilc3000(struct wilc *wilc, int source)
 	u32 clk_status_register, clk_status_bit;
 	int wake_seq_trials = 5;
 
-	if((wilc->io_type & 0x1) == HIF_SDIO) {
+	if(wilc->io_type == HIF_SDIO ||
+		wilc->io_type == HIF_SDIO_GPIO_IRQ) {
 		wakeup_register = 0xf0;
 		clk_status_register = 0xf0;
 		wakeup_bit = BIT(0);
@@ -1494,12 +1498,11 @@ int wilc_wlan_start(struct wilc *wilc)
 	int ret;
 	struct wilc_vif *vif = wilc->vif[0];
 
-	if (wilc->io_type == HIF_SDIO) {
-		reg = 0;
+	if (wilc->io_type == HIF_SDIO ||
+		wilc->io_type == HIF_SDIO_GPIO_IRQ)
 		reg |= BIT(3);
-	} else if (wilc->io_type == HIF_SPI) {
+	else if (wilc->io_type == HIF_SPI)
 		reg = 1;
-	}
 
 	acquire_bus(wilc, ACQUIRE_AND_WAKEUP,PWR_DEV_SRC_WIFI);
 
@@ -1523,7 +1526,7 @@ int wilc_wlan_start(struct wilc *wilc)
 	else if (wilc->vif[wilc->vif_num]->attr_sysfs.ant_swtch_mode == ANT_SWTCH_DUAL_GPIO_CTRL) {
 	        reg |= WILC_HAVE_ANT_SWTCH_SNGL_GPIO_CTRL;
 	        reg |= WILC_HAVE_ANT_SWTCH_DUAL_GPIO_CTRL;
-}
+	}
 
 	ret = wilc->hif_func->hif_write_reg(wilc, WILC_GP_REG_1, reg);
 	if (!ret) {

@@ -448,8 +448,8 @@ static int init_irq(struct net_device *dev)
 		PRINT_ER(dev, "could not obtain gpio for WILC_INTR\n");
 	}
 
-	if ((wl->io_type & 0x1) == HIF_SPI ||
-		(wl->io_type & 0x2) == HIF_SDIO_GPIO_IRQ) {
+	if (wl->io_type == HIF_SPI || 
+		wl->io_type == HIF_SDIO_GPIO_IRQ) {
 		if (ret != -1 && request_threaded_irq(wl->dev_irq_num,
 						      isr_uh_routine,
 						      isr_bh_routine,
@@ -458,11 +458,6 @@ static int init_irq(struct net_device *dev)
 			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio_irq);
 			gpio_free(wl->gpio_irq);
 			ret = -1;
-		} else {
-			PRINT_INFO(dev, GENERIC_DBG,
-				   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
-				   wl->dev_irq_num, wl->gpio_irq);
-			enable_irq_wake(wl->dev_irq_num);
 		}
 	} else {
 		if (ret != -1 && request_irq(wl->dev_irq_num,
@@ -472,11 +467,14 @@ static int init_irq(struct net_device *dev)
 			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio_irq);
 			gpio_free(wl->gpio_irq);
 			ret = -1;
-		} else {
-			PRINT_INFO(dev, GENERIC_DBG,
-				   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
-				   wl->dev_irq_num, wl->gpio_irq);
 		}
+	}
+
+	if(ret >=0) {
+		PRINT_INFO(dev, GENERIC_DBG,
+			"IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
+			wl->dev_irq_num, wl->gpio_irq);
+		enable_irq_wake(wl->dev_irq_num);
 	}
 	return ret;
 }
@@ -1007,8 +1005,8 @@ void wilc_wlan_deinitialize(struct net_device *dev)
 		}
 
 		PRINT_INFO(vif->ndev, INIT_DBG, "Disabling IRQ\n");
-		if ((wl->io_type & 0x1) == HIF_SPI ||
-			(wl->io_type & 0x2) == HIF_SDIO_GPIO_IRQ) {
+		if (wl->io_type == HIF_SPI ||
+			wl->io_type == HIF_SDIO_GPIO_IRQ) {
 			linux_wlan_disable_irq(wl, 1);
 		} else {
 			if(wl->hif_func->disable_interrupt) {
@@ -1187,8 +1185,7 @@ int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			goto _fail_wilc_wlan_;
 		}
 
-		if (!wl->dev_irq_num &&
-		    wl->hif_func->enable_interrupt &&
+		if (wl->io_type == HIF_SDIO &&
 		    wl->hif_func->enable_interrupt(wl)) {
 			PRINT_ER(dev, "couldn't initialize IRQ\n");
 			ret = -EIO;
@@ -1240,8 +1237,7 @@ _fail_fw_start_:
 		wilc_wlan_stop(wl);
 
 _fail_irq_enable_:
-		if (!wl->dev_irq_num &&
-		    wl->hif_func->disable_interrupt)
+		if (wl->io_type == HIF_SDIO)
 			wl->hif_func->disable_interrupt(wl);
 _fail_irq_init_:
 		if (wl->dev_irq_num)
@@ -1747,7 +1743,6 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		     const struct wilc_hif_func *ops)
 {
 	int i, ret;
-
 	struct wilc_vif *vif;
 	struct net_device *ndev;
 	struct wilc *wl;
