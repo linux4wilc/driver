@@ -2856,7 +2856,6 @@ static int handle_set_antenna_mode(struct wilc_vif *vif, struct host_if_set_ant
 	else if (attr_syfs_p->ant_swtch_mode == ANT_SWTCH_DUAL_GPIO_CTRL)
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "set antenna %d on GPIOs %d and %d\n",set_ant->mode,set_ant->antenna1,set_ant->antenna2);
 
-
 	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				   wilc_get_vif_idx(vif));
 	if(ret)
@@ -3914,6 +3913,7 @@ int wilc_deinit(struct wilc_vif *vif)
 	hif_drv->hif_state = HOST_IF_IDLE;
 
 	scan_while_connected = false;
+	memset(wilc_connected_ssid, 0, ETH_ALEN);
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 

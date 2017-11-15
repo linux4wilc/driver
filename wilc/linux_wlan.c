@@ -395,14 +395,13 @@ static irqreturn_t host_wakeup_isr(int irq, void *user_data)
 
 static irqreturn_t isr_uh_routine(int irq, void *user_data)
 {
-	struct wilc_vif *vif;
 	struct wilc *wilc;
-	struct net_device *dev = user_data;
+	struct net_device *dev;
 
-	vif = netdev_priv(dev);
-	wilc = vif->wilc;
+	wilc = (struct wilc *)user_data;
+	dev = wilc->vif[0]->ndev;
 
-	PRINT_INFO(vif->ndev, INT_DBG, "Interrupt received UH\n");
+	PRINT_INFO(dev, INT_DBG, "Interrupt received UH\n");
 
 	if (wilc->close) {
 		PRINT_ER(dev, "Can't handle UH interrupt\n");
@@ -413,19 +412,18 @@ static irqreturn_t isr_uh_routine(int irq, void *user_data)
 
 static irqreturn_t isr_bh_routine(int irq, void *userdata)
 {
-	struct wilc_vif *vif;
 	struct wilc *wilc;
-	struct net_device *dev = userdata;
+	struct net_device *dev;
 
-	vif = netdev_priv(userdata);
-	wilc = vif->wilc;
+	wilc = (struct wilc *)userdata;
+	dev = wilc->vif[0]->ndev;
 
 	if (wilc->close) {
 		PRINT_ER(dev, "Can't handle BH interrupt\n");
 		return IRQ_HANDLED;
 	}
 
-	PRINT_INFO(vif->ndev, INT_DBG, "Interrupt received BH\n");
+	PRINT_INFO(dev, INT_DBG, "Interrupt received BH\n");
 	wilc_handle_isr(wilc);
 
 	return IRQ_HANDLED;
@@ -454,7 +452,7 @@ static int init_irq(struct net_device *dev)
 						      isr_uh_routine,
 						      isr_bh_routine,
 						      IRQF_TRIGGER_LOW | IRQF_ONESHOT|IRQF_NO_SUSPEND,
-						      "WILC_IRQ", dev) < 0) {
+						      "WILC_IRQ", wl) < 0) {
 			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio_irq);
 			gpio_free(wl->gpio_irq);
 			ret = -1;
@@ -463,7 +461,7 @@ static int init_irq(struct net_device *dev)
 		if (ret != -1 && request_irq(wl->dev_irq_num,
 						      host_wakeup_isr,
 						      IRQF_TRIGGER_FALLING | IRQF_NO_SUSPEND,
-						      "WILC_IRQ", dev) < 0) {
+						      "WILC_IRQ", wl) < 0) {
 			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio_irq);
 			gpio_free(wl->gpio_irq);
 			ret = -1;
@@ -1530,7 +1528,7 @@ static int wilc_mac_close(struct net_device *ndev)
 	}
 
 	vif->mac_opened = 0;
-	wilc_bt_power_down(wl, PWR_DEV_SRC_WIFI);
+	//wilc_bt_power_down(wl, PWR_DEV_SRC_WIFI);
 
 	return 0;
 }

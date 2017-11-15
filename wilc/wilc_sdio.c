@@ -206,7 +206,6 @@ static void linux_sdio_remove(struct sdio_func *func)
 {
 	wilc_netdev_cleanup(sdio_get_drvdata(func));
 	wilc_bt_deinit();
-	wilc_debugfs_remove();
 }
 
 static int wilc_sdio_reset(struct wilc *wilc)
