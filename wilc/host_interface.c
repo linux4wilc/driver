@@ -47,7 +47,6 @@
 #define HOST_IF_MSG_GET_TX_POWER		39
 #define HOST_IF_MSG_SET_ANTENNA_MODE		40
 #define HOST_IF_MSG_SEND_BUFFERED_EAP		41
-#define HOST_IF_MSG_CHANGE_BT_COEX_MODE		42
 #define HOST_IF_MSG_SET_WOWLAN_TRIGGER 		43
 #define HOST_IF_MSG_EXIT                        100
 
@@ -485,42 +484,6 @@ static void handle_get_mac_address(struct wilc_vif *vif,
 	if (ret)
 		PRINT_ER(vif->ndev, "Failed to get mac address\n");
 	complete(&hif_wait_response);
-}
-
-static signed int handle_bt_coex_mode_change(struct wilc_vif *vif,
-					     struct bt_coex_mode *bt_coex_mode)
-{
-	int ret = 0;
-	struct wid wid[2];
-	unsigned int wids_count = 0;
-	u8 coex_null_frames_mode = COEX_NULL_FRAMES_OFF;
-
-	if((!vif) || (!bt_coex_mode))
-		return -EINVAL;
-
-	wid[wids_count].id = (u16)WID_BT_COEX_MODE;
-	wid[wids_count].type = WID_CHAR;
-	wid[wids_count].val = (char *)&(bt_coex_mode->bt_coex);
-	wid[wids_count].size = sizeof(char);
-	wids_count++;
-
-	PRINT_INFO(vif->ndev, HOSTINF_DBG,"[COEX] [DRV] Changing BT mode: %x\n",
-		 bt_coex_mode->bt_coex);
-	if(bt_coex_mode->bt_coex == COEX_ON)
-		coex_null_frames_mode = COEX_NULL_FRAMES_ON;
-	/*prepare configuration packet*/
-	wid[wids_count].id = (u16)WID_COEX_NULL_FRAMES_MODE;
-	wid[wids_count].type = WID_CHAR;
-	wid[wids_count].val = (s8*)&(coex_null_frames_mode);
-	wid[wids_count].size = sizeof(s8);
-	wids_count++;
-
-	/*Sending Cfg*/
-	ret = wilc_send_config_pkt(vif, SET_CFG, &wid[0], wids_count,
-				   wilc_get_vif_idx(vif));
-	if (ret)
-		PRINT_ER(vif->ndev, "Failed to change mode\n");
-	return 0;
 }
 
 static void handle_cfg_param(struct wilc_vif *vif,
@@ -2910,10 +2873,6 @@ static void host_if_work(struct work_struct *work)
 		handle_set_channel(vif, &msg->body.channel_info);
 		break;
 
-	case HOST_IF_MSG_CHANGE_BT_COEX_MODE:
-		handle_bt_coex_mode_change(vif, &msg->body.bt_coex_mode);
-		break;
-
 	case HOST_IF_MSG_DISCONNECT:
 		Handle_Disconnect(vif);
 		break;
@@ -3544,27 +3503,6 @@ int wilc_set_mac_chnl_num(struct wilc_vif *vif, u8 channel)
 	result = wilc_enqueue_cmd(&msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "wilc mq send fail\n");
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-int wilc_change_bt_coex_mode(struct wilc_vif *vif,
-				    enum coex_mode bt_coex_mode)
-{
-	int result = 0;
-	struct host_if_msg msg;
-
-	/* prepare the set channel message */
-	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.id = HOST_IF_MSG_CHANGE_BT_COEX_MODE;
-	msg.body.bt_coex_mode.bt_coex = bt_coex_mode;
-
-	result = wilc_enqueue_cmd(&msg);
-
-	if (result) {
-		PRINT_ER(vif->ndev, "Failed to send msg: bt_coex\n");
 		return -EINVAL;
 	}
 

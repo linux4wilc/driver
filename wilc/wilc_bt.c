@@ -269,20 +269,6 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 		{
 			acquire_bus(wilc, ACQUIRE_AND_WAKEUP,PWR_DEV_SRC_BT);
 
-			ret = wilc->hif_func->hif_read_reg(wilc, WILC_COEXIST_CTL, &reg);
-			if (!ret) {
-				pr_err("[wilc start]: fail read reg %x ...\n", WILC_COEXIST_CTL);
-				goto _fail_;
-			}
-			/*Force BT*/
-			reg |= BIT(0) | BIT(9);
-			reg &= ~BIT(11);
-			ret = wilc->hif_func->hif_write_reg(wilc, WILC_COEXIST_CTL, reg);
-			if (!ret) {
-				pr_err( "[wilc start]: fail write reg %x ...\n", WILC_COEXIST_CTL);
-				goto _fail_;
-			}
-
 			/*TicketId1115*/
 			/*Disable awake coex null frames*/
 			ret = wilc->hif_func->hif_read_reg(wilc, WILC_COE_AUTO_PS_ON_NULL_PKT, &reg);
@@ -369,23 +355,6 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 			return ret;
 		}
 
-		ret = wilc->hif_func->hif_read_reg(wilc, WILC_COEXIST_CTL, &reg);
-		if (!ret) {
-			pr_err("[wilc start]: fail read reg %x ...\n",
-			       WILC_COEXIST_CTL);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
-			return ret;
-		}
-		/* Stop forcing BT and force Wifi */
-		reg &= ~BIT(9);
-		reg |= BIT(11);
-		ret = wilc->hif_func->hif_write_reg(wilc, WILC_COEXIST_CTL, reg);
-		if (!ret) {
-			pr_err("[wilc start]: fail write reg %x ...\n",
-			       WILC_COEXIST_CTL);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
-			return ret;
-		}
 
 		/*TicketId1115*/
 		/*Disable awake coex null frames*/
@@ -475,9 +444,9 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	int ret = 0;
 	u32 reg;
 
-	pr_info("Bluetooth firmware: %s\n", FIRMWARE_WILC3000_BT);
-	if (request_firmware(&wilc_bt_firmware, FIRMWARE_WILC3000_BT, dev) != 0) {
-		pr_err("%s - firmare not available. Skip!\n", FIRMWARE_WILC3000_BT);
+	pr_info("Bluetooth firmware: %s\n", FIRMWARE_WILC3000_BLE);
+	if (request_firmware(&wilc_bt_firmware, FIRMWARE_WILC3000_BLE, dev) != 0) {
+		pr_err("%s - firmare not available. Skip!\n", FIRMWARE_WILC3000_BLE);
 		ret = -1;
 		goto _fail_1;
 	}
@@ -590,27 +559,9 @@ _fail_1:
 
 static void wilc_bt_start(struct wilc *wilc)
 {
-	int ret = 0;
 	u32 val32 = 0;
 
 	acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_BT);
-
-	if(wilc->power_status[PWR_DEV_SRC_WIFI]) {
-		/*If WiFi is on, send config packet to change coex mode and coex null frames transmission*/
-		ret = wilc->hif_func->hif_read_reg(wilc, WILC_COEXIST_CTL, &val32);
-		if (!ret) {
-			pr_err("[wilc start]: fail read reg %x ...\n", WILC_COEXIST_CTL);
-			goto _fail_1;
-		}
-		/*Coex ON*/
-		val32 |= BIT(0);
-		val32 &= ~(BIT(9)|BIT(11));
-		ret = wilc->hif_func->hif_write_reg(wilc, WILC_COEXIST_CTL, val32);
-		if (!ret) {
-			pr_err( "[wilc start]: fail write reg %x ...\n", WILC_COEXIST_CTL);
-			goto _fail_1;
-		}
-	}
 
 	pr_info("Starting BT firmware\n");
 	/*
@@ -632,7 +583,6 @@ static void wilc_bt_start(struct wilc *wilc)
 
 	pr_info("BT Start Succeeded\n");
 
-_fail_1:
 	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 }
 

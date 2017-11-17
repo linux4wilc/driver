@@ -31,7 +31,7 @@
  ********************************************/
 #define	FIRMWARE_WILC1000_WIFi		"wilc1000_wifi_firmware.bin"
 #define	FIRMWARE_WILC3000_WIFI		"wilc3000_wifi_firmware.bin"
-#define	FIRMWARE_WILC3000_BT		"wilc3000_bt_firmware.bin"
+#define	FIRMWARE_WILC3000_BLE		"wilc3000_ble_firmware.bin"
 
 /********************************************
  *

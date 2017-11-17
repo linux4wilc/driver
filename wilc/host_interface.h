@@ -311,18 +311,6 @@ struct add_sta_param {
 
 struct wilc_vif;
 
-enum coex_mode {
-	COEX_OFF = 0,
-	COEX_ON, 		
-	COEX_FORCE_WIFI,
-	COEX_FORCE_BT,
-};
-
-enum coex_null_frames_mode {
-	COEX_NULL_FRAMES_OFF = 0,
-	COEX_NULL_FRAMES_ON, 		
-};
-
 signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 				  wilc_frmw_to_linux frmw_to_linux,
 				  free_eap_buf_param eap_buf_param,
@@ -392,8 +380,6 @@ int wilc_set_tx_power(struct wilc_vif *vif, u8 tx_power);
 int wilc_get_tx_power(struct wilc_vif *vif, u8 *tx_power);
 /*0 select antenna 1 , 2 select antenna mode , 2 allow the firmware to choose the best antenna*/
 int wilc_set_antenna(struct wilc_vif *vif, u8 mode);
-int wilc_change_bt_coex_mode(struct wilc_vif *vif,
-			     enum coex_mode bt_coex_mode);
 
 signed int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger);
 extern bool wilc_optaining_ip;
