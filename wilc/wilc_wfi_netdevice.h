@@ -211,6 +211,8 @@ struct wilc {
 	u32 cfg_frame_offset;
 	int cfg_seq_no;
 
+	u8 *rx_buffer;
+	u32 rx_buffer_offset;
 	u8 *tx_buffer;
 
 	unsigned long txq_spinlock_flags;
