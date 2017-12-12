@@ -97,12 +97,6 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		/* Stop the DuringIPTimer */
 		del_timer(&wilc_during_ip_timer);
 
-		/* Disable PS */
-		if(vif)
-		{
-			wilc_set_power_mgmt(vif, 0, 0);
-		}
-
 		break;
 	}
 }
