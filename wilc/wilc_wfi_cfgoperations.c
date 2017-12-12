@@ -617,7 +617,7 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 		else if ((!pstrWFIDrv->IFC_UP) && (dev == wl->vif[1]->ndev))
 			pstrDisconnectNotifInfo->reason = 1;
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,1,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
 		cfg80211_disconnected(dev, pstrDisconnectNotifInfo->reason, pstrDisconnectNotifInfo->ie,
 				      pstrDisconnectNotifInfo->ie_len,
 				      GFP_KERNEL);
