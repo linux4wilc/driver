@@ -756,7 +756,6 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 _fail_:
 	return;
 }
-EXPORT_SYMBOL_GPL(chip_allow_sleep);
 
 void chip_wakeup_wilc1000(struct wilc *wilc, int source)
 {
@@ -911,7 +910,6 @@ void chip_wakeup(struct wilc *wilc, int source)
 	else
 		chip_wakeup_wilc3000(wilc, source);
 }
-EXPORT_SYMBOL_GPL(chip_wakeup);
 
 void host_wakeup_notify(struct wilc *wilc, int source)
 {
@@ -922,7 +920,6 @@ void host_wakeup_notify(struct wilc *wilc, int source)
 		wilc->hif_func->hif_write_reg(wilc, 0x10c0, 1);
 	release_bus(wilc, RELEASE_ONLY, source);
 }
-EXPORT_SYMBOL_GPL(host_wakeup_notify);
 
 void host_sleep_notify(struct wilc *wilc, int source)
 {
@@ -933,7 +930,6 @@ void host_sleep_notify(struct wilc *wilc, int source)
 		wilc->hif_func->hif_write_reg(wilc, 0x10bc, 1);
 	release_bus(wilc, RELEASE_ONLY,source);
 }
-EXPORT_SYMBOL_GPL(host_sleep_notify);
 
 static u8 ac_fw_count[NQUEUES] = {0, 0, 0, 0};
 int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
@@ -1423,7 +1419,6 @@ void wilc_handle_isr(struct wilc *wilc)
 
 	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
 }
-EXPORT_SYMBOL_GPL(wilc_handle_isr);
 
 int wilc_wlan_firmware_download(struct wilc *wilc, const u8 *buffer,
 				u32 buffer_size)
@@ -1976,7 +1971,6 @@ u32 wilc_get_chipid(struct wilc *wilc, bool update)
 
 	return chipid;
 }
-EXPORT_SYMBOL_GPL(wilc_get_chipid);
 
 int wilc_wlan_init(struct net_device *dev)
 {

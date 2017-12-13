@@ -604,7 +604,6 @@ int wilc_wlan_get_num_conn_ifcs(struct wilc *wilc)
 
 	return ret_val;
 }
-EXPORT_SYMBOL_GPL(wilc_wlan_get_num_conn_ifcs);
 
 struct net_device* wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc)
 {
@@ -1727,9 +1726,9 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 
 	kfree(wilc);
 	wilc_sysfs_exit();
+	wilc_debugfs_remove();
 	pr_info("Module_exit Done.\n");
 }
-EXPORT_SYMBOL_GPL(wilc_netdev_cleanup);
 
 int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		     const struct wilc_hif_func *ops)
@@ -1740,6 +1739,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	struct wilc *wl;
 	struct wireless_dev *wdev;
 
+	wilc_debugfs_init();
 	wl = kzalloc(sizeof(*wl), GFP_KERNEL);
 	if (!wl)
 		return -ENOMEM;
@@ -1807,7 +1807,6 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 
 	return 0;
 }
-EXPORT_SYMBOL_GPL(wilc_netdev_init);
 
 static void wilc_wlan_power(struct wilc *wilc, int power)
 {
@@ -1836,12 +1835,10 @@ void wilc_wlan_power_on_sequence(struct wilc *wilc)
 	wilc_wlan_power(wilc, 0);
 	wilc_wlan_power(wilc, 1);
 }
-EXPORT_SYMBOL_GPL(wilc_wlan_power_on_sequence);
 
 void wilc_wlan_power_off_sequence(struct wilc *wilc)
 {
 	wilc_wlan_power(wilc, 0);
 }
-EXPORT_SYMBOL_GPL(wilc_wlan_power_off_sequence);
 
 MODULE_LICENSE("GPL");

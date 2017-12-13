@@ -94,7 +94,6 @@ void wilc_sysfs_init(struct wilc_vif *vi)
 	retval = sysfs_create_group(wilc_kobj, &attr_group);
 	device_created = 1;
 }
-EXPORT_SYMBOL_GPL(wilc_sysfs_init);
 
 void wilc_sysfs_exit(void)
 {

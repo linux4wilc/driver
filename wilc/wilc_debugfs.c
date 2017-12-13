@@ -23,7 +23,6 @@ static struct dentry *wilc_dir;
  * ----------------------------------------------------------------------------
  */
 atomic_t WILC_DEBUG_REGION = ATOMIC_INIT(INIT_DBG|GENERIC_DBG|CFG80211_DBG | HOSTAPD_DBG | PWRDEV_DBG);
-EXPORT_SYMBOL_GPL(WILC_DEBUG_REGION);
 
 /*
  * ----------------------------------------------------------------------------
@@ -116,14 +115,10 @@ int wilc_debugfs_init(void)
 	}
 	return 0;
 }
-module_init(wilc_debugfs_init);
-EXPORT_SYMBOL_GPL(wilc_debugfs_init);
 
 void wilc_debugfs_remove(void)
 {
 	debugfs_remove_recursive(wilc_dir);
 }
-module_exit(wilc_debugfs_remove);
-EXPORT_SYMBOL_GPL(wilc_debugfs_remove);
 
 #endif
