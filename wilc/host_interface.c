@@ -257,7 +257,7 @@ struct host_if_msg {
 };
 
 struct join_bss_param {
-	enum BSSTYPE bss_type;
+	enum bss_types bss_type;
 	u8 dtim_period;
 	u16 beacon_period;
 	u16 cap_info;

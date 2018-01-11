@@ -95,7 +95,7 @@ enum BEACON_IE {
 	P2P_IE			= 221,
 };
 
-enum BSSTYPE {
+enum bss_types {
 	INFRASTRUCTURE		= 0,
 	INDEPENDENT,
 	AP,
