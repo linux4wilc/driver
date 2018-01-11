@@ -338,7 +338,7 @@ void eap_buff_timeout(struct timer_list *t);
 #else
 void eap_buff_timeout(unsigned long user);
 #endif
-void acquire_bus(struct wilc *wilc, enum BUS_ACQUIRE acquire, int source);
+void acquire_bus(struct wilc *wilc, enum bus_acquire acquire, int source);
 void release_bus(struct wilc *wilc, enum BUS_RELEASE release, int source);
 int wilc_wlan_init(struct net_device *dev);
 u32 wilc_get_chipid(struct wilc *wilc, bool update);

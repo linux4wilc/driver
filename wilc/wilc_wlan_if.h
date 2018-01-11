@@ -151,7 +151,7 @@ enum USER_PS_MODE {
 	MAX_PSPOLL_PS		= 4
 };
 
-enum BUS_ACQUIRE {
+enum bus_acquire {
 	ACQUIRE_ONLY		= 0,
 	ACQUIRE_AND_WAKEUP	= 1,
 };
