@@ -17,7 +17,7 @@ void acquire_bus(struct wilc *wilc, enum bus_acquire acquire, int source)
 		chip_wakeup(wilc, source);
 }
 
-void release_bus(struct wilc *wilc, enum BUS_RELEASE release, int source)
+void release_bus(struct wilc *wilc, enum bus_release release, int source)
 {
 	if (release == RELEASE_ALLOW_SLEEP)
 		chip_allow_sleep(wilc, source);

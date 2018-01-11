@@ -156,7 +156,7 @@ enum bus_acquire {
 	ACQUIRE_AND_WAKEUP	= 1,
 };
 
-enum BUS_RELEASE {
+enum bus_release {
 	RELEASE_ONLY		= 0,
 	RELEASE_ALLOW_SLEEP	= 1,
 };
