@@ -85,7 +85,7 @@ typedef void (*wilc_tx_complete_func_t)(void *, int);
 #define MAX_SSID_LEN            33
 #define MAX_RATES_SUPPORTED     12
 
-enum BEACON_IE {
+enum  {
 	SUPP_RATES_IE		= 1,
 	EXT_SUPP_RATES_IE	= 50,
 	HT_CAPABILITY_IE	= 45,
@@ -101,7 +101,7 @@ enum bss_types {
 	AP,
 };
 
-enum TX_RATE {
+enum  {
 	RATE_AUTO		= 0,
 	RATE_1MB		= 1,
 	RATE_2MB		= 2,
