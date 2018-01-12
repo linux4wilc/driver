@@ -275,6 +275,8 @@ static int debug_thread(void *arg)
 					recovery_on = 0;
 				}
 			}
+		} else if (kthread_should_stop()) {
+			break;
 		} else {
 			msleep(1000);
 		}
