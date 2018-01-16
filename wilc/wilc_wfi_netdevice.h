@@ -107,13 +107,13 @@ struct wilc_buffered_eap {
 
 struct wilc_priv {
 	struct wireless_dev *wdev;
-	struct cfg80211_scan_request *pstrScanReq;
-	struct wilc_wfi_p2pListenParams strRemainOnChanParams;
-	u64 u64tx_cookie;
-	bool bCfgScanning;
-	u32 u32RcvdChCount;
+	struct cfg80211_scan_request *scan_req;
+	struct wilc_wfi_p2pListenParams remain_on_ch_params;
+	u64 tx_cookie;
+	bool cfg_scanning;
+	u32 rcvd_ch_cnt;
 
-	u8 au8AssociatedBss[ETH_ALEN];
+	u8 associated_bss[ETH_ALEN];
 	struct sta_info assoc_stainfo;
 	struct net_device_stats stats;
 	u8 monitor_flag;
@@ -140,9 +140,9 @@ struct wilc_priv {
 
 	struct mutex scan_req_lock;
 	/*  */
-	bool gbAutoRateAdjusted;
+	bool auto_rate_adjusted;
 
-	bool bInP2PlistenState;
+	bool p2p_listen_state;
 	struct wilc_buffered_eap *buffered_eap;
 
 	struct timer_list aging_timer;

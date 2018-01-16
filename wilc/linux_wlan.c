@@ -555,7 +555,7 @@ void eap_buff_timeout(unsigned long user)
 #endif
     struct wilc_vif *vif = netdev_priv(priv->dev);
 
-    if (!(memcmp(priv->au8AssociatedBss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
+    if (!(memcmp(priv->associated_bss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
             mod_timer(&priv->eap_buff_timer,(jiffies + msecs_to_jiffies(10)));
             return;
     }
@@ -1663,7 +1663,7 @@ void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset, u8
 		if((status == PKT_STATUS_NEW)
 			&&((buff_to_send[12] == 0x88 && buff_to_send[13] == 0x8e))
 			&&(vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE)
-			&&(!(memcmp(priv->au8AssociatedBss, null_bssid, ETH_ALEN)))) {
+			&&(!(memcmp(priv->associated_bss, null_bssid, ETH_ALEN)))) {
 
 			if(!priv->buffered_eap) {
 				priv->buffered_eap = kmalloc(sizeof(struct

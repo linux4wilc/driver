@@ -448,7 +448,7 @@ static void CfgScanResult(enum scan_event scan_event,
 	struct cfg80211_bss *bss = NULL;
 
 	priv = (struct wilc_priv *)user_void;
-	if (priv->bCfgScanning) {
+	if (priv->cfg_scanning) {
 		if (scan_event == SCAN_EVENT_NETWORK_FOUND) {
 			wiphy = priv->dev->ieee80211_ptr->wiphy;
 
@@ -471,9 +471,9 @@ static void CfgScanResult(enum scan_event scan_event,
 						network_info->cap_info, network_info->beacon_period);
 
 				if (network_info->new_network) {
-					if (priv->u32RcvdChCount < MAX_NUM_SCANNED_NETWORKS) {
+					if (priv->rcvd_ch_cnt < MAX_NUM_SCANNED_NETWORKS) {
 						PRINT_INFO(priv->dev, CFG80211_DBG, "Network %s found\n", network_info->ssid);
-						priv->u32RcvdChCount++;
+						priv->rcvd_ch_cnt++;
 
 						add_network_to_shadow(network_info, priv, join_params);
 
@@ -499,7 +499,7 @@ static void CfgScanResult(enum scan_event scan_event,
 				} else {
 					u32 i;
 
-					for (i = 0; i < priv->u32RcvdChCount; i++) {
+					for (i = 0; i < priv->rcvd_ch_cnt; i++) {
 						if (memcmp(last_scanned_shadow[i].bssid, network_info->bssid, 6) == 0) {
 							PRINT_INFO(priv->dev, CFG80211_DBG, "Update RSSI of %s\n", last_scanned_shadow[i].ssid);
 							last_scanned_shadow[i].rssi = network_info->rssi;
@@ -514,45 +514,45 @@ static void CfgScanResult(enum scan_event scan_event,
 			PRINT_INFO(priv->dev, CFG80211_DBG, "Refreshing Scan ...\n");
 			refresh_scan(priv, false);
 
-			if (priv->u32RcvdChCount > 0)
-				PRINT_INFO(priv->dev, CFG80211_DBG, "%d Network(s) found\n", priv->u32RcvdChCount);
+			if (priv->rcvd_ch_cnt > 0)
+				PRINT_INFO(priv->dev, CFG80211_DBG, "%d Network(s) found\n", priv->rcvd_ch_cnt);
 			else
 				PRINT_INFO(priv->dev, CFG80211_DBG, "No networks found\n");
 			mutex_lock(&priv->scan_req_lock);
 
-			if (priv->pstrScanReq) {
+			if (priv->scan_req) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 				struct cfg80211_scan_info info = {
 					.aborted = false,
 				};
-				cfg80211_scan_done(priv->pstrScanReq, &info);
+				cfg80211_scan_done(priv->scan_req, &info);
 #else
-				cfg80211_scan_done(priv->pstrScanReq, false);
+				cfg80211_scan_done(priv->scan_req, false);
 #endif
 
-				priv->u32RcvdChCount = 0;
-				priv->bCfgScanning = false;
-				priv->pstrScanReq = NULL;
+				priv->rcvd_ch_cnt = 0;
+				priv->cfg_scanning = false;
+				priv->scan_req = NULL;
 			}
 			mutex_unlock(&priv->scan_req_lock);
 		} else if (scan_event == SCAN_EVENT_ABORTED) {
 			mutex_lock(&priv->scan_req_lock);
 
 			PRINT_INFO(priv->dev, CFG80211_DBG, "Scan Aborted \n");
-			if (priv->pstrScanReq) {
+			if (priv->scan_req) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 				struct cfg80211_scan_info info = {
 					.aborted = false,
 				};
-				cfg80211_scan_done(priv->pstrScanReq, &info);
+				cfg80211_scan_done(priv->scan_req, &info);
 #else
-				cfg80211_scan_done(priv->pstrScanReq, false);
+				cfg80211_scan_done(priv->scan_req, false);
 #endif
 
 				update_scan_time();
 				refresh_scan(priv, false);
-				priv->bCfgScanning = false;
-				priv->pstrScanReq = NULL;
+				priv->cfg_scanning = false;
+				priv->scan_req = NULL;
 			}
 			mutex_unlock(&priv->scan_req_lock);
 		}
@@ -607,7 +607,7 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 
 			PRINT_D(vif->ndev, CFG80211_DBG, "Connection Successful:: BSSID: %x%x%x%x%x%x\n", pstrConnectInfo->bssid[0],
 				   pstrConnectInfo->bssid[1], pstrConnectInfo->bssid[2], pstrConnectInfo->bssid[3], pstrConnectInfo->bssid[4], pstrConnectInfo->bssid[5]);
-			memcpy(priv->au8AssociatedBss, pstrConnectInfo->bssid, ETH_ALEN);
+			memcpy(priv->associated_bss, pstrConnectInfo->bssid, ETH_ALEN);
 
 			for (i = 0; i < last_scanned_cnt; i++) {
 				if (memcmp(last_scanned_shadow[i].bssid,
@@ -643,7 +643,7 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 		p2p_local_random = 0x01;
 		p2p_recv_random = 0x00;
 		wilc_ie = false;
-		eth_zero_addr(priv->au8AssociatedBss);
+		eth_zero_addr(priv->associated_bss);
 		wilc_wlan_set_bssid(priv->dev, NullBssid, STATION_MODE);
 		eth_zero_addr(wilc_connected_ssid);
 
@@ -701,13 +701,13 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(priv->dev);
 
-	priv->pstrScanReq = request;
+	priv->scan_req = request;
 
-	priv->u32RcvdChCount = 0;
+	priv->rcvd_ch_cnt = 0;
 
 	reset_shadow_found();
 
-	priv->bCfgScanning = true;
+	priv->cfg_scanning = true;
 	if (request->n_channels <= MAX_NUM_SCANNED_NETWORKS) {
 		for (i = 0; i < request->n_channels; i++) {
 			au8ScanChanList[i] = (u8)ieee80211_frequency_to_channel(request->channels[i]->center_freq);
@@ -1661,17 +1661,17 @@ void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 	if (pkt_offset & IS_MANAGMEMENT_CALLBACK) {
 		if (buff[FRAME_TYPE_ID] == IEEE80211_STYPE_PROBE_RESP) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG, "Probe response ACK\n");
-			cfg80211_mgmt_tx_status(priv->wdev, priv->u64tx_cookie, buff, size, true, GFP_KERNEL);
+			cfg80211_mgmt_tx_status(priv->wdev, priv->tx_cookie, buff, size, true, GFP_KERNEL);
 			return;
 		} else {
 			if (pkt_offset & IS_MGMT_STATUS_SUCCES) {
 				PRINT_INFO(vif->ndev, GENERIC_DBG, "Success Ack - Action frame category: %x Action Subtype: %d Dialog T: %x OR %x\n", buff[ACTION_CAT_ID], buff[ACTION_SUBTYPE_ID],
 					buff[ACTION_SUBTYPE_ID + 1], buff[P2P_PUB_ACTION_SUBTYPE + 1]);
-				cfg80211_mgmt_tx_status(priv->wdev, priv->u64tx_cookie, buff, size, true, GFP_KERNEL);
+				cfg80211_mgmt_tx_status(priv->wdev, priv->tx_cookie, buff, size, true, GFP_KERNEL);
 			} else {
 				PRINT_INFO(vif->ndev, GENERIC_DBG, "Fail Ack - Action frame category: %x Action Subtype: %d Dialog T: %x OR %x\n", buff[ACTION_CAT_ID], buff[ACTION_SUBTYPE_ID],
 					buff[ACTION_SUBTYPE_ID + 1], buff[P2P_PUB_ACTION_SUBTYPE + 1]);
-				cfg80211_mgmt_tx_status(priv->wdev, priv->u64tx_cookie, buff, size, false, GFP_KERNEL);
+				cfg80211_mgmt_tx_status(priv->wdev, priv->tx_cookie, buff, size, false, GFP_KERNEL);
 			}
 			return;
 		}
@@ -1685,7 +1685,7 @@ void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 	 #endif
 		if (ieee80211_is_action(buff[FRAME_TYPE_ID])) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG, "Rx Action Frame Type: %x %x\n", buff[ACTION_SUBTYPE_ID], buff[P2P_PUB_ACTION_SUBTYPE]);
-			if (priv->bCfgScanning && time_after_eq(jiffies, (unsigned long)pstrWFIDrv->p2p_timeout)) {
+			if (priv->cfg_scanning && time_after_eq(jiffies, (unsigned long)pstrWFIDrv->p2p_timeout)) {
 				PRINT_D(dev, GENERIC_DBG, "Receiving action wrong ch\n");
 				return;
 			}
@@ -1761,12 +1761,12 @@ static void WILC_WFI_RemainOnChannelReady(void *pUserVoid)
 	priv = pUserVoid;
 
 	PRINT_INFO(priv->dev, HOSTINF_DBG, "Remain on channel ready\n");
-	priv->bInP2PlistenState = true;
+	priv->p2p_listen_state = true;
 
 	cfg80211_ready_on_channel(priv->wdev,
-				  priv->strRemainOnChanParams.u64ListenCookie,
-				  priv->strRemainOnChanParams.pstrListenChan,
-				  priv->strRemainOnChanParams.u32ListenDuration,
+				  priv->remain_on_ch_params.u64ListenCookie,
+				  priv->remain_on_ch_params.pstrListenChan,
+				  priv->remain_on_ch_params.u32ListenDuration,
 				  GFP_KERNEL);
 }
 
@@ -1776,17 +1776,17 @@ static void WILC_WFI_RemainOnChannelExpired(void *pUserVoid, u32 u32SessionID)
 
 	priv = pUserVoid;
 
-	if (u32SessionID == priv->strRemainOnChanParams.u32ListenSessionID) {
+	if (u32SessionID == priv->remain_on_ch_params.u32ListenSessionID) {
 		PRINT_INFO(priv->dev, GENERIC_DBG, "Remain on channel expired\n");
-		priv->bInP2PlistenState = false;
+		priv->p2p_listen_state = false;
 
 		cfg80211_remain_on_channel_expired(priv->wdev,
-						   priv->strRemainOnChanParams.u64ListenCookie,
-						   priv->strRemainOnChanParams.pstrListenChan,
+						   priv->remain_on_ch_params.u64ListenCookie,
+						   priv->remain_on_ch_params.pstrListenChan,
 						   GFP_KERNEL);
 	} else {
 		PRINT_INFO(priv->dev, GENERIC_DBG, "Received ID 0x%x Expected ID 0x%x (No match)\n", u32SessionID
-			, priv->strRemainOnChanParams.u32ListenSessionID);
+			, priv->remain_on_ch_params.u32ListenSessionID);
 	}
 }
 
@@ -1810,13 +1810,13 @@ static int remain_on_channel(struct wiphy *wiphy,
 
 	curr_channel = chan->hw_value;
 
-	priv->strRemainOnChanParams.pstrListenChan = chan;
-	priv->strRemainOnChanParams.u64ListenCookie = *cookie;
-	priv->strRemainOnChanParams.u32ListenDuration = duration;
-	priv->strRemainOnChanParams.u32ListenSessionID++;
+	priv->remain_on_ch_params.pstrListenChan = chan;
+	priv->remain_on_ch_params.u64ListenCookie = *cookie;
+	priv->remain_on_ch_params.u32ListenDuration = duration;
+	priv->remain_on_ch_params.u32ListenSessionID++;
 
 	s32Error = wilc_remain_on_channel(vif,
-				priv->strRemainOnChanParams.u32ListenSessionID,
+				priv->remain_on_ch_params.u32ListenSessionID,
 				duration, chan->hw_value,
 				WILC_WFI_RemainOnChannelExpired,
 				WILC_WFI_RemainOnChannelReady, (void *)priv);
@@ -1836,7 +1836,7 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 	vif = netdev_priv(priv->dev);
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Cancel remain on channel\n");
 
-	s32Error = wilc_listen_state_expired(vif, priv->strRemainOnChanParams.u32ListenSessionID);
+	s32Error = wilc_listen_state_expired(vif, priv->remain_on_ch_params.u32ListenSessionID);
 	return s32Error;
 }
 
@@ -1870,7 +1870,7 @@ static int mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 	pstrWFIDrv = (struct host_if_drv *)priv->hif_drv;
 
 	*cookie = (unsigned long)buf;
-	priv->u64tx_cookie = *cookie;
+	priv->tx_cookie = *cookie;
 	mgmt = (const struct ieee80211_mgmt *)buf;
 
 	if (ieee80211_is_mgmt(mgmt->frame_control)) {
@@ -1983,10 +1983,10 @@ static int mgmt_tx_cancel_wait(struct wiphy *wiphy,
 	PRINT_INFO(priv->dev, CFG80211_DBG, "Tx Cancel wait :%lu\n", jiffies);
 	pstrWFIDrv->p2p_timeout = jiffies;
 
-	if (!priv->bInP2PlistenState) {
+	if (!priv->p2p_listen_state) {
 		cfg80211_remain_on_channel_expired(priv->wdev,
-						   priv->strRemainOnChanParams.u64ListenCookie,
-						   priv->strRemainOnChanParams.pstrListenChan,
+						   priv->remain_on_ch_params.u64ListenCookie,
+						   priv->remain_on_ch_params.pstrListenChan,
 						   GFP_KERNEL);
 	}
 
@@ -2757,9 +2757,9 @@ int wilc_init_host_int(struct net_device *net)
 	}
 	op_ifcs++;
 
-	priv->gbAutoRateAdjusted = false;
+	priv->auto_rate_adjusted = false;
 
-	priv->bInP2PlistenState = false;
+	priv->p2p_listen_state = false;
 
 	mutex_init(&priv->scan_req_lock);
 	s32Error = wilc_init(net, &priv->hif_drv);
@@ -2778,9 +2778,9 @@ int wilc_deinit_host_int(struct net_device *net)
 	priv = wdev_priv(net->ieee80211_ptr);
 	vif = netdev_priv(priv->dev);
 
-	priv->gbAutoRateAdjusted = false;
+	priv->auto_rate_adjusted = false;
 
-	priv->bInP2PlistenState = false;
+	priv->p2p_listen_state = false;
 
 	op_ifcs--;
 
