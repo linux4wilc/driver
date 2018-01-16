@@ -2302,7 +2302,7 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 {
 	s32 ret = 0;
 	struct wilc_priv *priv;
-	struct add_sta_param strStaParams = { {0} };
+	struct add_sta_param sta_params = { {0} };
 	struct wilc_vif *vif;
 
 	if (!wiphy)
@@ -2312,36 +2312,36 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 	vif = netdev_priv(dev);
 
 	if (vif->iftype == AP_MODE || vif->iftype == GO_MODE) {
-		memcpy(strStaParams.bssid, mac, ETH_ALEN);
+		memcpy(sta_params.bssid, mac, ETH_ALEN);
 		memcpy(priv->assoc_stainfo.sta_associated_bss[params->aid], mac, ETH_ALEN);
-		strStaParams.aid = params->aid;
-		strStaParams.rates_len = params->supported_rates_len;
-		strStaParams.rates = params->supported_rates;
+		sta_params.aid = params->aid;
+		sta_params.rates_len = params->supported_rates_len;
+		sta_params.rates = params->supported_rates;
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Adding station parameters %d\n", params->aid);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "BSSID = %x%x%x%x%x%x\n", priv->assoc_stainfo.sta_associated_bss[params->aid][0], priv->assoc_stainfo.sta_associated_bss[params->aid][1], priv->assoc_stainfo.sta_associated_bss[params->aid][2], priv->assoc_stainfo.sta_associated_bss[params->aid][3], priv->assoc_stainfo.sta_associated_bss[params->aid][4],
 			priv->assoc_stainfo.sta_associated_bss[params->aid][5]);
-		PRINT_INFO(vif->ndev, HOSTAPD_DBG, "ASSOC ID = %d\n", strStaParams.aid);
-		PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Number of supported rates = %d\n", strStaParams.rates_len);
+		PRINT_INFO(vif->ndev, HOSTAPD_DBG, "ASSOC ID = %d\n", sta_params.aid);
+		PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Number of supported rates = %d\n", sta_params.rates_len);
 		if (!params->ht_capa) {
-			strStaParams.ht_supported = false;
+			sta_params.ht_supported = false;
 		} else {
-			strStaParams.ht_supported = true;
-			strStaParams.ht_capa = *params->ht_capa;
+			sta_params.ht_supported = true;
+			sta_params.ht_capa = *params->ht_capa;
 		}
 
-		strStaParams.flags_mask = params->sta_flags_mask;
-		strStaParams.flags_set = params->sta_flags_set;
+		sta_params.flags_mask = params->sta_flags_mask;
+		sta_params.flags_set = params->sta_flags_set;
 
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "IS HT supported = %d\n", strStaParams.ht_supported);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n", strStaParams.ht_capa.cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n", strStaParams.ht_capa.ampdu_params_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params = %d\n", strStaParams.ht_capa.extended_ht_cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap = %d\n", strStaParams.ht_capa.tx_BF_cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", strStaParams.ht_capa.antenna_selection_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n", strStaParams.flags_mask);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n", strStaParams.flags_set);
-		ret = wilc_add_station(vif, &strStaParams);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "IS HT supported = %d\n", sta_params.ht_supported);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n", sta_params.ht_capa.cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n", sta_params.ht_capa.ampdu_params_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params = %d\n", sta_params.ht_capa.extended_ht_cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap = %d\n", sta_params.ht_capa.tx_BF_cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", sta_params.ht_capa.antenna_selection_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n", sta_params.flags_mask);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n", sta_params.flags_set);
+		ret = wilc_add_station(vif, &sta_params);
 		if (ret)
 			PRINT_ER(dev, "Host add station fail\n");
 	}
@@ -2401,7 +2401,7 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 {
 	s32 ret = 0;
 	struct wilc_priv *priv;
-	struct add_sta_param strStaParams = { {0} };
+	struct add_sta_param sta_params = { {0} };
 	struct wilc_vif *vif;
 
 	PRINT_D(vif->ndev, CFG80211_DBG, "Change station paramters\n");
@@ -2413,34 +2413,34 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 	vif = netdev_priv(dev);
 
 	if (vif->iftype == AP_MODE || vif->iftype == GO_MODE) {
-		memcpy(strStaParams.bssid, mac, ETH_ALEN);
-		strStaParams.aid = params->aid;
-		strStaParams.rates_len = params->supported_rates_len;
-		strStaParams.rates = params->supported_rates;
+		memcpy(sta_params.bssid, mac, ETH_ALEN);
+		sta_params.aid = params->aid;
+		sta_params.rates_len = params->supported_rates_len;
+		sta_params.rates = params->supported_rates;
 
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "BSSID = %x%x%x%x%x%x\n", strStaParams.bssid[0], strStaParams.bssid[1], strStaParams.bssid[2], strStaParams.bssid[3], strStaParams.bssid[4],
-			strStaParams.bssid[5]);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "ASSOC ID = %d\n", strStaParams.aid);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Number of supported rates = %d\n", strStaParams.rates_len);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "BSSID = %x%x%x%x%x%x\n", sta_params.bssid[0], sta_params.bssid[1], sta_params.bssid[2], sta_params.bssid[3], sta_params.bssid[4],
+			sta_params.bssid[5]);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "ASSOC ID = %d\n", sta_params.aid);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Number of supported rates = %d\n", sta_params.rates_len);
 		if (!params->ht_capa) {
-			strStaParams.ht_supported = false;
+			sta_params.ht_supported = false;
 		} else {
-			strStaParams.ht_supported = true;
-			strStaParams.ht_capa = *params->ht_capa;
+			sta_params.ht_supported = true;
+			sta_params.ht_capa = *params->ht_capa;
 		}
 
-		strStaParams.flags_mask = params->sta_flags_mask;
-		strStaParams.flags_set = params->sta_flags_set;
+		sta_params.flags_mask = params->sta_flags_mask;
+		sta_params.flags_set = params->sta_flags_set;
 
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "IS HT supported = %d\n", strStaParams.ht_supported);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n", strStaParams.ht_capa.cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n", strStaParams.ht_capa.ampdu_params_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params = %d\n", strStaParams.ht_capa.extended_ht_cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap = %d\n", strStaParams.ht_capa.tx_BF_cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", strStaParams.ht_capa.antenna_selection_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n", strStaParams.flags_mask);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n", strStaParams.flags_set);
-		ret = wilc_edit_station(vif, &strStaParams);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "IS HT supported = %d\n", sta_params.ht_supported);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n", sta_params.ht_capa.cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n", sta_params.ht_capa.ampdu_params_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params = %d\n", sta_params.ht_capa.extended_ht_cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap = %d\n", sta_params.ht_capa.tx_BF_cap_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", sta_params.ht_capa.antenna_selection_info);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n", sta_params.flags_mask);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n", sta_params.flags_set);
+		ret = wilc_edit_station(vif, &sta_params);
 		if (ret)
 			PRINT_ER(dev, "Host edit station fail\n");
 	}
