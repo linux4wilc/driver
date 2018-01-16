@@ -693,7 +693,7 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 {
 	struct wilc_priv *priv;
 	u32 i;
-	s32 s32Error = 0;
+	s32 ret = 0;
 	u8 au8ScanChanList[MAX_NUM_SCANNED_NETWORKS];
 	struct hidden_network strHiddenNetwork;
 	struct wilc_vif *vif;
@@ -737,7 +737,7 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 				}
 			}
 			PRINT_INFO(vif->ndev, CFG80211_DBG, "Trigger Scan Request\n");
-			s32Error = wilc_scan(vif, USER_SCAN, ACTIVE_SCAN,
+			ret = wilc_scan(vif, USER_SCAN, ACTIVE_SCAN,
 					     au8ScanChanList,
 					     request->n_channels,
 					     (const u8 *)request->ie,
@@ -745,7 +745,7 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 					     (void *)priv, &strHiddenNetwork);
 		} else {
 			PRINT_INFO(vif->ndev, CFG80211_DBG, "Trigger Scan Request\n");
-			s32Error = wilc_scan(vif, USER_SCAN, ACTIVE_SCAN,
+			ret = wilc_scan(vif, USER_SCAN, ACTIVE_SCAN,
 					     au8ScanChanList,
 					     request->n_channels,
 					     (const u8 *)request->ie,
@@ -756,18 +756,18 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 		PRINT_ER(priv->dev, "Requested scanned channels over\n");
 	}
 
-	if (s32Error != 0) {
-		s32Error = -EBUSY;
-		PRINT_WRN(vif->ndev, CFG80211_DBG,"Device is busy: Error(%d)\n", s32Error);
+	if (ret != 0) {
+		ret = -EBUSY;
+		PRINT_WRN(vif->ndev, CFG80211_DBG,"Device is busy: Error(%d)\n", ret);
 	}
 
-	return s32Error;
+	return ret;
 }
 
 static int connect(struct wiphy *wiphy, struct net_device *dev,
 		   struct cfg80211_connect_params *sme)
 {
-	s32 s32Error = 0;
+	s32 ret = 0;
 	u32 i;
 	u32 sel_bssi_idx = UINT_MAX;
 	u8 u8security = NO_ENCRYPT;
@@ -824,13 +824,13 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 			   pstrNetworkInfo->bssid[2], pstrNetworkInfo->bssid[3],
 			   pstrNetworkInfo->bssid[4], pstrNetworkInfo->bssid[5]);
 	} else {
-		s32Error = -ENOENT;
+		ret = -ENOENT;
 		wilc_connecting = 0;
 		if (last_scanned_cnt == 0)
 			PRINT_INFO(vif->ndev, CFG80211_DBG, "No Scan results yet\n");
 		else
-			PRINT_INFO(vif->ndev, CFG80211_DBG, "Required bss not in scan results: Error(%d)\n", s32Error);
-		return s32Error;
+			PRINT_INFO(vif->ndev, CFG80211_DBG, "Required bss not in scan results: Error(%d)\n", ret);
+		return ret;
 	}
 
 	memset(priv->WILC_WFI_wep_key, 0, sizeof(priv->WILC_WFI_wep_key));
@@ -890,10 +890,10 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 			else
 				u8security = ENCRYPT_ENABLED | WPA | AES;
 		} else {
-			s32Error = -ENOTSUPP;
+			ret = -ENOTSUPP;
 			PRINT_ER(dev, "Not supported cipher\n");
 			wilc_connecting = 0;
-			return s32Error;
+			return ret;
 		}
 	}
 
@@ -945,25 +945,25 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 
 	wilc_wlan_set_bssid(dev, pstrNetworkInfo->bssid, STATION_MODE);
 
-	s32Error = wilc_set_join_req(vif, pstrNetworkInfo->bssid, sme->ssid,
+	ret = wilc_set_join_req(vif, pstrNetworkInfo->bssid, sme->ssid,
 				     sme->ssid_len, sme->ie, sme->ie_len,
 				     CfgConnectResult, (void *)priv,
 				     u8security, tenuAuth_type,
 				     pstrNetworkInfo->ch,
 				     pstrNetworkInfo->join_params);
-	if (s32Error != 0) {
-		PRINT_ER(dev, "wilc_set_join_req(): Error(%d)\n", s32Error);
-		s32Error = -ENOENT;
+	if (ret != 0) {
+		PRINT_ER(dev, "wilc_set_join_req(): Error(%d)\n", ret);
+		ret = -ENOENT;
 		wilc_connecting = 0;
-		return s32Error;
+		return ret;
 	}
 
-	return s32Error;
+	return ret;
 }
 
 static int disconnect(struct wiphy *wiphy, struct net_device *dev, u16 reason_code)
 {
-	s32 s32Error = 0;
+	s32 ret = 0;
 	struct wilc_priv *priv;
 	struct host_if_drv *pstrWFIDrv;
 	struct wilc_vif *vif;
@@ -988,13 +988,13 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev, u16 reason_co
 	wilc_ie = false;
 	pstrWFIDrv->p2p_timeout = 0;
 
-	s32Error = wilc_disconnect(vif, reason_code);
-	if (s32Error != 0) {
-		PRINT_ER(priv->dev, "Error in disconnecting: Error(%d)\n", s32Error);
-		s32Error = -EINVAL;
+	ret = wilc_disconnect(vif, reason_code);
+	if (ret != 0) {
+		PRINT_ER(priv->dev, "Error in disconnecting: Error(%d)\n", ret);
+		ret = -EINVAL;
 	}
 
-	return s32Error;
+	return ret;
 }
 
 static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
@@ -1002,7 +1002,7 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 		   const u8 *mac_addr, struct key_params *params)
 
 {
-	s32 s32Error = 0, KeyLen = params->key_len;
+	s32 ret = 0, KeyLen = params->key_len;
 	struct wilc_priv *priv;
 	const u8 *pu8RxMic = NULL;
 	const u8 *pu8TxMic = NULL;
@@ -1221,11 +1221,11 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 		break;
 
 	default:
-		PRINT_ER(netdev, "Not supported cipher: Error(%d)\n", s32Error);
-		s32Error = -ENOTSUPP;
+		PRINT_ER(netdev, "Not supported cipher: Error(%d)\n", ret);
+		ret = -ENOTSUPP;
 	}
 
-	return s32Error;
+	return ret;
 }
 
 static int del_key(struct wiphy *wiphy, struct net_device *netdev,
@@ -1431,7 +1431,7 @@ static int change_bss(struct wiphy *wiphy, struct net_device *dev,
 
 static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 {
-	s32 s32Error = 0;
+	s32 ret = 0;
 	struct cfg_param_attr pstrCfgParamVal;
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
@@ -1466,18 +1466,18 @@ static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 	}
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting CFG params in the host interface\n");
-	s32Error = wilc_hif_set_cfg(vif, &pstrCfgParamVal);
-	if (s32Error)
+	ret = wilc_hif_set_cfg(vif, &pstrCfgParamVal);
+	if (ret)
 		PRINT_ER(priv->dev, "Error in setting WIPHY PARAMS\n");
 
-	return s32Error;
+	return ret;
 }
 
 static int set_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 		     struct cfg80211_pmksa *pmksa)
 {
 	u32 i;
-	s32 s32Error = 0;
+	s32 ret = 0;
 	u8 flag = 0;
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);;
@@ -1502,21 +1502,21 @@ static int set_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 			priv->pmkid_list.numpmkid++;
 	} else {
 		PRINT_ER(netdev, "Invalid PMKID index\n");
-		s32Error = -EINVAL;
+		ret = -EINVAL;
 	}
 
-	if (!s32Error) {
+	if (!ret) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting pmkid in the host interface\n");
-		s32Error = wilc_set_pmkid_info(vif, &priv->pmkid_list);
+		ret = wilc_set_pmkid_info(vif, &priv->pmkid_list);
 	}
-	return s32Error;
+	return ret;
 }
 
 static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 		     struct cfg80211_pmksa *pmksa)
 {
 	u32 i;
-	s32 s32Error = 0;
+	s32 ret = 0;
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 
 	PRINT_INFO(netdev, CFG80211_DBG, "Deleting PMKSA keys\n");
@@ -1541,10 +1541,10 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 		}
 		priv->pmkid_list.numpmkid--;
 	} else {
-		s32Error = -EINVAL;
+		ret = -EINVAL;
 	}
 
-	return s32Error;
+	return ret;
 }
 
 static int flush_pmksa(struct wiphy *wiphy, struct net_device *netdev)
@@ -1795,7 +1795,7 @@ static int remain_on_channel(struct wiphy *wiphy,
 			     struct ieee80211_channel *chan,
 			     unsigned int duration, u64 *cookie)
 {
-	s32 s32Error = 0;
+	s32 ret = 0;
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
 
@@ -1805,7 +1805,7 @@ static int remain_on_channel(struct wiphy *wiphy,
 
 	if (wdev->iftype == NL80211_IFTYPE_AP) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "Required while in AP mode\n");
-		return s32Error;
+		return ret;
 	}
 
 	curr_channel = chan->hw_value;
@@ -1815,20 +1815,20 @@ static int remain_on_channel(struct wiphy *wiphy,
 	priv->remain_on_ch_params.listen_duration = duration;
 	priv->remain_on_ch_params.listen_session_id++;
 
-	s32Error = wilc_remain_on_channel(vif,
+	ret = wilc_remain_on_channel(vif,
 				priv->remain_on_ch_params.listen_session_id,
 				duration, chan->hw_value,
 				WILC_WFI_RemainOnChannelExpired,
 				WILC_WFI_RemainOnChannelReady, (void *)priv);
 
-	return s32Error;
+	return ret;
 }
 
 static int cancel_remain_on_channel(struct wiphy *wiphy,
 				    struct wireless_dev *wdev,
 				    u64 cookie)
 {
-	s32 s32Error = 0;
+	s32 ret = 0;
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
 
@@ -1836,8 +1836,8 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 	vif = netdev_priv(priv->dev);
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Cancel remain on channel\n");
 
-	s32Error = wilc_listen_state_expired(vif, priv->remain_on_ch_params.listen_session_id);
-	return s32Error;
+	ret = wilc_listen_state_expired(vif, priv->remain_on_ch_params.listen_session_id);
+	return ret;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
@@ -2225,7 +2225,7 @@ static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 	struct cfg80211_beacon_data *beacon = &settings->beacon;
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
-	s32 s32Error = 0;
+	s32 ret = 0;
 
 	vif = netdev_priv(dev);
 	priv = wiphy_priv(wiphy);
@@ -2234,21 +2234,21 @@ static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Interval = %d\n DTIM period = %d\n Head length = %d Tail length = %d\n",
 		settings->beacon_interval, settings->dtim_period, beacon->head_len, beacon->tail_len);
-	s32Error = set_channel(wiphy, &settings->chandef);
+	ret = set_channel(wiphy, &settings->chandef);
 
-	if (s32Error != 0)
+	if (ret != 0)
 		PRINT_ER(dev, "Error in setting channel\n");
 
 	wilc_wlan_set_bssid(dev,vif->src_addr,AP_MODE);
 
 	wilc_set_power_mgmt(vif, 0, 0);
 
-	s32Error = wilc_add_beacon(vif, settings->beacon_interval,
+	ret = wilc_add_beacon(vif, settings->beacon_interval,
 				   settings->dtim_period, beacon->head_len,
 				   (u8 *)beacon->head, beacon->tail_len,
 				   (u8 *)beacon->tail);
 
-	return s32Error;
+	return ret;
 }
 
 static int change_beacon(struct wiphy *wiphy, struct net_device *dev,
@@ -2256,22 +2256,22 @@ static int change_beacon(struct wiphy *wiphy, struct net_device *dev,
 {
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
-	s32 s32Error = 0;
+	s32 ret = 0;
 
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(priv->dev);
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Setting beacon\n");
 
-	s32Error = wilc_add_beacon(vif, 0, 0, beacon->head_len,
+	ret = wilc_add_beacon(vif, 0, 0, beacon->head_len,
 				   (u8 *)beacon->head, beacon->tail_len,
 				   (u8 *)beacon->tail);
 
-	return s32Error;
+	return ret;
 }
 
 static int stop_ap(struct wiphy *wiphy, struct net_device *dev)
 {
-	s32 s32Error = 0;
+	s32 ret = 0;
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
 	u8 NullBssid[ETH_ALEN] = {0};
@@ -2285,12 +2285,12 @@ static int stop_ap(struct wiphy *wiphy, struct net_device *dev)
 
 	wilc_wlan_set_bssid(dev, NullBssid, AP_MODE);
 
-	s32Error = wilc_del_beacon(vif);
+	ret = wilc_del_beacon(vif);
 
-	if (s32Error)
+	if (ret)
 		PRINT_ER(dev, "Host delete beacon fail\n");
 
-	return s32Error;
+	return ret;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0)
@@ -2301,7 +2301,7 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 					   u8 *mac, struct station_parameters *params)
 #endif
 {
-	s32 s32Error = 0;
+	s32 ret = 0;
 	struct wilc_priv *priv;
 	struct add_sta_param strStaParams = { {0} };
 	struct wilc_vif *vif;
@@ -2342,12 +2342,12 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", strStaParams.ht_capa.antenna_selection_info);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n", strStaParams.flags_mask);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n", strStaParams.flags_set);
-		s32Error = wilc_add_station(vif, &strStaParams);
-		if (s32Error)
+		ret = wilc_add_station(vif, &strStaParams);
+		if (ret)
 			PRINT_ER(dev, "Host add station fail\n");
 	}
 
-	return s32Error;
+	return ret;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
@@ -2364,7 +2364,7 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 	const u8 *mac = params->mac;
 #endif
-	s32 s32Error = 0;
+	s32 ret = 0;
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
 
@@ -2378,18 +2378,18 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Deleting station\n");
 		if (!mac) {
 			PRINT_INFO(vif->ndev, CFG80211_DBG, "All associated stations\n");
-			s32Error = wilc_del_allstation(vif,
+			ret = wilc_del_allstation(vif,
 				     priv->assoc_stainfo.sta_associated_bss);
 		} else {
 			PRINT_INFO(vif->ndev, CFG80211_DBG, "With mac address: %x%x%x%x%x%x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 		}
 
-		s32Error = wilc_del_station(vif, mac);
+		ret = wilc_del_station(vif, mac);
 
-		if (s32Error)
+		if (ret)
 			PRINT_ER(dev, "Host delete station fail\n");
 	}
-	return s32Error;
+	return ret;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)
@@ -2400,7 +2400,7 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 						  u8 *mac, struct station_parameters *params)
 #endif
 {
-	s32 s32Error = 0;
+	s32 ret = 0;
 	struct wilc_priv *priv;
 	struct add_sta_param strStaParams = { {0} };
 	struct wilc_vif *vif;
@@ -2441,11 +2441,11 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Antenna selection info = %d\n", strStaParams.ht_capa.antenna_selection_info);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n", strStaParams.flags_mask);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n", strStaParams.flags_set);
-		s32Error = wilc_edit_station(vif, &strStaParams);
-		if (s32Error)
+		ret = wilc_edit_station(vif, &strStaParams);
+		if (ret)
 			PRINT_ER(dev, "Host edit station fail\n");
 	}
-	return s32Error;
+	return ret;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
@@ -2680,7 +2680,7 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net, struct device *de
 {
 	struct wilc_priv *priv;
 	struct wireless_dev *wdev;
-	s32 s32Error = 0;
+	s32 ret = 0;
 
 	PRINT_INFO(net, CFG80211_DBG, "Registering wifi device\n");
 	wdev = WILC_WFI_CfgAlloc(net);
@@ -2722,8 +2722,8 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net, struct device *de
 
 	set_wiphy_dev(wdev->wiphy, dev);
 
-	s32Error = wiphy_register(wdev->wiphy);
-	if (s32Error)
+	ret = wiphy_register(wdev->wiphy);
+	if (ret)
 		PRINT_ER(net, "Cannot register wiphy device\n");
 	else
 		PRINT_INFO(net, CFG80211_DBG, "Successful Registering\n");
