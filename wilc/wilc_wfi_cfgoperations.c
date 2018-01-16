@@ -1764,9 +1764,9 @@ static void WILC_WFI_RemainOnChannelReady(void *pUserVoid)
 	priv->p2p_listen_state = true;
 
 	cfg80211_ready_on_channel(priv->wdev,
-				  priv->remain_on_ch_params.u64ListenCookie,
-				  priv->remain_on_ch_params.pstrListenChan,
-				  priv->remain_on_ch_params.u32ListenDuration,
+				  priv->remain_on_ch_params.listen_cookie,
+				  priv->remain_on_ch_params.listen_ch,
+				  priv->remain_on_ch_params.listen_duration,
 				  GFP_KERNEL);
 }
 
@@ -1776,17 +1776,17 @@ static void WILC_WFI_RemainOnChannelExpired(void *pUserVoid, u32 u32SessionID)
 
 	priv = pUserVoid;
 
-	if (u32SessionID == priv->remain_on_ch_params.u32ListenSessionID) {
+	if (u32SessionID == priv->remain_on_ch_params.listen_session_id) {
 		PRINT_INFO(priv->dev, GENERIC_DBG, "Remain on channel expired\n");
 		priv->p2p_listen_state = false;
 
 		cfg80211_remain_on_channel_expired(priv->wdev,
-						   priv->remain_on_ch_params.u64ListenCookie,
-						   priv->remain_on_ch_params.pstrListenChan,
+						   priv->remain_on_ch_params.listen_cookie,
+						   priv->remain_on_ch_params.listen_ch,
 						   GFP_KERNEL);
 	} else {
 		PRINT_INFO(priv->dev, GENERIC_DBG, "Received ID 0x%x Expected ID 0x%x (No match)\n", u32SessionID
-			, priv->remain_on_ch_params.u32ListenSessionID);
+			, priv->remain_on_ch_params.listen_session_id);
 	}
 }
 
@@ -1810,13 +1810,13 @@ static int remain_on_channel(struct wiphy *wiphy,
 
 	curr_channel = chan->hw_value;
 
-	priv->remain_on_ch_params.pstrListenChan = chan;
-	priv->remain_on_ch_params.u64ListenCookie = *cookie;
-	priv->remain_on_ch_params.u32ListenDuration = duration;
-	priv->remain_on_ch_params.u32ListenSessionID++;
+	priv->remain_on_ch_params.listen_ch = chan;
+	priv->remain_on_ch_params.listen_cookie = *cookie;
+	priv->remain_on_ch_params.listen_duration = duration;
+	priv->remain_on_ch_params.listen_session_id++;
 
 	s32Error = wilc_remain_on_channel(vif,
-				priv->remain_on_ch_params.u32ListenSessionID,
+				priv->remain_on_ch_params.listen_session_id,
 				duration, chan->hw_value,
 				WILC_WFI_RemainOnChannelExpired,
 				WILC_WFI_RemainOnChannelReady, (void *)priv);
@@ -1836,7 +1836,7 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 	vif = netdev_priv(priv->dev);
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Cancel remain on channel\n");
 
-	s32Error = wilc_listen_state_expired(vif, priv->remain_on_ch_params.u32ListenSessionID);
+	s32Error = wilc_listen_state_expired(vif, priv->remain_on_ch_params.listen_session_id);
 	return s32Error;
 }
 
@@ -1985,8 +1985,8 @@ static int mgmt_tx_cancel_wait(struct wiphy *wiphy,
 
 	if (!priv->p2p_listen_state) {
 		cfg80211_remain_on_channel_expired(priv->wdev,
-						   priv->remain_on_ch_params.u64ListenCookie,
-						   priv->remain_on_ch_params.pstrListenChan,
+						   priv->remain_on_ch_params.listen_cookie,
+						   priv->remain_on_ch_params.listen_ch,
 						   GFP_KERNEL);
 	}
 
