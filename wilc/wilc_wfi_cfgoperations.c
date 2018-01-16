@@ -570,7 +570,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 	struct wilc_priv *priv;
 	struct net_device *dev;
 	struct host_if_drv *pstrWFIDrv;
-	u8 NullBssid[ETH_ALEN] = {0};
+	u8 null_bssid[ETH_ALEN] = {0};
 	struct wilc *wl;
 	struct wilc_vif *vif;
 
@@ -591,7 +591,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		if ((mac_status == MAC_DISCONNECTED) &&
 		    (conn_info->status == SUCCESSFUL_STATUSCODE)) {
 			u16ConnectStatus = WLAN_STATUS_UNSPECIFIED_FAILURE;
-			wilc_wlan_set_bssid(priv->dev, NullBssid,
+			wilc_wlan_set_bssid(priv->dev, null_bssid,
 					    STATION_MODE);
 			eth_zero_addr(wilc_connected_ssid);
 
@@ -644,7 +644,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		p2p_recv_random = 0x00;
 		wilc_ie = false;
 		eth_zero_addr(priv->associated_bss);
-		wilc_wlan_set_bssid(priv->dev, NullBssid, STATION_MODE);
+		wilc_wlan_set_bssid(priv->dev, null_bssid, STATION_MODE);
 		eth_zero_addr(wilc_connected_ssid);
 
 		if (!pstrWFIDrv->p2p_connect)
