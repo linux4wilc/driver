@@ -561,11 +561,11 @@ static void CfgScanResult(enum scan_event scan_event,
 
 int wilc_connecting;
 
-static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
-			     struct connect_info *pstrConnectInfo,
-			     u8 u8MacStatus,
-			     struct disconnect_info *pstrDisconnectNotifInfo,
-			     void *pUserVoid)
+static void cfg_connect_result(enum conn_event conn_disconn_evt,
+			     struct connect_info *conn_info,
+			     u8 mac_status,
+			     struct disconnect_info *disconn_info,
+			     void *priv_data)
 {
 	struct wilc_priv *priv;
 	struct net_device *dev;
@@ -576,20 +576,20 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 
 	wilc_connecting = 0;
 
-	priv = pUserVoid;
+	priv = priv_data;
 	dev = priv->dev;
 	vif = netdev_priv(dev);
 	wl = vif->wilc;
 	pstrWFIDrv = (struct host_if_drv *)priv->hif_drv;
 
-	if (enuConnDisconnEvent == CONN_DISCONN_EVENT_CONN_RESP) {
+	if (conn_disconn_evt == CONN_DISCONN_EVENT_CONN_RESP) {
 		u16 u16ConnectStatus;
 
-		u16ConnectStatus = pstrConnectInfo->status;
+		u16ConnectStatus = conn_info->status;
 
-		PRINT_INFO(vif->ndev, CFG80211_DBG, " Connection response received = %d\n", u8MacStatus);
-		if ((u8MacStatus == MAC_DISCONNECTED) &&
-		    (pstrConnectInfo->status == SUCCESSFUL_STATUSCODE)) {
+		PRINT_INFO(vif->ndev, CFG80211_DBG, " Connection response received = %d\n", mac_status);
+		if ((mac_status == MAC_DISCONNECTED) &&
+		    (conn_info->status == SUCCESSFUL_STATUSCODE)) {
 			u16ConnectStatus = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			wilc_wlan_set_bssid(priv->dev, NullBssid,
 					    STATION_MODE);
@@ -605,13 +605,13 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 			bool bNeedScanRefresh = false;
 			u32 i;
 
-			PRINT_D(vif->ndev, CFG80211_DBG, "Connection Successful:: BSSID: %x%x%x%x%x%x\n", pstrConnectInfo->bssid[0],
-				   pstrConnectInfo->bssid[1], pstrConnectInfo->bssid[2], pstrConnectInfo->bssid[3], pstrConnectInfo->bssid[4], pstrConnectInfo->bssid[5]);
-			memcpy(priv->associated_bss, pstrConnectInfo->bssid, ETH_ALEN);
+			PRINT_D(vif->ndev, CFG80211_DBG, "Connection Successful:: BSSID: %x%x%x%x%x%x\n", conn_info->bssid[0],
+				   conn_info->bssid[1], conn_info->bssid[2], conn_info->bssid[3], conn_info->bssid[4], conn_info->bssid[5]);
+			memcpy(priv->associated_bss, conn_info->bssid, ETH_ALEN);
 
 			for (i = 0; i < last_scanned_cnt; i++) {
 				if (memcmp(last_scanned_shadow[i].bssid,
-					   pstrConnectInfo->bssid,
+					   conn_info->bssid,
 					   ETH_ALEN) == 0) {
 					unsigned long now = jiffies;
 
@@ -628,18 +628,18 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 				refresh_scan(priv, true);
 		}
 
-		PRINT_INFO(vif->ndev, CFG80211_DBG,"Association request info elements length = %d\n", pstrConnectInfo->req_ies_len);
-		PRINT_INFO(vif->ndev, CFG80211_DBG,"Association response info elements length = %d\n", pstrConnectInfo->resp_ies_len);
-		cfg80211_connect_result(dev, pstrConnectInfo->bssid,
-					pstrConnectInfo->req_ies, pstrConnectInfo->req_ies_len,
-					pstrConnectInfo->resp_ies, pstrConnectInfo->resp_ies_len,
+		PRINT_INFO(vif->ndev, CFG80211_DBG,"Association request info elements length = %d\n", conn_info->req_ies_len);
+		PRINT_INFO(vif->ndev, CFG80211_DBG,"Association response info elements length = %d\n", conn_info->resp_ies_len);
+		cfg80211_connect_result(dev, conn_info->bssid,
+					conn_info->req_ies, conn_info->req_ies_len,
+					conn_info->resp_ies, conn_info->resp_ies_len,
 					u16ConnectStatus, GFP_KERNEL);
-	} else if (enuConnDisconnEvent == CONN_DISCONN_EVENT_DISCONN_NOTIF)    {
+	} else if (conn_disconn_evt == CONN_DISCONN_EVENT_DISCONN_NOTIF)    {
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		wilc_optaining_ip = false;
 #endif
 		PRINT_ER(vif->ndev, "Received MAC_DISCONNECTED from firmware with reason %d on dev [%p]\n",
-			 pstrDisconnectNotifInfo->reason, priv->dev);
+			 disconn_info->reason, priv->dev);
 		p2p_local_random = 0x01;
 		p2p_recv_random = 0x00;
 		wilc_ie = false;
@@ -650,17 +650,17 @@ static void CfgConnectResult(enum conn_event enuConnDisconnEvent,
 		if (!pstrWFIDrv->p2p_connect)
 			wlan_channel = INVALID_CHANNEL;
 		if ((pstrWFIDrv->IFC_UP) && (dev == wl->vif[1]->ndev))
-			pstrDisconnectNotifInfo->reason = 3;
+			disconn_info->reason = 3;
 		else if ((!pstrWFIDrv->IFC_UP) && (dev == wl->vif[1]->ndev))
-			pstrDisconnectNotifInfo->reason = 1;
+			disconn_info->reason = 1;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
-		cfg80211_disconnected(dev, pstrDisconnectNotifInfo->reason, pstrDisconnectNotifInfo->ie,
-				      pstrDisconnectNotifInfo->ie_len,
+		cfg80211_disconnected(dev, disconn_info->reason, disconn_info->ie,
+				      disconn_info->ie_len,
 				      GFP_KERNEL);
 #else
-		cfg80211_disconnected(dev, pstrDisconnectNotifInfo->reason, pstrDisconnectNotifInfo->ie,
-				      pstrDisconnectNotifInfo->ie_len, false,
+		cfg80211_disconnected(dev, disconn_info->reason, disconn_info->ie,
+				      disconn_info->ie_len, false,
 				      GFP_KERNEL);
 #endif
 	}
@@ -947,7 +947,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 
 	ret = wilc_set_join_req(vif, pstrNetworkInfo->bssid, sme->ssid,
 				     sme->ssid_len, sme->ie, sme->ie_len,
-				     CfgConnectResult, (void *)priv,
+				     cfg_connect_result, (void *)priv,
 				     u8security, tenuAuth_type,
 				     pstrNetworkInfo->ch,
 				     pstrNetworkInfo->join_params);
