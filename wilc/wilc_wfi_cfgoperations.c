@@ -1364,7 +1364,7 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 	if (vif->iftype == AP_MODE || vif->iftype == GO_MODE) {
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Getting station parameters\n");
 		for (i = 0; i < NUM_STA_ASSOCIATED; i++) {
-			if (!(memcmp(mac, priv->assoc_stainfo.au8Sta_AssociatedBss[i], ETH_ALEN))) {
+			if (!(memcmp(mac, priv->assoc_stainfo.sta_associated_bss[i], ETH_ALEN))) {
 				associatedsta = i;
 				break;
 			}
@@ -2155,7 +2155,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 								 STATION_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, STATION_MODE);
 
-		memset(priv->assoc_stainfo.au8Sta_AssociatedBss, 0, MAX_NUM_STA * ETH_ALEN);
+		memset(priv->assoc_stainfo.sta_associated_bss, 0, MAX_NUM_STA * ETH_ALEN);
 
 		wilc_enable_ps = true;
 		wilc_set_power_mgmt(vif_1, 1, 0);
@@ -2314,14 +2314,14 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 
 	if (vif->iftype == AP_MODE || vif->iftype == GO_MODE) {
 		memcpy(strStaParams.bssid, mac, ETH_ALEN);
-		memcpy(priv->assoc_stainfo.au8Sta_AssociatedBss[params->aid], mac, ETH_ALEN);
+		memcpy(priv->assoc_stainfo.sta_associated_bss[params->aid], mac, ETH_ALEN);
 		strStaParams.aid = params->aid;
 		strStaParams.rates_len = params->supported_rates_len;
 		strStaParams.rates = params->supported_rates;
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Adding station parameters %d\n", params->aid);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "BSSID = %x%x%x%x%x%x\n", priv->assoc_stainfo.au8Sta_AssociatedBss[params->aid][0], priv->assoc_stainfo.au8Sta_AssociatedBss[params->aid][1], priv->assoc_stainfo.au8Sta_AssociatedBss[params->aid][2], priv->assoc_stainfo.au8Sta_AssociatedBss[params->aid][3], priv->assoc_stainfo.au8Sta_AssociatedBss[params->aid][4],
-			priv->assoc_stainfo.au8Sta_AssociatedBss[params->aid][5]);
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "BSSID = %x%x%x%x%x%x\n", priv->assoc_stainfo.sta_associated_bss[params->aid][0], priv->assoc_stainfo.sta_associated_bss[params->aid][1], priv->assoc_stainfo.sta_associated_bss[params->aid][2], priv->assoc_stainfo.sta_associated_bss[params->aid][3], priv->assoc_stainfo.sta_associated_bss[params->aid][4],
+			priv->assoc_stainfo.sta_associated_bss[params->aid][5]);
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG, "ASSOC ID = %d\n", strStaParams.aid);
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Number of supported rates = %d\n", strStaParams.rates_len);
 		if (!params->ht_capa) {
@@ -2379,7 +2379,7 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 		if (!mac) {
 			PRINT_INFO(vif->ndev, CFG80211_DBG, "All associated stations\n");
 			s32Error = wilc_del_allstation(vif,
-				     priv->assoc_stainfo.au8Sta_AssociatedBss);
+				     priv->assoc_stainfo.sta_associated_bss);
 		} else {
 			PRINT_INFO(vif->ndev, CFG80211_DBG, "With mac address: %x%x%x%x%x%x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 		}
