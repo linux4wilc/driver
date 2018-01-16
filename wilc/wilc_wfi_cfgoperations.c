@@ -1557,7 +1557,7 @@ static int flush_pmksa(struct wiphy *wiphy, struct net_device *netdev)
 	return 0;
 }
 
-static void WILC_WFI_CfgParseRxAction(struct wilc_vif *vif, u8 * buf,u32 len, bool p2p_mode)
+static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 * buf,u32 len, bool p2p_mode)
 {
 	u32 index = 0;
 	u32 i = 0, j = 0;
@@ -1597,7 +1597,7 @@ static void WILC_WFI_CfgParseRxAction(struct wilc_vif *vif, u8 * buf,u32 len, bo
 	}
 }
 
-static void WILC_WFI_CfgParseTxAction(struct wilc_vif *vif, u8 * buf,u32 len,bool bOperChan, u8 p2p_mode)
+static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 * buf,u32 len,bool oper_ch, u8 p2p_mode)
 {
 	u32 index = 0;
 	u32 i = 0, j = 0;
@@ -1621,7 +1621,7 @@ static void WILC_WFI_CfgParseTxAction(struct wilc_vif *vif, u8 * buf,u32 len,boo
 		index += buf[index + 1] + 3;
 	}
 
-	if (wlan_channel != INVALID_CHANNEL && bOperChan) {
+	if (wlan_channel != INVALID_CHANNEL && oper_ch) {
 		if (channel_list_attr_index) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG, "Modify channel list attribute\n");
 			for (i = channel_list_attr_index + 3; i < ((channel_list_attr_index + 3) + buf[channel_list_attr_index + 1]); i++) {
@@ -1718,7 +1718,7 @@ void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 							     buff[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_REQ || buff[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_RSP)) {
 								for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < size; i++) {
 									if (buff[i] == P2PELEM_ATTR_ID && !(memcmp(p2p_oui, &buff[i + 2], 4))) {
-										WILC_WFI_CfgParseRxAction(vif, &buff[i + 6], size - (i + 6), vif->attr_sysfs.p2p_mode);
+										wilc_wfi_cfg_parse_rx_action(vif, &buff[i + 6], size - (i + 6), vif->attr_sysfs.p2p_mode);
 										break;
 									}
 								}
@@ -1746,7 +1746,7 @@ void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 	}
 }
 
-static void WILC_WFI_mgmt_tx_complete(void *priv, int status)
+static void wilc_wfi_mgmt_tx_complete(void *priv, int status)
 {
 	struct p2p_mgmt_data *pv_data = priv;
 
@@ -1754,11 +1754,11 @@ static void WILC_WFI_mgmt_tx_complete(void *priv, int status)
 	kfree(pv_data);
 }
 
-static void WILC_WFI_RemainOnChannelReady(void *pUserVoid)
+static void wilc_wfi_remain_on_channel_ready(void *priv_data)
 {
 	struct wilc_priv *priv;
 
-	priv = pUserVoid;
+	priv = priv_data;
 
 	PRINT_INFO(priv->dev, HOSTINF_DBG, "Remain on channel ready\n");
 	priv->p2p_listen_state = true;
@@ -1770,13 +1770,13 @@ static void WILC_WFI_RemainOnChannelReady(void *pUserVoid)
 				  GFP_KERNEL);
 }
 
-static void WILC_WFI_RemainOnChannelExpired(void *pUserVoid, u32 u32SessionID)
+static void wilc_wfi_remain_on_channel_expired(void *data, u32 session_id)
 {
 	struct wilc_priv *priv;
 
-	priv = pUserVoid;
+	priv = data;
 
-	if (u32SessionID == priv->remain_on_ch_params.listen_session_id) {
+	if (session_id == priv->remain_on_ch_params.listen_session_id) {
 		PRINT_INFO(priv->dev, GENERIC_DBG, "Remain on channel expired\n");
 		priv->p2p_listen_state = false;
 
@@ -1785,7 +1785,7 @@ static void WILC_WFI_RemainOnChannelExpired(void *pUserVoid, u32 u32SessionID)
 						   priv->remain_on_ch_params.listen_ch,
 						   GFP_KERNEL);
 	} else {
-		PRINT_INFO(priv->dev, GENERIC_DBG, "Received ID 0x%x Expected ID 0x%x (No match)\n", u32SessionID
+		PRINT_INFO(priv->dev, GENERIC_DBG, "Received ID 0x%x Expected ID 0x%x (No match)\n", session_id
 			, priv->remain_on_ch_params.listen_session_id);
 	}
 }
@@ -1818,8 +1818,8 @@ static int remain_on_channel(struct wiphy *wiphy,
 	ret = wilc_remain_on_channel(vif,
 				priv->remain_on_ch_params.listen_session_id,
 				duration, chan->hw_value,
-				WILC_WFI_RemainOnChannelExpired,
-				WILC_WFI_RemainOnChannelReady, (void *)priv);
+				wilc_wfi_remain_on_channel_expired,
+				wilc_wfi_remain_on_channel_ready, (void *)priv);
 
 	return ret;
 }
@@ -1929,9 +1929,9 @@ static int mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 								for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < len; i++) {
 									if (buf[i] == P2PELEM_ATTR_ID && !(memcmp(p2p_oui, &buf[i + 2], 4))) {
 										if (buf[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_REQ || buf[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_RSP)
-											WILC_WFI_CfgParseTxAction(vif, &mgmt_tx->buff[i + 6], len - (i + 6), true, vif->attr_sysfs.p2p_mode);
+											wilc_wfi_cfg_parse_tx_action(vif, &mgmt_tx->buff[i + 6], len - (i + 6), true, vif->attr_sysfs.p2p_mode);
 										else
-											WILC_WFI_CfgParseTxAction(vif, &mgmt_tx->buff[i + 6], len - (i + 6), false, vif->attr_sysfs.p2p_mode);
+											wilc_wfi_cfg_parse_tx_action(vif, &mgmt_tx->buff[i + 6], len - (i + 6), false, vif->attr_sysfs.p2p_mode);
 										break;
 									}
 								}
@@ -1964,7 +1964,7 @@ static int mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 
 		wilc_wlan_txq_add_mgmt_pkt(wdev->netdev, mgmt_tx,
 					   mgmt_tx->buff, mgmt_tx->size,
-					   WILC_WFI_mgmt_tx_complete);
+					   wilc_wfi_mgmt_tx_complete);
 	} else {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,"This function transmits only management frames\n");
 	}
@@ -2640,7 +2640,7 @@ static const struct cfg80211_ops wilc_cfg80211_ops = {
 	.set_antenna = set_antenna,
 };
 
-static struct wireless_dev *WILC_WFI_CfgAlloc(struct net_device *net)
+static struct wireless_dev *wilc_wfi_cfg_alloc(struct net_device *net)
 {
 	struct wireless_dev *wdev;
 
@@ -2683,7 +2683,7 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net, struct device *de
 	s32 ret = 0;
 
 	PRINT_INFO(net, CFG80211_DBG, "Registering wifi device\n");
-	wdev = WILC_WFI_CfgAlloc(net);
+	wdev = wilc_wfi_cfg_alloc(net);
 	if (!wdev) {
 		PRINT_ER(net, "wiphy new allocate failed\n");
 		return NULL;
