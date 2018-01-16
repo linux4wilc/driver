@@ -1431,41 +1431,41 @@ static int change_bss(struct wiphy *wiphy, struct net_device *dev,
 static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 {
 	s32 ret = 0;
-	struct cfg_param_attr pstrCfgParamVal;
+	struct cfg_param_attr cfg_param_val;
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
 
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(priv->dev);
 
-	pstrCfgParamVal.flag = 0;
+	cfg_param_val.flag = 0;
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting Wiphy params\n");
 
 	if (changed & WIPHY_PARAM_RETRY_SHORT) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting WIPHY_PARAM_RETRY_SHORT %d\n",
 			priv->dev->ieee80211_ptr->wiphy->retry_short);
-		pstrCfgParamVal.flag  |= RETRY_SHORT;
-		pstrCfgParamVal.short_retry_limit = priv->dev->ieee80211_ptr->wiphy->retry_short;
+		cfg_param_val.flag  |= RETRY_SHORT;
+		cfg_param_val.short_retry_limit = priv->dev->ieee80211_ptr->wiphy->retry_short;
 	}
 	if (changed & WIPHY_PARAM_RETRY_LONG) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting WIPHY_PARAM_RETRY_LONG %d\n", priv->dev->ieee80211_ptr->wiphy->retry_long);
-		pstrCfgParamVal.flag |= RETRY_LONG;
-		pstrCfgParamVal.long_retry_limit = priv->dev->ieee80211_ptr->wiphy->retry_long;
+		cfg_param_val.flag |= RETRY_LONG;
+		cfg_param_val.long_retry_limit = priv->dev->ieee80211_ptr->wiphy->retry_long;
 	}
 	if (changed & WIPHY_PARAM_FRAG_THRESHOLD) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting WIPHY_PARAM_FRAG_THRESHOLD %d\n", priv->dev->ieee80211_ptr->wiphy->frag_threshold);
-		pstrCfgParamVal.flag |= FRAG_THRESHOLD;
-		pstrCfgParamVal.frag_threshold = priv->dev->ieee80211_ptr->wiphy->frag_threshold;
+		cfg_param_val.flag |= FRAG_THRESHOLD;
+		cfg_param_val.frag_threshold = priv->dev->ieee80211_ptr->wiphy->frag_threshold;
 	}
 
 	if (changed & WIPHY_PARAM_RTS_THRESHOLD) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting WIPHY_PARAM_RTS_THRESHOLD %d\n", priv->dev->ieee80211_ptr->wiphy->rts_threshold);
-		pstrCfgParamVal.flag |= RTS_THRESHOLD;
-		pstrCfgParamVal.rts_threshold = priv->dev->ieee80211_ptr->wiphy->rts_threshold;
+		cfg_param_val.flag |= RTS_THRESHOLD;
+		cfg_param_val.rts_threshold = priv->dev->ieee80211_ptr->wiphy->rts_threshold;
 	}
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting CFG params in the host interface\n");
-	ret = wilc_hif_set_cfg(vif, &pstrCfgParamVal);
+	ret = wilc_hif_set_cfg(vif, &cfg_param_val);
 	if (ret)
 		PRINT_ER(priv->dev, "Error in setting WIPHY PARAMS\n");
 
