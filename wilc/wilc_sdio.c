@@ -143,7 +143,7 @@ static int linux_sdio_probe(struct sdio_func *func,
 
 	cnp = of_get_child_by_name(func->card->host->parent->of_node, "wilc_sdio");
 
-	if (IS_ENABLED(CONFIG_WILC1000_HW_OOB_INTR))
+	if (IS_ENABLED(CONFIG_WILC_HW_OOB_INTR))
 		io_type = HIF_SDIO_GPIO_IRQ;
 	else
 		io_type = HIF_SDIO;
