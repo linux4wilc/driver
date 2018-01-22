@@ -124,7 +124,7 @@ enum  {
 	G_MIXED_11B_2_MODE,		/* 1,2,5,11,6,12,24 otherwise all on */
 };
 
-enum G_PREAMBLE {
+enum {
 	G_SHORT_PREAMBLE	= 0,	/* Short Preamble */
 	G_LONG_PREAMBLE		= 1,	/* Long Preamble */
 	G_AUTO_PREAMBLE		= 2,	/* Auto Preamble Selection */
@@ -138,12 +138,12 @@ enum G_PREAMBLE {
 #define PWR_DEV_SRC_BT		1
 #define PWR_DEV_SRC_MAX		2
 
-enum SCANTYPE {
+enum {
 	PASSIVE_SCAN		= 0,
 	ACTIVE_SCAN		= 1,
 };
 
-enum USER_PS_MODE {
+enum {
 	NO_POWERSAVE		= 0,
 	MIN_FAST_PS		= 1,
 	MAX_FAST_PS		= 2,
@@ -161,7 +161,7 @@ enum bus_release {
 	RELEASE_ALLOW_SLEEP	= 1,
 };
 
-enum SECURITY {
+enum {
 	NO_SECURITY		= 0,
 	WEP_40			= 0x3,
 	WEP_104			= 0x7,
@@ -186,42 +186,42 @@ enum SITESURVEY {
 	SITE_SURVEY_OFF		= 2
 };
 
-enum ACK_POLICY {
+enum {
 	NORMAL_ACK		= 0,
 	NO_ACK,
 };
 
-enum RESET_REQ {
+enum {
 	DONT_RESET		= 0,
 	DO_RESET		= 1,
 	NO_REQUEST		= 2,
 };
 
-enum RSNA_REKEY_POLICY {
+enum {
 	REKEY_DISABLE		= 1,
 	REKEY_TIME_BASE,
 	REKEY_PKT_BASE,
 	REKEY_TIME_PKT_BASE
 };
 
-enum SCAN_CLASS_FITLER {
+enum {
 	FILTER_NO		= 0x00,
 	FILTER_AP_ONLY		= 0x01,
 	FILTER_STA_ONLY		= 0x02
 };
 
-enum SCAN_PRI {
+enum {
 	PRI_HIGH_RSSI		= 0x00,
 	PRI_LOW_RSSI		= 0x04,
 	PRI_DETECT		= 0x08
 };
 
-enum CH_FILTER {
+enum {
 	CH_FILTER_OFF		= 0x00,
 	CH_FILTER_ON		= 0x10
 };
 
-enum N_PROTECTION_MODE {
+enum {
 	AUTO_PROT		= 0,	/* Auto */
 	NO_PROT,			/* Do not use any protection */
 	ERP_PROT,			/* Protect all ERP frame exchanges */
@@ -229,38 +229,38 @@ enum N_PROTECTION_MODE {
 	GF_PROT,			/* Protect all GF frame exchanges  */
 };
 
-enum G_PROTECTION_MODE {
+enum {
 	G_SELF_CTS_PROT,
 	G_RTS_CTS_PROT,
 };
 
-enum N_OPERATING_MODE {
+enum {
 	HT_MIXED_MODE		= 1,
 	HT_ONLY_20MHZ_MODE,
 	HT_ONLY_20_40MHZ_MODE,
 };
 
-enum N_OBSS_DETECTION {
+enum {
 	NO_DETECT		= 0,
 	DETECT_ONLY		= 1,
 	DETECT_PROTECT		= 2,
 	DETECT_PROTECT_REPORT	= 3,
 };
 
-enum N_PROTECTION_TYPE {
+enum {
 	RTS_CTS_NONHT_PROT	= 0,	/* RTS-CTS at non-HT rate */
 	FIRST_FRAME_NONHT_PROT,		/* First frame at non-HT rate */
 	LSIG_TXOP_PROT,                 /* LSIG TXOP Protection */
 	FIRST_FRAME_MIXED_PROT,		/* First frame at Mixed format */
 };
 
-enum N_SMPS_MODE {
+enum {
 	STATIC_MODE		= 1,
 	DYNAMIC_MODE		= 2,
 	MIMO_MODE		= 3,	/* power save disable */
 };
 
-enum TX_ABORT_OPTION {
+enum {
 	DISABLE_SELF_CTS,
 	ENABLE_SELF_CTS,
 	DISABLE_TX_ABORT,
@@ -282,7 +282,7 @@ enum wid_type {
 	WID_TYPE_FORCE_32BIT	= 0xFFFFFFFF
 };
 
-enum antenna_type {
+enum {
 	ANTENNA1		= 0,
 	ANTENNA2		= 1,
 	DIVERSITY		= 2,
@@ -296,7 +296,7 @@ struct wid {
 	s8 *val;
 };
 
-enum WID_E {
+enum {
 	WID_NIL				= 0xffff,
 
 	/*
