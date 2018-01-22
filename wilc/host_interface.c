@@ -467,7 +467,7 @@ static void handle_set_operation_mode(struct wilc_vif *vif,
 	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				   wilc_get_vif_idx(vif));
 
-	if ((hif_op_mode->mode) == IDLE_MODE)
+	if (hif_op_mode->mode == IDLE_MODE)
 		complete(&hif_driver_comp);
 
 	if (ret)
@@ -810,8 +810,8 @@ static s32 handle_scan(struct wilc_vif *vif, struct scan_attr *scan_info)
 	}
 
 	if (pstrWFIDrvWLAN != NULL) {
-		if ((pstrWFIDrvWLAN->hif_state != HOST_IF_IDLE) &&
-	    (pstrWFIDrvWLAN->hif_state != HOST_IF_CONNECTED)) {
+		if (pstrWFIDrvWLAN->hif_state != HOST_IF_IDLE &&
+	    pstrWFIDrvWLAN->hif_state != HOST_IF_CONNECTED) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,"Don't scan. WLAN_IFC is in state [%d]\n",
 			 pstrWFIDrvWLAN->hif_state);
 			result = -EBUSY;
@@ -1129,7 +1129,7 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 	pu8CurrByte += MAX_SSID_LEN;
 	*(pu8CurrByte++) = INFRASTRUCTURE;
 
-	if ((pstrHostIFconnectAttr->ch >= 1) && (pstrHostIFconnectAttr->ch <= 14)) {
+	if (pstrHostIFconnectAttr->ch >= 1 && pstrHostIFconnectAttr->ch <= 14) {
 		*(pu8CurrByte++) = pstrHostIFconnectAttr->ch;
 	} else {
 		PRINT_ER(vif->ndev, "Channel out of range\n");
@@ -1399,8 +1399,8 @@ static s32 Handle_RcvdNtwrkInfo(struct wilc_vif *vif,
 	if (hif_drv->usr_scan_req.scan_result) {
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "State: Scanning, parsing network information received\n");
 		wilc_parse_network_info(vif, pstrRcvdNetworkInfo->buffer, &pstrNetworkInfo);
-		if ((!pstrNetworkInfo) ||
-		    (!hif_drv->usr_scan_req.scan_result)) {
+		if (!pstrNetworkInfo ||
+		    !hif_drv->usr_scan_req.scan_result) {
 			PRINT_ER(vif->ndev, "Driver is null\n");
 			result = -EINVAL;
 			goto done;
@@ -1488,8 +1488,8 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 		 hif_drv->hif_state,
 		 pstrRcvdGnrlAsyncInfo->buffer[7]);
 
-	if ((hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP) ||
-	    (hif_drv->hif_state == HOST_IF_CONNECTED) ||
+	if (hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP ||
+	    hif_drv->hif_state == HOST_IF_CONNECTED ||
 	    hif_drv->usr_scan_req.scan_result) {
 		if (!pstrRcvdGnrlAsyncInfo->buffer ||
 		    !hif_drv->usr_conn_req.conn_result) {
@@ -1557,11 +1557,11 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 				}
 			}
 
-			if ((u8MacStatus == MAC_CONNECTED) &&
-			    (strConnectInfo.status != SUCCESSFUL_STATUSCODE))	{
+			if (u8MacStatus == MAC_CONNECTED &&
+			    strConnectInfo.status != SUCCESSFUL_STATUSCODE) {
 				PRINT_ER(vif->ndev, "Received MAC status is MAC_CONNECTED while the received status code in Asoc Resp is not SUCCESSFUL_STATUSCODE\n");
 				eth_zero_addr(wilc_connected_ssid);
-			} else if (u8MacStatus == MAC_DISCONNECTED)    {
+			} else if (u8MacStatus == MAC_DISCONNECTED) {
 				PRINT_ER(vif->ndev, "Received MAC status is MAC_DISCONNECTED\n");
 				eth_zero_addr(wilc_connected_ssid);
 			}
@@ -1570,7 +1570,7 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 				memcpy(strConnectInfo.bssid, hif_drv->usr_conn_req.bssid, 6);
 
 				if ((u8MacStatus == MAC_CONNECTED) &&
-				    (strConnectInfo.status == SUCCESSFUL_STATUSCODE))	{
+				    (strConnectInfo.status == SUCCESSFUL_STATUSCODE)) {
 					memcpy(hif_drv->assoc_bssid,
 					       hif_drv->usr_conn_req.bssid, ETH_ALEN);
 				}
@@ -1591,8 +1591,8 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 							  NULL,
 							  hif_drv->usr_conn_req.arg);
 
-			if ((u8MacStatus == MAC_CONNECTED) &&
-			    (strConnectInfo.status == SUCCESSFUL_STATUSCODE))	{
+			if (u8MacStatus == MAC_CONNECTED &&
+			    strConnectInfo.status == SUCCESSFUL_STATUSCODE) {
 
 				PRINT_INFO(vif->ndev, HOSTINF_DBG, "MAC status : CONNECTED and Connect Status : Successful\n");
 				hif_drv->hif_state = HOST_IF_CONNECTED;
@@ -2099,8 +2099,8 @@ void wilc_resolve_disconnect_aberration(struct wilc_vif *vif)
 {
 	if (!vif->hif_drv)
 		return;
-	if ((vif->hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP) ||
-	    (vif->hif_drv->hif_state == HOST_IF_CONNECTING)) {
+	if (vif->hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP ||
+	    vif->hif_drv->hif_state == HOST_IF_CONNECTING) {
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "\n\n<< correcting Supplicant state machine >>\n\n");
 		wilc_disconnect(vif, 1);
 	}
@@ -2759,7 +2759,7 @@ static void Handle_SetMulticastFilter(struct wilc_vif *vif,
 
 	wid.id = (u16)WID_SETUP_MULTICAST_FILTER;
 	wid.type = WID_BIN;
-	wid.size = sizeof(struct set_multicast) + ((strHostIfSetMulti->cnt) * ETH_ALEN);
+	wid.size = sizeof(struct set_multicast) + (strHostIfSetMulti->cnt * ETH_ALEN);
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
 	if (!wid.val)
 		goto ERRORHANDLER;

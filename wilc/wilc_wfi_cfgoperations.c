@@ -588,8 +588,8 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		u16ConnectStatus = conn_info->status;
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG, " Connection response received = %d\n", mac_status);
-		if ((mac_status == MAC_DISCONNECTED) &&
-		    (conn_info->status == SUCCESSFUL_STATUSCODE)) {
+		if (mac_status == MAC_DISCONNECTED &&
+		    conn_info->status == SUCCESSFUL_STATUSCODE) {
 			u16ConnectStatus = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			wilc_wlan_set_bssid(priv->dev, null_bssid,
 					    STATION_MODE);
@@ -649,9 +649,9 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 
 		if (!pstrWFIDrv->p2p_connect)
 			wlan_channel = INVALID_CHANNEL;
-		if ((pstrWFIDrv->IFC_UP) && (dev == wl->vif[1]->ndev))
+		if (pstrWFIDrv->IFC_UP && dev == wl->vif[1]->ndev)
 			disconn_info->reason = 3;
-		else if ((!pstrWFIDrv->IFC_UP) && (dev == wl->vif[1]->ndev))
+		else if (!pstrWFIDrv->IFC_UP && dev == wl->vif[1]->ndev)
 			disconn_info->reason = 1;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
@@ -792,10 +792,10 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 	PRINT_D(vif->ndev, CFG80211_DBG, "Required SSID = %s\n , AuthType = %d\n", sme->ssid, sme->auth_type);
 
 	for (i = 0; i < last_scanned_cnt; i++) {
-		if ((sme->ssid_len == last_scanned_shadow[i].ssid_len) &&
+		if (sme->ssid_len == last_scanned_shadow[i].ssid_len &&
 		    memcmp(last_scanned_shadow[i].ssid,
-			   sme->ssid,
-			   sme->ssid_len) == 0) {
+ 				    sme->ssid,
+ 				    sme->ssid_len) == 0) {
 			PRINT_D(vif->ndev, CFG80211_DBG, "Network with required SSID is found %s\n", sme->ssid);
 			if (!sme->bssid) {
 				PRINT_D(vif->ndev, CFG80211_DBG, "BSSID is not passed from the user\n");
@@ -1092,7 +1092,7 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 				memcpy(priv->wilc_gtk[key_index]->key, params->key, params->key_len);
 				kfree(priv->wilc_gtk[key_index]->seq);
 
-				if ((params->seq_len) > 0) {
+				if (params->seq_len > 0) {
 					priv->wilc_gtk[key_index]->seq = kmalloc(params->seq_len, GFP_KERNEL);
 					memcpy(priv->wilc_gtk[key_index]->seq, params->seq, params->seq_len);
 				}
@@ -1125,12 +1125,12 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 
 				kfree(priv->wilc_ptk[key_index]->seq);
 
-				if ((params->seq_len) > 0)
+				if (params->seq_len > 0)
 					priv->wilc_ptk[key_index]->seq = kmalloc(params->seq_len, GFP_KERNEL);
 
 				memcpy(priv->wilc_ptk[key_index]->key, params->key, params->key_len);
 
-				if ((params->seq_len) > 0)
+				if (params->seq_len > 0)
 					memcpy(priv->wilc_ptk[key_index]->seq, params->seq, params->seq_len);
 
 				priv->wilc_ptk[key_index]->cipher = params->cipher;
@@ -1249,7 +1249,7 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 		kfree(g_key_wep_params.key);
 		g_key_wep_params.key = NULL;
 
-		if ((priv->wilc_gtk[key_index]) != NULL) {
+		if (priv->wilc_gtk[key_index] != NULL) {
 			kfree(priv->wilc_gtk[key_index]->key);
 			priv->wilc_gtk[key_index]->key = NULL;
 			kfree(priv->wilc_gtk[key_index]->seq);
@@ -1259,7 +1259,7 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 			priv->wilc_gtk[key_index] = NULL;
 		}
 
-		if ((priv->wilc_ptk[key_index]) != NULL) {
+		if (priv->wilc_ptk[key_index] != NULL) {
 			kfree(priv->wilc_ptk[key_index]->key);
 			priv->wilc_ptk[key_index]->key = NULL;
 			kfree(priv->wilc_ptk[key_index]->seq);
@@ -1409,8 +1409,8 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 		sinfo->tx_failed = stats.tx_fail_cnt;
 		sinfo->txrate.legacy = stats.link_speed * 10;
 
-		if ((stats.link_speed > TCP_ACK_FILTER_LINK_SPEED_THRESH) &&
-		    (stats.link_speed != DEFAULT_LINK_SPEED))
+		if (stats.link_speed > TCP_ACK_FILTER_LINK_SPEED_THRESH &&
+		    stats.link_speed != DEFAULT_LINK_SPEED)
 			wilc_enable_tcp_ack_filter(true);
 		else if (stats.link_speed != DEFAULT_LINK_SPEED)
 			wilc_enable_tcp_ack_filter(false);

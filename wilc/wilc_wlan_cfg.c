@@ -242,7 +242,7 @@ static int wilc_wlan_cfg_set_str(u8 *frame, u32 offset, u16 id, u8 *str, u32 siz
 	buf[2] = (u8)size;
 	buf[3] = (u8)(size >> 8);
 
-	if ((str) && (size != 0))
+	if (str && size != 0)
 		memcpy(&buf[4], str, size);
 
 	return (size + 4);
@@ -263,7 +263,7 @@ static int wilc_wlan_cfg_set_bin(u8 *frame, u32 offset, u16 id, u8 *b, u32 size)
 	buf[2] = (u8)size;
 	buf[3] = (u8)(size >> 8);
 
-	if ((b) && (size != 0)) {
+	if (b && size != 0) {
 		memcpy(&buf[4], b, size);
 		for (i = 0; i < size; i++)
 			checksum += buf[i + 4];
@@ -413,7 +413,7 @@ static int wilc_wlan_parse_info_frame(struct wilc *wilc, u8 *info, int size)
 
 	len = info[2];
 	PRINT_D(vif->ndev, GENERIC_DBG,"Status Len = %d Id= %d\n", len, wid);
-	if ((len == 1) && (wid == WID_STATUS)) {
+	if (len == 1 && wid == WID_STATUS) {
 		pd->mac_status = info[3];
 		type = WILC_CFG_RSP_STATUS;
 	}
