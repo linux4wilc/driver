@@ -1132,7 +1132,7 @@ static int wlan_initialize_threads(struct net_device *dev)
 	PRINT_INFO(vif->ndev, INIT_DBG, "Initializing Threads ...\n");
 	PRINT_INFO(vif->ndev, INIT_DBG, "Creating kthread for transmission\n");
 	wilc->txq_thread = kthread_run(linux_wlan_txq_task, (void *)dev,
-				     "K_TXQ_TASK");
+				     		   "K_TXQ_TASK");
 	if (IS_ERR(wilc->txq_thread)) {
 		PRINT_ER(dev, "couldn't create TXQ thread\n");
 		wilc->close = 1;
@@ -1143,7 +1143,7 @@ static int wlan_initialize_threads(struct net_device *dev)
 	if (!debug_running) {
 		PRINT_INFO(vif->ndev, INIT_DBG, "Creating kthread for Debugging\n");
 		wilc->debug_thread = kthread_run(debug_thread,(void *)dev,
-			"WILC_DEBUG");
+									  "WILC_DEBUG");
 		if(IS_ERR(wilc->debug_thread)){
 			PRINT_ER(dev, "couldn't create debug thread\n");
 			wilc->close = 1;
