@@ -1522,7 +1522,7 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 				if (u32RcvdAssocRespInfoLen != 0) {
 					PRINT_INFO(vif->ndev, HOSTINF_DBG, "Parsing association response\n");
 					s32Err = wilc_parse_assoc_resp_info(rcv_assoc_resp, u32RcvdAssocRespInfoLen,
-									    &pstrConnectRespInfo);
+													   &pstrConnectRespInfo);
 					if (s32Err) {
 						PRINT_ER(vif->ndev, "wilc_parse_assoc_resp_info() returned error %d\n", s32Err);
 					} else {

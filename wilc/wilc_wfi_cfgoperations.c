@@ -1445,7 +1445,7 @@ static int set_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 
 	for (i = 0; i < priv->pmkid_list.numpmkid; i++)	{
 		if (!memcmp(pmksa->bssid, priv->pmkid_list.pmkidlist[i].bssid,
-			    ETH_ALEN)) {
+					ETH_ALEN)) {
 			flag = PMKID_FOUND;
 			PRINT_INFO(vif->ndev, CFG80211_DBG, "PMKID already exists\n");
 			break;
@@ -1482,7 +1482,7 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 
 	for (i = 0; i < priv->pmkid_list.numpmkid; i++)	{
 		if (!memcmp(pmksa->bssid, priv->pmkid_list.pmkidlist[i].bssid,
-			    ETH_ALEN)) {
+					ETH_ALEN)) {
 			PRINT_INFO(netdev, CFG80211_DBG, "Reseting PMKID values\n");
 			memset(&priv->pmkid_list.pmkidlist[i], 0, sizeof(struct host_if_pmkid));
 			break;

@@ -308,7 +308,7 @@ static int wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
 
 	while (dropped > 0) {
 		if(!wait_for_completion_timeout(&wilc->txq_event,
-			msecs_to_jiffies(1)))
+									msecs_to_jiffies(1)))
 			PRINT_ER(vif->ndev, "completion timedout\n");
 		dropped--;
 	}
@@ -1303,18 +1303,18 @@ static void wilc_wlan_handle_rxq(struct wilc *wilc)
 
 			if (pkt_offset & IS_MANAGMEMENT) {
 				pkt_offset &= ~(IS_MANAGMEMENT |
-						IS_MANAGMEMENT_CALLBACK |
-						IS_MGMT_STATUS_SUCCES);
+							  IS_MANAGMEMENT_CALLBACK |
+							  IS_MGMT_STATUS_SUCCES);
 
 				WILC_WFI_mgmt_rx(wilc, &buffer[offset + HOST_HDR_OFFSET], pkt_len);
 			} else {
 				if (!is_cfg_packet) {
 					if (pkt_len > 0) {
 						frmw_to_linux(wilc,
-							      &buffer[offset],
-							      pkt_len,
-							      pkt_offset,
-							      PKT_STATUS_NEW);
+								      &buffer[offset],
+								      pkt_len,
+								      pkt_offset,
+								      PKT_STATUS_NEW);
 					}
 				} else {
 					struct wilc_cfg_rsp rsp;
@@ -1787,7 +1787,7 @@ int wilc_wlan_cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 			ret_size = 0;
 
 		if (!wait_for_completion_timeout(&wilc->cfg_event,
-						 msecs_to_jiffies(CFG_PKTS_TIMEOUT))) {
+									msecs_to_jiffies(CFG_PKTS_TIMEOUT))) {
 			PRINT_ER(vif->ndev, "Set Timed Out\n");
 			ret_size = 0;
 		}
