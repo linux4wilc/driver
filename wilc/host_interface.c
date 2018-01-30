@@ -984,7 +984,7 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 {
 	s32 result = 0;
 	struct wid wid_list[8];
-	u32 count = 0, dummyval = 0;
+	u32 wid_cnt = 0, dummyval = 0;
 	u8 *pu8CurrByte = NULL;
 	struct join_bss_param *ptstrJoinBssParam;
 	struct host_if_drv *hif_drv = vif->hif_drv;
@@ -1053,29 +1053,29 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 	hif_drv->usr_conn_req.conn_result = pstrHostIFconnectAttr->result;
 	hif_drv->usr_conn_req.arg = pstrHostIFconnectAttr->arg;
 
-	wid_list[count].id = WID_SUCCESS_FRAME_COUNT;
-	wid_list[count].type = WID_INT;
-	wid_list[count].size = sizeof(u32);
-	wid_list[count].val = (s8 *)(&(dummyval));
-	count++;
+	wid_list[wid_cnt].id = WID_SUCCESS_FRAME_COUNT;
+	wid_list[wid_cnt].type = WID_INT;
+	wid_list[wid_cnt].size = sizeof(u32);
+	wid_list[wid_cnt].val = (s8 *)(&(dummyval));
+	wid_cnt++;
 
-	wid_list[count].id = WID_RECEIVED_FRAGMENT_COUNT;
-	wid_list[count].type = WID_INT;
-	wid_list[count].size = sizeof(u32);
-	wid_list[count].val = (s8 *)(&(dummyval));
-	count++;
+	wid_list[wid_cnt].id = WID_RECEIVED_FRAGMENT_COUNT;
+	wid_list[wid_cnt].type = WID_INT;
+	wid_list[wid_cnt].size = sizeof(u32);
+	wid_list[wid_cnt].val = (s8 *)(&(dummyval));
+	wid_cnt++;
 
-	wid_list[count].id = WID_FAILED_COUNT;
-	wid_list[count].type = WID_INT;
-	wid_list[count].size = sizeof(u32);
-	wid_list[count].val = (s8 *)(&(dummyval));
-	count++;
+	wid_list[wid_cnt].id = WID_FAILED_COUNT;
+	wid_list[wid_cnt].type = WID_INT;
+	wid_list[wid_cnt].size = sizeof(u32);
+	wid_list[wid_cnt].val = (s8 *)(&(dummyval));
+	wid_cnt++;
 
-	wid_list[count].id = WID_INFO_ELEMENT_ASSOCIATE;
-	wid_list[count].type = WID_BIN_DATA;
-	wid_list[count].val = hif_drv->usr_conn_req.ies;
-	wid_list[count].size = hif_drv->usr_conn_req.ies_len;
-	count++;
+	wid_list[wid_cnt].id = WID_INFO_ELEMENT_ASSOCIATE;
+	wid_list[wid_cnt].type = WID_BIN_DATA;
+	wid_list[wid_cnt].val = hif_drv->usr_conn_req.ies;
+	wid_list[wid_cnt].size = hif_drv->usr_conn_req.ies_len;
+	wid_cnt++;
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7)) {
 		info_element_size = hif_drv->usr_conn_req.ies_len;
@@ -1083,21 +1083,21 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 		memcpy(info_element, hif_drv->usr_conn_req.ies,
 		       info_element_size);
 	}
-	wid_list[count].id = (u16)WID_11I_MODE;
-	wid_list[count].type = WID_CHAR;
-	wid_list[count].size = sizeof(char);
-	wid_list[count].val = (s8 *)&hif_drv->usr_conn_req.security;
-	count++;
+	wid_list[wid_cnt].id = (u16)WID_11I_MODE;
+	wid_list[wid_cnt].type = WID_CHAR;
+	wid_list[wid_cnt].size = sizeof(char);
+	wid_list[wid_cnt].val = (s8 *)&hif_drv->usr_conn_req.security;
+	wid_cnt++;
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7))
 		mode_11i = hif_drv->usr_conn_req.security;
 
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Encrypt Mode = %x\n", hif_drv->usr_conn_req.security);
-	wid_list[count].id = (u16)WID_AUTH_TYPE;
-	wid_list[count].type = WID_CHAR;
-	wid_list[count].size = sizeof(char);
-	wid_list[count].val = (s8 *)&hif_drv->usr_conn_req.auth_type;
-	count++;
+	wid_list[wid_cnt].id = (u16)WID_AUTH_TYPE;
+	wid_list[wid_cnt].type = WID_CHAR;
+	wid_list[wid_cnt].size = sizeof(char);
+	wid_list[wid_cnt].val = (s8 *)&hif_drv->usr_conn_req.auth_type;
+	wid_cnt++;
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7))
 		auth_type = (u8)hif_drv->usr_conn_req.auth_type;
@@ -1106,21 +1106,21 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Connecting to network of SSID %s on channel %d\n",
 		 hif_drv->usr_conn_req.ssid, pstrHostIFconnectAttr->ch);
 
-	wid_list[count].id = (u16)WID_JOIN_REQ_EXTENDED;
-	wid_list[count].type = WID_STR;
-	wid_list[count].size = 112;
-	wid_list[count].val = kmalloc(wid_list[count].size, GFP_KERNEL);
+	wid_list[wid_cnt].id = (u16)WID_JOIN_REQ_EXTENDED;
+	wid_list[wid_cnt].type = WID_STR;
+	wid_list[wid_cnt].size = 112;
+	wid_list[wid_cnt].val = kmalloc(wid_list[wid_cnt].size, GFP_KERNEL);
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7)) {
-		join_req_size = wid_list[count].size;
+		join_req_size = wid_list[wid_cnt].size;
 		join_req = kmalloc(join_req_size, GFP_KERNEL);
 	}
-	if (!wid_list[count].val) {
+	if (!wid_list[wid_cnt].val) {
 		result = -EFAULT;
 		goto ERRORHANDLER;
 	}
 
-	pu8CurrByte = wid_list[count].val;
+	pu8CurrByte = wid_list[wid_cnt].val;
 
 	if (pstrHostIFconnectAttr->ssid) {
 		memcpy(pu8CurrByte, pstrHostIFconnectAttr->ssid, pstrHostIFconnectAttr->ssid_len);
@@ -1208,8 +1208,8 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "NOA not present\n");
 	}
 
-	pu8CurrByte = wid_list[count].val;
-	count++;
+	pu8CurrByte = wid_list[wid_cnt].val;
+	wid_cnt++;
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7)) {
 		memcpy(join_req, pu8CurrByte, join_req_size);
@@ -1234,7 +1234,7 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 	}
 
 	result = wilc_send_config_pkt(vif, SET_CFG, wid_list,
-				      count,
+				      wid_cnt,
 				      wilc_get_vif_idx(vif));
 	if (result) {
 		PRINT_ER(vif->ndev, "failed to send config packet\n");
@@ -2130,41 +2130,41 @@ static void Handle_GetRssi(struct wilc_vif *vif)
 static s32 Handle_GetStatistics(struct wilc_vif *vif,
 				struct rf_info *pstrStatistics)
 {
-	struct wid strWIDList[5];
-	u32 u32WidsCount = 0, result = 0;
+	struct wid wid_list[5];
+	u32 wid_cnt = 0, result = 0;
 
-	strWIDList[u32WidsCount].id = WID_LINKSPEED;
-	strWIDList[u32WidsCount].type = WID_CHAR;
-	strWIDList[u32WidsCount].size = sizeof(char);
-	strWIDList[u32WidsCount].val = (s8 *)&pstrStatistics->link_speed;
-	u32WidsCount++;
+	wid_list[wid_cnt].id = WID_LINKSPEED;
+	wid_list[wid_cnt].type = WID_CHAR;
+	wid_list[wid_cnt].size = sizeof(char);
+	wid_list[wid_cnt].val = (s8 *)&pstrStatistics->link_speed;
+	wid_cnt++;
 
-	strWIDList[u32WidsCount].id = WID_RSSI;
-	strWIDList[u32WidsCount].type = WID_CHAR;
-	strWIDList[u32WidsCount].size = sizeof(char);
-	strWIDList[u32WidsCount].val = (s8 *)&pstrStatistics->rssi;
-	u32WidsCount++;
+	wid_list[wid_cnt].id = WID_RSSI;
+	wid_list[wid_cnt].type = WID_CHAR;
+	wid_list[wid_cnt].size = sizeof(char);
+	wid_list[wid_cnt].val = (s8 *)&pstrStatistics->rssi;
+	wid_cnt++;
 
-	strWIDList[u32WidsCount].id = WID_SUCCESS_FRAME_COUNT;
-	strWIDList[u32WidsCount].type = WID_INT;
-	strWIDList[u32WidsCount].size = sizeof(u32);
-	strWIDList[u32WidsCount].val = (s8 *)&pstrStatistics->tx_cnt;
-	u32WidsCount++;
+	wid_list[wid_cnt].id = WID_SUCCESS_FRAME_COUNT;
+	wid_list[wid_cnt].type = WID_INT;
+	wid_list[wid_cnt].size = sizeof(u32);
+	wid_list[wid_cnt].val = (s8 *)&pstrStatistics->tx_cnt;
+	wid_cnt++;
 
-	strWIDList[u32WidsCount].id = WID_RECEIVED_FRAGMENT_COUNT;
-	strWIDList[u32WidsCount].type = WID_INT;
-	strWIDList[u32WidsCount].size = sizeof(u32);
-	strWIDList[u32WidsCount].val = (s8 *)&pstrStatistics->rx_cnt;
-	u32WidsCount++;
+	wid_list[wid_cnt].id = WID_RECEIVED_FRAGMENT_COUNT;
+	wid_list[wid_cnt].type = WID_INT;
+	wid_list[wid_cnt].size = sizeof(u32);
+	wid_list[wid_cnt].val = (s8 *)&pstrStatistics->rx_cnt;
+	wid_cnt++;
 
-	strWIDList[u32WidsCount].id = WID_FAILED_COUNT;
-	strWIDList[u32WidsCount].type = WID_INT;
-	strWIDList[u32WidsCount].size = sizeof(u32);
-	strWIDList[u32WidsCount].val = (s8 *)&pstrStatistics->tx_fail_cnt;
-	u32WidsCount++;
+	wid_list[wid_cnt].id = WID_FAILED_COUNT;
+	wid_list[wid_cnt].type = WID_INT;
+	wid_list[wid_cnt].size = sizeof(u32);
+	wid_list[wid_cnt].val = (s8 *)&pstrStatistics->tx_fail_cnt;
+	wid_cnt++;
 
-	result = wilc_send_config_pkt(vif, GET_CFG, strWIDList,
-				      u32WidsCount,
+	result = wilc_send_config_pkt(vif, GET_CFG, wid_list,
+				      wid_cnt,
 				      wilc_get_vif_idx(vif));
 
 	if (result)
