@@ -983,7 +983,7 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 			  struct connect_attr *pstrHostIFconnectAttr)
 {
 	s32 result = 0;
-	struct wid wid[8];
+	struct wid wid_list[8];
 	u32 count = 0, dummyval = 0;
 	u8 *pu8CurrByte = NULL;
 	struct join_bss_param *ptstrJoinBssParam;
@@ -1053,28 +1053,28 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 	hif_drv->usr_conn_req.conn_result = pstrHostIFconnectAttr->result;
 	hif_drv->usr_conn_req.arg = pstrHostIFconnectAttr->arg;
 
-	wid[count].id = WID_SUCCESS_FRAME_COUNT;
-	wid[count].type = WID_INT;
-	wid[count].size = sizeof(u32);
-	wid[count].val = (s8 *)(&(dummyval));
+	wid_list[count].id = WID_SUCCESS_FRAME_COUNT;
+	wid_list[count].type = WID_INT;
+	wid_list[count].size = sizeof(u32);
+	wid_list[count].val = (s8 *)(&(dummyval));
 	count++;
 
-	wid[count].id = WID_RECEIVED_FRAGMENT_COUNT;
-	wid[count].type = WID_INT;
-	wid[count].size = sizeof(u32);
-	wid[count].val = (s8 *)(&(dummyval));
+	wid_list[count].id = WID_RECEIVED_FRAGMENT_COUNT;
+	wid_list[count].type = WID_INT;
+	wid_list[count].size = sizeof(u32);
+	wid_list[count].val = (s8 *)(&(dummyval));
 	count++;
 
-	wid[count].id = WID_FAILED_COUNT;
-	wid[count].type = WID_INT;
-	wid[count].size = sizeof(u32);
-	wid[count].val = (s8 *)(&(dummyval));
+	wid_list[count].id = WID_FAILED_COUNT;
+	wid_list[count].type = WID_INT;
+	wid_list[count].size = sizeof(u32);
+	wid_list[count].val = (s8 *)(&(dummyval));
 	count++;
 
-	wid[count].id = WID_INFO_ELEMENT_ASSOCIATE;
-	wid[count].type = WID_BIN_DATA;
-	wid[count].val = hif_drv->usr_conn_req.ies;
-	wid[count].size = hif_drv->usr_conn_req.ies_len;
+	wid_list[count].id = WID_INFO_ELEMENT_ASSOCIATE;
+	wid_list[count].type = WID_BIN_DATA;
+	wid_list[count].val = hif_drv->usr_conn_req.ies;
+	wid_list[count].size = hif_drv->usr_conn_req.ies_len;
 	count++;
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7)) {
@@ -1083,20 +1083,20 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 		memcpy(info_element, hif_drv->usr_conn_req.ies,
 		       info_element_size);
 	}
-	wid[count].id = (u16)WID_11I_MODE;
-	wid[count].type = WID_CHAR;
-	wid[count].size = sizeof(char);
-	wid[count].val = (s8 *)&hif_drv->usr_conn_req.security;
+	wid_list[count].id = (u16)WID_11I_MODE;
+	wid_list[count].type = WID_CHAR;
+	wid_list[count].size = sizeof(char);
+	wid_list[count].val = (s8 *)&hif_drv->usr_conn_req.security;
 	count++;
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7))
 		mode_11i = hif_drv->usr_conn_req.security;
 
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Encrypt Mode = %x\n", hif_drv->usr_conn_req.security);
-	wid[count].id = (u16)WID_AUTH_TYPE;
-	wid[count].type = WID_CHAR;
-	wid[count].size = sizeof(char);
-	wid[count].val = (s8 *)&hif_drv->usr_conn_req.auth_type;
+	wid_list[count].id = (u16)WID_AUTH_TYPE;
+	wid_list[count].type = WID_CHAR;
+	wid_list[count].size = sizeof(char);
+	wid_list[count].val = (s8 *)&hif_drv->usr_conn_req.auth_type;
 	count++;
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7))
@@ -1106,21 +1106,21 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Connecting to network of SSID %s on channel %d\n",
 		 hif_drv->usr_conn_req.ssid, pstrHostIFconnectAttr->ch);
 
-	wid[count].id = (u16)WID_JOIN_REQ_EXTENDED;
-	wid[count].type = WID_STR;
-	wid[count].size = 112;
-	wid[count].val = kmalloc(wid[count].size, GFP_KERNEL);
+	wid_list[count].id = (u16)WID_JOIN_REQ_EXTENDED;
+	wid_list[count].type = WID_STR;
+	wid_list[count].size = 112;
+	wid_list[count].val = kmalloc(wid_list[count].size, GFP_KERNEL);
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7)) {
-		join_req_size = wid[count].size;
+		join_req_size = wid_list[count].size;
 		join_req = kmalloc(join_req_size, GFP_KERNEL);
 	}
-	if (!wid[count].val) {
+	if (!wid_list[count].val) {
 		result = -EFAULT;
 		goto ERRORHANDLER;
 	}
 
-	pu8CurrByte = wid[count].val;
+	pu8CurrByte = wid_list[count].val;
 
 	if (pstrHostIFconnectAttr->ssid) {
 		memcpy(pu8CurrByte, pstrHostIFconnectAttr->ssid, pstrHostIFconnectAttr->ssid_len);
@@ -1208,7 +1208,7 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "NOA not present\n");
 	}
 
-	pu8CurrByte = wid[count].val;
+	pu8CurrByte = wid_list[count].val;
 	count++;
 
 	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7)) {
@@ -1233,7 +1233,7 @@ static s32 Handle_Connect(struct wilc_vif *vif,
 			 (wilc_connected_ssid[4]), (wilc_connected_ssid[5]));
 	}
 
-	result = wilc_send_config_pkt(vif, SET_CFG, wid,
+	result = wilc_send_config_pkt(vif, SET_CFG, wid_list,
 				      count,
 				      wilc_get_vif_idx(vif));
 	if (result) {
@@ -1694,7 +1694,7 @@ static int Handle_Key(struct wilc_vif *vif,
 {
 	s32 result = 0;
 	struct wid wid;
-	struct wid strWIDList[5];
+	struct wid wid_list[5];
 	u8 i;
 	u8 *pu8keybuf;
 	s8 s8idxarray[1];
@@ -1712,15 +1712,15 @@ static int Handle_Key(struct wilc_vif *vif,
 		if (pstrHostIFkeyAttr->action & ADDKEY_AP) {
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling WEP key\n");
 			PRINT_INFO(vif->ndev, GENERIC_DBG, "ID Hostint is %d\n", (pstrHostIFkeyAttr->attr.wep.index));
-			strWIDList[0].id = (u16)WID_11I_MODE;
-			strWIDList[0].type = WID_CHAR;
-			strWIDList[0].size = sizeof(char);
-			strWIDList[0].val = (s8 *)&pstrHostIFkeyAttr->attr.wep.mode;
+			wid_list[0].id = (u16)WID_11I_MODE;
+			wid_list[0].type = WID_CHAR;
+			wid_list[0].size = sizeof(char);
+			wid_list[0].val = (s8 *)&pstrHostIFkeyAttr->attr.wep.mode;
 
-			strWIDList[1].id = WID_AUTH_TYPE;
-			strWIDList[1].type = WID_CHAR;
-			strWIDList[1].size = sizeof(char);
-			strWIDList[1].val = (s8 *)&pstrHostIFkeyAttr->attr.wep.auth_type;
+			wid_list[1].id = WID_AUTH_TYPE;
+			wid_list[1].type = WID_CHAR;
+			wid_list[1].size = sizeof(char);
+			wid_list[1].val = (s8 *)&pstrHostIFkeyAttr->attr.wep.auth_type;
 
 			pu8keybuf = kmalloc(pstrHostIFkeyAttr->attr.wep.key_len + 2,
 					    GFP_KERNEL);
@@ -1736,13 +1736,13 @@ static int Handle_Key(struct wilc_vif *vif,
 
 			kfree(pstrHostIFkeyAttr->attr.wep.key);
 
-			strWIDList[2].id = (u16)WID_WEP_KEY_VALUE;
-			strWIDList[2].type = WID_STR;
-			strWIDList[2].size = pstrHostIFkeyAttr->attr.wep.key_len + 2;
-			strWIDList[2].val = (s8 *)pu8keybuf;
+			wid_list[2].id = (u16)WID_WEP_KEY_VALUE;
+			wid_list[2].type = WID_STR;
+			wid_list[2].size = pstrHostIFkeyAttr->attr.wep.key_len + 2;
+			wid_list[2].val = (s8 *)pu8keybuf;
 
 			result = wilc_send_config_pkt(vif, SET_CFG,
-						      strWIDList, 3,
+						      wid_list, 3,
 						      wilc_get_vif_idx(vif));
 			kfree(pu8keybuf);
 		} else if (pstrHostIFkeyAttr->action & ADDKEY) {
@@ -1810,18 +1810,18 @@ static int Handle_Key(struct wilc_vif *vif,
 			memcpy(pu8keybuf + 16, pstrHostIFkeyAttr->attr.wpa.key,
 			       pstrHostIFkeyAttr->attr.wpa.key_len);
 
-			strWIDList[0].id = (u16)WID_11I_MODE;
-			strWIDList[0].type = WID_CHAR;
-			strWIDList[0].size = sizeof(char);
-			strWIDList[0].val = (s8 *)&pstrHostIFkeyAttr->attr.wpa.mode;
+			wid_list[0].id = (u16)WID_11I_MODE;
+			wid_list[0].type = WID_CHAR;
+			wid_list[0].size = sizeof(char);
+			wid_list[0].val = (s8 *)&pstrHostIFkeyAttr->attr.wpa.mode;
 
-			strWIDList[1].id = (u16)WID_ADD_RX_GTK;
-			strWIDList[1].type = WID_STR;
-			strWIDList[1].val = (s8 *)pu8keybuf;
-			strWIDList[1].size = RX_MIC_KEY_MSG_LEN;
+			wid_list[1].id = (u16)WID_ADD_RX_GTK;
+			wid_list[1].type = WID_STR;
+			wid_list[1].val = (s8 *)pu8keybuf;
+			wid_list[1].size = RX_MIC_KEY_MSG_LEN;
 
 			result = wilc_send_config_pkt(vif, SET_CFG,
-						      strWIDList, 2,
+						      wid_list, 2,
 						      wilc_get_vif_idx(vif));
 
 			kfree(pu8keybuf);
@@ -1882,18 +1882,18 @@ _WPARxGtk_end_case_:
 			memcpy(pu8keybuf + 8, pstrHostIFkeyAttr->attr.wpa.key,
 			       pstrHostIFkeyAttr->attr.wpa.key_len);
 
-			strWIDList[0].id = (u16)WID_11I_MODE;
-			strWIDList[0].type = WID_CHAR;
-			strWIDList[0].size = sizeof(char);
-			strWIDList[0].val = (s8 *)&pstrHostIFkeyAttr->attr.wpa.mode;
+			wid_list[0].id = (u16)WID_11I_MODE;
+			wid_list[0].type = WID_CHAR;
+			wid_list[0].size = sizeof(char);
+			wid_list[0].val = (s8 *)&pstrHostIFkeyAttr->attr.wpa.mode;
 
-			strWIDList[1].id = (u16)WID_ADD_PTK;
-			strWIDList[1].type = WID_STR;
-			strWIDList[1].val = (s8 *)pu8keybuf;
-			strWIDList[1].size = PTK_KEY_MSG_LEN + 1;
+			wid_list[1].id = (u16)WID_ADD_PTK;
+			wid_list[1].type = WID_STR;
+			wid_list[1].val = (s8 *)pu8keybuf;
+			wid_list[1].size = PTK_KEY_MSG_LEN + 1;
 
 			result = wilc_send_config_pkt(vif, SET_CFG,
-						      strWIDList, 2,
+						      wid_list, 2,
 						      wilc_get_vif_idx(vif));
 			kfree(pu8keybuf);
 			complete(&hif_drv->comp_test_key_block);
