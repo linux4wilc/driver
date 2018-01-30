@@ -388,6 +388,6 @@ extern u8 wilc_multicast_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
 
 extern int wilc_connecting;
 extern u8 wilc_initialized;
-s32 Handle_ScanDone(struct wilc_vif *vif, enum scan_event enuEvent);
+s32 handle_scan_done(struct wilc_vif *vif, enum scan_event enuEvent);
 
 #endif

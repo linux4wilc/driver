@@ -914,7 +914,7 @@ static s32 handle_scan(struct wilc_vif *vif, struct scan_attr *scan_info)
 ERRORHANDLER:
 	if (result) {
 		del_timer(&hif_drv->scan_timer);
-		Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
+		handle_scan_done(vif, SCAN_EVENT_ABORTED);
 	}
 
 	kfree(scan_info->ch_freq_list);
@@ -930,8 +930,7 @@ ERRORHANDLER:
 	return result;
 }
 
-s32 Handle_ScanDone(struct wilc_vif *vif,
-			   enum scan_event enuEvent)
+s32 handle_scan_done(struct wilc_vif *vif, enum scan_event enuEvent)
 {
 	s32 result = 0;
 	u8 u8abort_running_scan;
@@ -939,7 +938,7 @@ s32 Handle_ScanDone(struct wilc_vif *vif,
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	u8 null_bssid[6] = {0};
 
-	PRINT_INFO(vif->ndev, HOSTINF_DBG,"in Handle_ScanDone()\n");
+	PRINT_INFO(vif->ndev, HOSTINF_DBG,"in handle_scan_done()\n");
 
 	if (!hif_drv) {
 		PRINT_ER(vif->ndev, "Driver handler is NULL\n");
@@ -1628,7 +1627,7 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 			if (hif_drv->usr_scan_req.scan_result) {
 				PRINT_INFO(vif->ndev, HOSTINF_DBG, "\n\n<< Abort the running OBSS Scan >>\n\n");
 				del_timer(&hif_drv->scan_timer);
-				Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
+				handle_scan_done(vif, SCAN_EVENT_ABORTED);
 			}
 
 			strDisconnectNotifInfo.reason = 0;
@@ -1679,7 +1678,7 @@ static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
 			PRINT_WRN(vif->ndev, HOSTINF_DBG, "\n\n<< Abort the running Scan >>\n\n");
 			del_timer(&hif_drv->scan_timer);
 			if (hif_drv->usr_scan_req.scan_result)
-				Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
+				handle_scan_done(vif, SCAN_EVENT_ABORTED);
 		}
 	}
 
@@ -1982,7 +1981,7 @@ static void Handle_Disconnect(struct wilc_vif *vif)
 			PRINT_INFO(vif->ndev, GENERIC_DBG,"Abort Scan before disconnecting. WLAN_IFC is in state [%d]\n",
 				hif_drv_wlan->hif_state);
 			del_timer(&(hif_drv_wlan->scan_timer));
-			Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
+			handle_scan_done(vif, SCAN_EVENT_ABORTED);
 		}
 	}
 	if (hif_drv_p2p != NULL) {
@@ -1990,7 +1989,7 @@ static void Handle_Disconnect(struct wilc_vif *vif)
 			PRINT_INFO(vif->ndev, GENERIC_DBG,"Abort Scan before disconnecting. P2P_IFC is in state [%d]\n",
 				 hif_drv_p2p->hif_state);
 			del_timer(&(hif_drv_p2p->scan_timer));
-			Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
+			handle_scan_done(vif, SCAN_EVENT_ABORTED);
 		}
 	}
 	wid.id = (u16)WID_DISCONNECT;
@@ -2919,7 +2918,7 @@ static void host_if_work(struct work_struct *work)
 		del_timer(&vif->hif_drv->scan_timer);
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "scan completed successfully\n");
 
-		Handle_ScanDone(vif, SCAN_EVENT_DONE);
+		handle_scan_done(vif, SCAN_EVENT_DONE);
 
 		if (vif->hif_drv->remain_on_ch_pending)
 			Handle_RemainOnChan(vif,
@@ -2961,7 +2960,7 @@ static void host_if_work(struct work_struct *work)
 
 	case HOST_IF_MSG_SCAN_TIMER_FIRED:
 		PRINT_D(vif->ndev, HOSTINF_DBG, "Scan Timeout\n");
-		Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
+		handle_scan_done(vif, SCAN_EVENT_ABORTED);
 		break;
 
 	case HOST_IF_MSG_CONNECT_TIMER_FIRED:

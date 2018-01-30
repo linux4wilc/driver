@@ -245,7 +245,7 @@ static int debug_thread(void *arg)
 						if (hif_drv->usr_scan_req.scan_result) {
 							PRINT_INFO(vif->ndev, GENERIC_DBG, "\n\n<< Abort the running OBSS Scan >>\n\n");
 							del_timer(&hif_drv->scan_timer);
-							Handle_ScanDone(vif, SCAN_EVENT_ABORTED);
+							handle_scan_done(vif, SCAN_EVENT_ABORTED);
 						}
 						strDisconnectNotifInfo.reason = 0;
 						strDisconnectNotifInfo.ie = NULL;
