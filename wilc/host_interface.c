@@ -13,6 +13,7 @@
 #include "linux_wlan.h"
 #include "wilc_wlan_if.h"
 #include <linux/etherdevice.h>
+#include <linux/version.h>
 #include "wilc_wfi_netdevice.h"
 
 #define HOST_IF_MSG_SCAN                        0
@@ -2170,6 +2171,30 @@ static s32 Handle_GetStatistics(struct wilc_vif *vif,
 		complete(&hif_wait_response);
 	return 0;
 }
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
+/**
+ * ether_addr_copy - Copy an Ethernet address
+ * @dst: Pointer to a six-byte array Ethernet address destination
+ * @src: Pointer to a six-byte array Ethernet address source
+ *
+ * Please note: dst & src must both be aligned to u16.
+ */
+static inline void ether_addr_copy(u8 *dst, const u8 *src)
+{
+#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
+	*(u32 *)dst = *(const u32 *)src;
+	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
+#else
+	u16 *a = (u16 *)dst;
+	const u16 *b = (const u16 *)src;
+
+	a[0] = b[0];
+	a[1] = b[1];
+	a[2] = b[2];
+#endif
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0) */
 
 static s32 Handle_Get_InActiveTime(struct wilc_vif *vif,
 				   struct sta_inactive_t *strHostIfStaInactiveT)
