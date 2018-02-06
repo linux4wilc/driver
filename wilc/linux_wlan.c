@@ -30,6 +30,7 @@
 #include <linux/pm_runtime.h>
 
 #include <linux/of_gpio.h>
+#include <linux/version.h>
 
 #include "linux_wlan.h"
 
@@ -551,7 +552,25 @@ void eap_buff_timeout(unsigned long user)
 		PRINT_ER(vif->ndev, "Failed so send buffered eap\n");
 }
 
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
+/**
+ * ether_addr_equal_unaligned - Compare two not u16 aligned Ethernet addresses
+ * @addr1: Pointer to a six-byte array containing the Ethernet address
+ * @addr2: Pointer other six-byte array containing the Ethernet address
+ *
+ * Compare two Ethernet addresses, returns true if equal
+ *
+ * Please note: Use only when any Ethernet address may not be u16 aligned.
+ */
+static inline bool ether_addr_equal_unaligned(const u8 *addr1, const u8 *addr2)
+{
+#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
+	return ether_addr_equal(addr1, addr2);
+#else
+	return memcmp(addr1, addr2, ETH_ALEN) == 0;
+#endif
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0) */
 
 static struct net_device *get_if_handler(struct wilc *wilc, u8 *mac_header)
 {
