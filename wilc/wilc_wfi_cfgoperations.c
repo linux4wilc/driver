@@ -252,21 +252,28 @@ static void refresh_scan(struct wilc_priv *priv, bool direct_scan)
 		if (!memcmp("DIRECT-", network_info->ssid, 7) && !direct_scan)
 			continue;
 
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 		freq = ieee80211_channel_to_frequency((s32)network_info->ch,
-						      NL80211_BAND_2GHZ);
+											  NL80211_BAND_2GHZ);
+	#else
+		freq = ieee80211_channel_to_frequency((s32)network_info->ch,
+											  IEEE80211_BAND_2GHZ);
+	#endif
 		channel = ieee80211_get_channel(wiphy, freq);
 		rssi = get_rssi_avg(network_info);
 		bss = cfg80211_inform_bss(wiphy,
-					  channel,
-					  CFG80211_BSS_FTYPE_UNKNOWN,
-					  network_info->bssid,
-					  network_info->tsf_hi,
-					  network_info->cap_info,
-					  network_info->beacon_period,
-					  (const u8 *)network_info->ies,
-					  (size_t)network_info->ies_len,
-					  (s32)rssi * 100,
-					  GFP_KERNEL);
+								  channel,
+							#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)
+								  CFG80211_BSS_FTYPE_UNKNOWN,
+							#endif
+								  network_info->bssid,
+								  network_info->tsf_hi,
+								  network_info->cap_info,
+								  network_info->beacon_period,
+								  (const u8 *)network_info->ies,
+								  (size_t)network_info->ies_len,
+								  (s32)rssi * 100,
+								  GFP_KERNEL);
 		cfg80211_put_bss(wiphy, bss);
 	}
 }
@@ -434,16 +441,18 @@ static void CfgScanResult(enum scan_event scan_event,
 
 						if (!(memcmp("DIRECT-", network_info->ssid, 7))) {
 							bss = cfg80211_inform_bss(wiphy,
-										  channel,
-										  CFG80211_BSS_FTYPE_UNKNOWN,
-										  network_info->bssid,
-										  network_info->tsf_hi,
-										  network_info->cap_info,
-										  network_info->beacon_period,
-										  (const u8 *)network_info->ies,
-										  (size_t)network_info->ies_len,
-										  (s32)network_info->rssi * 100,
-										  GFP_KERNEL);
+													  channel,
+												#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)
+													  CFG80211_BSS_FTYPE_UNKNOWN,
+												#endif
+													  network_info->bssid,
+													  network_info->tsf_hi,
+													  network_info->cap_info,
+													  network_info->beacon_period,
+													  (const u8 *)network_info->ies,
+													  (size_t)network_info->ies_len,
+													  (s32)network_info->rssi * 100,
+													  GFP_KERNEL);
 							cfg80211_put_bss(wiphy, bss);
 						}
 					} else {
@@ -1296,8 +1305,13 @@ static int set_default_key(struct wiphy *wiphy, struct net_device *netdev, u8 ke
 	return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0)
 static int get_station(struct wiphy *wiphy, struct net_device *dev,
-		       const u8 *mac, struct station_info *sinfo)
+					   const u8 *mac, struct station_info *sinfo)
+#else
+static int get_station(struct wiphy *wiphy, struct net_device *dev,
+					   u8 *mac, struct station_info *sinfo)
+#endif
 {
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
@@ -1349,8 +1363,9 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 						BIT(NL80211_STA_INFO_TX_FAILED) |
 						BIT(NL80211_STA_INFO_TX_BITRATE);
 #else
-		sinfo->filled |= STATION_INFO_SIGNAL | STATION_INFO_RX_PACKETS | STATION_INFO_TX_PACKETS
-			| STATION_INFO_TX_FAILED | STATION_INFO_TX_BITRATE;
+		sinfo->filled |= STATION_INFO_SIGNAL | STATION_INFO_RX_PACKETS |
+						 STATION_INFO_TX_PACKETS | STATION_INFO_TX_FAILED |
+						 STATION_INFO_TX_BITRATE;
 #endif
 		sinfo->signal = strStatistics.rssi;
 		sinfo->rx_packets = strStatistics.rx_cnt;
@@ -1788,15 +1803,23 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 	return s32Error;
 }
 
-static int mgmt_tx(struct wiphy *wiphy,
-		   struct wireless_dev *wdev,
-		   struct cfg80211_mgmt_tx_params *params,
-		   u64 *cookie)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
+static int mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
+				   struct cfg80211_mgmt_tx_params *params,
+				   u64 *cookie)
+#else
+static int mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
+				   struct ieee80211_channel *chan, bool offchan,
+				   unsigned int wait, const u8 *buf, size_t len,
+				   bool no_cck, bool dont_wait_for_ack, u64 *cookie)
+#endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
 	struct ieee80211_channel *chan = params->chan;
 	unsigned int wait = params->wait;
 	const u8 *buf = params->buf;
 	size_t len = params->len;
+#endif
 	const struct ieee80211_mgmt *mgmt;
 	struct p2p_mgmt_data *mgmt_tx;
 	struct wilc_priv *priv;
@@ -2044,12 +2067,13 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0)
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
-			       enum nl80211_iftype type, u32 *flags, struct vif_params *params)
+							   enum nl80211_iftype type, struct vif_params *params)
 #else
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
-			       enum nl80211_iftype type, struct vif_params *params)
+							   enum nl80211_iftype type, u32 *flags, 
+							   struct vif_params *params)
 #endif
 {
 	struct wilc_priv *priv;
@@ -2232,8 +2256,13 @@ static int stop_ap(struct wiphy *wiphy, struct net_device *dev)
 	return s32Error;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0)
 static int add_station(struct wiphy *wiphy, struct net_device *dev,
-		       const u8 *mac, struct station_parameters *params)
+					   const u8 *mac, struct station_parameters *params)
+#else
+static int add_station(struct wiphy *wiphy, struct net_device *dev,
+					   u8 *mac, struct station_parameters *params)
+#endif
 {
 	s32 s32Error = 0;
 	struct wilc_priv *priv;
@@ -2284,11 +2313,15 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 	return s32Error;
 }
 
-static int del_station(struct wiphy *wiphy, struct net_device *dev,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
-		       struct station_del_parameters *params)
+static int del_station(struct wiphy *wiphy, struct net_device *dev,
+					   struct station_del_parameters *params)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)
+static int del_station(struct wiphy *wiphy, struct net_device *dev,
+					   const u8 *mac)
 #else
-				const u8 *mac)
+static int del_station(struct wiphy *wiphy, struct net_device *dev,
+					   u8 *mac)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
@@ -2322,8 +2355,13 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 	return s32Error;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)
 static int change_station(struct wiphy *wiphy, struct net_device *dev,
-			  const u8 *mac, struct station_parameters *params)
+						  const u8 *mac, struct station_parameters *params)
+#else
+static int change_station(struct wiphy *wiphy, struct net_device *dev,
+						  u8 *mac, struct station_parameters *params)
+#endif
 {
 	s32 s32Error = 0;
 	struct wilc_priv *priv;
@@ -2373,26 +2411,31 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 	return s32Error;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
-static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy, 
-					     const char *name,
-					     enum nl80211_iftype type, 
-						 u32 *flags,
-					     struct vif_params *params)
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
 static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
-					     const char *name,
-					     unsigned char name_assign_type,
-					     enum nl80211_iftype type,
-					     u32 *flags,
-					     struct vif_params *params)
+											 const char *name,
+											 unsigned char name_assign_type,
+											 enum nl80211_iftype type,
+											 struct vif_params *params)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
+											 const char *name,
+											 unsigned char name_assign_type,
+											 enum nl80211_iftype type,
+											 u32 *flags,
+											 struct vif_params *params)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
+											 const char *name,
+											 enum nl80211_iftype type,
+											 u32 *flags,
+											 struct vif_params *params)
 #else
 static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
-					     const char *name,
-					     unsigned char name_assign_type,
-					     enum nl80211_iftype type,
-					     struct vif_params *params)
-
+											  char *name,
+											 enum nl80211_iftype type,
+											 u32 *flags,
+											 struct vif_params *params)
 #endif
 {
 	struct wilc_vif *vif;
@@ -2612,7 +2655,11 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net, struct device *de
 	priv = wdev_priv(wdev);
 	priv->wdev = wdev;
 	wdev->wiphy->max_scan_ssids = MAX_NUM_PROBED_SSID;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)
 	wdev->wiphy->wowlan = &wowlan_support;
+#else
+	wdev->wiphy->wowlan = wowlan_support;
+#endif
 	wdev->wiphy->max_num_pmkids = WILC_MAX_NUM_PMKIDS;
 	PRINT_D(net, CFG80211_DBG, "Max number of PMKIDs = %d\n", wdev->wiphy->max_num_pmkids);
 	wdev->wiphy->max_scan_ie_len = 1000;
