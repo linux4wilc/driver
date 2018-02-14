@@ -574,7 +574,7 @@ void eap_buff_timeout(unsigned long user)
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
-/**
+/*
  * ether_addr_equal_unaligned - Compare two not u16 aligned Ethernet addresses
  * @addr1: Pointer to a six-byte array containing the Ethernet address
  * @addr2: Pointer other six-byte array containing the Ethernet address

@@ -185,7 +185,7 @@ static int mon_mgmt_tx(struct net_device *dev, const u8 *buf, size_t len)
 	return 0;
 }
 
-/**
+/*
  *  @brief      WILC_WFI_mon_xmit
  *  @details
  *  @param[in]
@@ -243,7 +243,7 @@ static const struct net_device_ops wilc_wfi_netdev_ops = {
 
 };
 
-/**
+/*
  *  @brief      WILC_WFI_init_mon_interface
  *  @details
  *  @param[in]
@@ -288,7 +288,7 @@ struct net_device *WILC_WFI_init_mon_interface(const char *name,
 	return wilc_wfi_mon;
 }
 
-/**
+/*
  *  @brief      WILC_WFI_deinit_mon_interface
  *  @details
  *  @param[in]
