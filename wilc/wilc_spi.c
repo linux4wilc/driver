@@ -1097,14 +1097,18 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 		 * is removed but chip isn't reset
 		 */
 		g_spi.crc_off = 1;
-		dev_err(&spi->dev, "Failed internal read protocol with CRC on, retrying with CRC off...\n");
+		dev_err(&spi->dev,
+		       "Failed read with CRC on, retrying with CRC off...\n");
 		if (!spi_internal_read(wilc, WILC_SPI_PROTOCOL_OFFSET, &reg)) {
-			/* Reaad failed with both CRC on and off, something went bad */
+			/* 
+			 * Reaad failed with both CRC on and off,
+			 * something went bad
+			 */
 			dev_err(&spi->dev, "Failed internal read protocol...\n");
 			return 0;
 		}
 	}
-	if (g_spi.crc_off == 0)	{
+	if (g_spi.crc_off == 0) {
 		reg &= ~0xc;    /* disable crc checking */
 		reg &= ~0x70;
 		reg |= (0x5 << 4);
