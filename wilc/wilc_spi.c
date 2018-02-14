@@ -1172,8 +1172,7 @@ static int wilc_spi_clear_int_ext(struct wilc *wilc, u32 val)
 {
 	int ret;
 
-	ret = spi_internal_write(wilc, 0xe844 - WILC_SPI_REG_BASE,
-				 val);
+	ret = spi_internal_write(wilc, 0xe844 - WILC_SPI_REG_BASE, val);
 	return ret;
 }
 
