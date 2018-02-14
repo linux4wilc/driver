@@ -560,10 +560,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 	    cmd == CMD_REPEAT)
 		rix++;         /* skip 1 byte */
 
-	/* do { */
 	rsp = rb[rix++];
-	/*	if(rsp == cmd) break; */
-	/* } while(&rptr[1] <= &rb[len2]); */
 
 	if (rsp != cmd) {
 		dev_err(&spi->dev, "Failed cmd response, cmd (%02x)"
@@ -584,7 +581,6 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 	if (cmd == CMD_INTERNAL_READ || cmd == CMD_SINGLE_READ ||
 	    cmd == CMD_DMA_READ || cmd == CMD_DMA_EXT_READ) {
 		int retry;
-		/* u16 crc1, crc2; */
 		u8 crc[2];
 		/*
 		 * Data Respnose header
@@ -743,7 +739,6 @@ static int spi_data_write(struct wilc *wilc, u8 *b, u32 sz)
 	int ix, nbytes;
 	int result = 1;
 	u8 cmd, order, crc[2] = {0};
-	/* u8 rsp; */
 
 	/*
 	 * Data
@@ -1129,7 +1124,6 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 		dev_err(&spi->dev, "Fail cmd read chip id...\n");
 		return 0;
 	}
-	/* dev_err(&spi->dev, "chipid (%08x)\n", chipid); */
 
 	if (!resume) {
 		chipid = wilc_get_chipid(wilc, true);
