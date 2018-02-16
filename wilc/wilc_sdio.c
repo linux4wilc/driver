@@ -500,7 +500,7 @@ static int sdio_write_reg(struct wilc *wilc, u32 addr, u32 data)
 		cmd.increment = 1;
 		cmd.count = 4;
 		cmd.buffer = (u8 *)&data;
-		cmd.block_size = g_sdio.block_size; /* johnny : prevent it from setting unexpected value */
+		cmd.block_size = g_sdio.block_size;
 		ret = wilc_sdio_cmd53(wilc, &cmd);
 		if (!ret) {
 			dev_err(&func->dev,
@@ -584,7 +584,7 @@ static int sdio_write(struct wilc *wilc, u32 addr, u8 *buf, u32 size)
 		cmd.count = nleft;
 		cmd.buffer = buf;
 
-		cmd.block_size = block_size; /* johnny : prevent it from setting unexpected value */
+		cmd.block_size = block_size;
 
 		if (addr > 0) {
 			if (!sdio_set_func0_csa_address(wilc, addr))
@@ -638,7 +638,7 @@ static int sdio_read_reg(struct wilc *wilc, u32 addr, u32 *data)
 		cmd.count = 4;
 		cmd.buffer = (u8 *)data;
 
-		cmd.block_size = g_sdio.block_size; /* johnny : prevent it from setting unexpected value */
+		cmd.block_size = g_sdio.block_size;
 		ret = wilc_sdio_cmd53(wilc, &cmd);
 		if (!ret) {
 			dev_err(&func->dev,
@@ -724,7 +724,7 @@ static int sdio_read(struct wilc *wilc, u32 addr, u8 *buf, u32 size)
 		cmd.count = nleft;
 		cmd.buffer = buf;
 
-		cmd.block_size = block_size; /* johnny : prevent it from setting unexpected value */
+		cmd.block_size = block_size;
 
 		if (addr > 0) {
 			if (!sdio_set_func0_csa_address(wilc, addr))
