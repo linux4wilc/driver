@@ -481,7 +481,8 @@ int wilc_wlan_cfg_get_wid(u8 *frame, u32 offset, u16 id)
 	return 2;
 }
 
-int wilc_wlan_cfg_get_wid_value(struct wilc_vif *vif, u16 wid, u8 *buffer, u32 buffer_size)
+int wilc_wlan_cfg_get_wid_value(struct wilc_vif *vif, u16 wid, u8 *buffer,
+				    u32 buffer_size)
 {
 	u32 type = (wid >> 12) & 0xf;
 	int i, ret = 0;
@@ -530,39 +531,43 @@ int wilc_wlan_cfg_get_wid_value(struct wilc_vif *vif, u16 wid, u8 *buffer, u32 b
 		} while (1);
 	} else if (type == CFG_STR_CMD) {
 		do {
-			if (g_cfg_str[i].id == WID_NIL)
+			u32 id = g_cfg_str[i].id;
+			if (id == WID_NIL)
 				break;
 
-			if (g_cfg_str[i].id == wid) {
+			if (id == wid) {
 				u32 size = g_cfg_str[i].str[0] |
 						(g_cfg_str[i].str[1] << 8);
 
 				if (buffer_size >= size) {
-					if (g_cfg_str[i].id == WID_SITE_SURVEY_RESULTS)	{
+					if (id == WID_SITE_SURVEY_RESULTS) {
 						static int toggle;
 
-						PRINT_D(vif->ndev, GENERIC_DBG,"Site survey results%d\n",
+						PRINT_D(vif->ndev, GENERIC_DBG,
+							 "Site survey results%d\n",
 							 size);
 						i += toggle;
 						toggle ^= 1;
 					}
 					memcpy(buffer,  &g_cfg_str[i].str[2],
-					       size);
+					        size);
 					ret = size;
 				}
 				break;
 			}
 			i++;
 		} while (1);
-	} else if (type == CFG_BIN_CMD) {			/* binary command */
+	} else if (type == CFG_BIN_CMD) { /* binary command */
 		do {
 			if (g_cfg_bin[i].id == WID_NIL)
 				break;
 
 			if (g_cfg_bin[i].id == wid) {
-				uint32_t size =  (g_cfg_bin[i].bin[0])|(g_cfg_bin[i].bin[1]<<8);
+				uint32_t size = g_cfg_bin[i].bin[0] | 
+					     (g_cfg_bin[i].bin[1]<<8);
 				if (buffer_size >= size) {					
-					memcpy(buffer,  &g_cfg_bin[i].bin[2], size);
+					memcpy(buffer, &g_cfg_bin[i].bin[2],
+						size);
 					ret = size;
 				}
 				break;
