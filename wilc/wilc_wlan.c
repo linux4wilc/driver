@@ -969,6 +969,8 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 	u8 ac_pkt_num_to_chip[NQUEUES] = {0, 0, 0, 0};
 	struct wilc_vif *vif;
 	struct wilc *wilc;
+	const struct wilc_hif_func *func;
+
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
 
@@ -1046,12 +1048,14 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 
 			acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_WIFI);
 			counter = 0;
+			func = wilc->hif_func;
 			do {
-				ret = wilc->hif_func->hif_read_reg(wilc,
-								   WILC_HOST_TX_CTRL,
-								   &reg);
+				ret = func->hif_read_reg(wilc,
+						      WILC_HOST_TX_CTRL,
+						      &reg);
 				if (!ret) {
-					PRINT_ER(vif->ndev, "[wilc txq]: fail can't read reg vmm_tbl_entry..\n");
+					PRINT_ER(vif->ndev,
+						  "fail read reg vmm_tbl_entry..\n");
 					break;
 				}
 				if ((reg & 0x1) == 0){
@@ -1063,8 +1067,11 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 				counter++;
 				if (counter > 200) {
 					counter = 0;
-					PRINT_INFO(vif->ndev, TX_DBG,"Looping in tx ctrl , force quit\n");
-					ret = wilc->hif_func->hif_write_reg(wilc, WILC_HOST_TX_CTRL, 0);
+					PRINT_INFO(vif->ndev, TX_DBG,
+						    "Looping in tx ctrl , force quit\n");
+					ret = func->hif_write_reg(wilc,
+							      WILC_HOST_TX_CTRL,
+							      0);
 					break;
 				}
 			} while (!wilc->quit);
@@ -1074,9 +1081,13 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 
 			timeout = 200;
 			do {
-				ret = wilc->hif_func->hif_block_tx(wilc, WILC_VMM_TBL_RX_SHADOW_BASE, (u8 *)vmm_table, ((i + 1) * 4));
+				ret = func->hif_block_tx(wilc,
+						     WILC_VMM_TBL_RX_SHADOW_BASE,
+						     (u8 *)vmm_table,
+						     ((i + 1) * 4));
 				if (!ret) {
-					PRINT_ER(vif->ndev, "ERR block TX of VMM table.\n");
+					PRINT_ER(vif->ndev,
+						  "ERR block TX of VMM table.\n");
 					break;
 				}
 				
@@ -1085,14 +1096,15 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 									    WILC_HOST_VMM_CTL,
 									    0x2);
 					if (!ret) {
-						PRINT_ER(vif->ndev, "[wilc txq]: fail can't write reg host_vmm_ctl..\n");
+						PRINT_ER(vif->ndev, 
+							  "fail write reg host_vmm_ctl..\n");
 						break;
 					}
 
 					do {
-						ret = wilc->hif_func->hif_read_reg(wilc,
-										   WILC_HOST_VMM_CTL,
-										   &reg);
+						ret = func->hif_read_reg(wilc,
+								      WILC_HOST_VMM_CTL,
+								      &reg);
 						if (!ret)
 							break;
 						if ((reg >> 2) & 0x1) {
@@ -1101,38 +1113,42 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 						}
 					} while (--timeout);
 				} else {
-					ret = wilc->hif_func->hif_write_reg(wilc,
-									    WILC_HOST_VMM_CTL,
-									    0);
+					ret = func->hif_write_reg(wilc,
+							      WILC_HOST_VMM_CTL,
+							      0);
 					if (!ret) {
-						PRINT_ER(vif->ndev, "[wilc txq]: fail can't write reg host_vmm_ctl..\n");
+						PRINT_ER(vif->ndev, 
+							  "fail write reg host_vmm_ctl..\n");
 						break;
 					}
 					/* interrupt firmware */
-					ret = wilc->hif_func->hif_write_reg(wilc,
-									    WILC_INTERRUPT_CORTUS_0,
-									    1);
+					ret = func->hif_write_reg(wilc,
+							      WILC_INTERRUPT_CORTUS_0,
+							      1);
 					if (!ret) {
-						PRINT_ER(vif->ndev, "[wilc txq]: fail can't write reg WILC_INTERRUPT_CORTUS_0..\n");
+						PRINT_ER(vif->ndev,
+							  "fail write reg WILC_INTERRUPT_CORTUS_0..\n");
 						break;
 					}
 
 					do {
-						ret = wilc->hif_func->hif_read_reg(wilc,
-										   WILC_INTERRUPT_CORTUS_0,
-										   &reg);
+						ret = func->hif_read_reg(wilc,
+								      WILC_INTERRUPT_CORTUS_0,
+								      &reg);
 						if (!ret) {
-							PRINT_ER(vif->ndev, "[wilc txq]: fail can't read reg WILC_INTERRUPT_CORTUS_0..\n");
+							PRINT_ER(vif->ndev,
+								  "fail read reg WILC_INTERRUPT_CORTUS_0..\n");
 							break;
 						}
 						if (reg == 0) {
 							// Get the entries
 
-							ret = wilc->hif_func->hif_read_reg(wilc,
-											   WILC_HOST_VMM_CTL,
-											   &reg);
+							ret = func->hif_read_reg(wilc,
+									      WILC_HOST_VMM_CTL,
+									      &reg);
 							if (!ret) {
-								PRINT_ER(vif->ndev, "[wilc txq]: fail can't read reg host_vmm_ctl..\n");
+								PRINT_ER(vif->ndev,
+									  "fail read reg host_vmm_ctl..\n");
 								break;
 							}
 							entries = ((reg >> 3) & 0x3f);
@@ -1141,9 +1157,9 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 					} while (--timeout);
 				}
 				if (timeout <= 0) {
-					ret = wilc->hif_func->hif_write_reg(wilc,
-									    WILC_HOST_VMM_CTL,
-									    0x0);
+					ret = func->hif_write_reg(wilc,
+							      WILC_HOST_VMM_CTL,
+							      0x0);
 					break;
 				}
 
@@ -1151,20 +1167,24 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 					break;
 
 				if (entries == 0) {
-					PRINT_INFO(vif->ndev, TX_DBG, "[wilc txq]: no more buffer in the chip (reg: %08x), retry later [[ %d, %x ]] \n",reg, i, vmm_table[i-1]);
-					ret = wilc->hif_func->hif_read_reg(wilc,
-									   WILC_HOST_TX_CTRL,
-									   &reg);
+					PRINT_INFO(vif->ndev, TX_DBG,
+						    "no buffer in the chip (reg: %08x), retry later [[ %d, %x ]] \n",
+						    reg, i, vmm_table[i-1]);
+					ret = func->hif_read_reg(wilc,
+							      WILC_HOST_TX_CTRL,
+							      &reg);
 					if (!ret) {
-						PRINT_ER(vif->ndev, "[wilc txq]: fail can't read reg WILC_HOST_TX_CTRL..\n");
+						PRINT_ER(vif->ndev,
+							  "fail read reg WILC_HOST_TX_CTRL..\n");
 						break;
 					}
 					reg &= ~BIT(0);
 					ret = wilc->hif_func->hif_write_reg(wilc,
-									    WILC_HOST_TX_CTRL,
-									    reg);
+								      WILC_HOST_TX_CTRL,
+								      reg);
 					if (!ret) {
-						PRINT_ER(vif->ndev, "[wilc txq]: fail can't write reg WILC_HOST_TX_CTRL..\n");
+						PRINT_ER(vif->ndev,
+							  "fail write reg WILC_HOST_TX_CTRL..\n");
 						break;
 					}
 					break;
@@ -1237,17 +1257,20 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 			for(i = 0; i < NQUEUES; i++)
 				ac_fw_count[i] += ac_pkt_num_to_chip[i];
 
-			acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_WIFI);
+			acquire_bus(wilc, ACQUIRE_AND_WAKEUP, 
+				    PWR_DEV_SRC_WIFI);
 
-			ret = wilc->hif_func->hif_clear_int_ext(wilc, ENABLE_TX_VMM);
+			ret = func->hif_clear_int_ext(wilc, ENABLE_TX_VMM);
 			if (!ret) {
-				PRINT_ER(vif->ndev, "[wilc txq]: fail can't start tx VMM ...\n");
+				PRINT_ER(vif->ndev,
+					  "fail start tx VMM ...\n");
 				goto _end_;
 			}
 
-			ret = wilc->hif_func->hif_block_tx_ext(wilc, 0, txb, offset);
+			ret = func->hif_block_tx_ext(wilc, 0, txb, offset);
 			if(!ret)
-				PRINT_ER(vif->ndev, "[wilc txq]: fail can't block tx ext...\n");
+				PRINT_ER(vif->ndev, 
+					  "fail block tx ext...\n");
 
 _end_:
 
