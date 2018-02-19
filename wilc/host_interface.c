@@ -3115,13 +3115,13 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 	return result;
 }
 
-s32 wilc_remove_key(struct wilc_vif *vif, const u8 *pu8StaAddress)
+s32 wilc_remove_key(struct wilc_vif *vif, const u8 *sta_addr)
 {
 	struct wid wid;
 
 	wid.id = (u16)WID_REMOVE_KEY;
 	wid.type = WID_STR;
-	wid.val = (s8 *)pu8StaAddress;
+	wid.val = (s8 *)sta_addr;
 	wid.size = 6;
 
 	return 0;
