@@ -2694,9 +2694,9 @@ _done_:
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-static void ListenTimerCB(struct timer_list *t)
+static void listen_timer_cb(struct timer_list *t)
 #else
-static void ListenTimerCB(unsigned long arg)
+static void listen_timer_cb(unsigned long arg)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
@@ -3859,11 +3859,11 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 	timer_setup(&hif_drv->scan_timer, timer_scan_cb, 0);
 	timer_setup(&hif_drv->connect_timer, timer_connect_cb, 0);
-	timer_setup(&hif_drv->remain_on_ch_timer, ListenTimerCB, 0);
+	timer_setup(&hif_drv->remain_on_ch_timer, listen_timer_cb, 0);
 #else
 	setup_timer(&hif_drv->scan_timer, timer_scan_cb, 0);
 	setup_timer(&hif_drv->connect_timer, timer_connect_cb, 0);
-	setup_timer(&hif_drv->remain_on_ch_timer, ListenTimerCB, 0);
+	setup_timer(&hif_drv->remain_on_ch_timer, listen_timer_cb, 0);
 #endif
 
 	mutex_init(&hif_drv->cfg_values_lock);
