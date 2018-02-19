@@ -978,7 +978,7 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event enuEvent)
 }
 
 u8 wilc_connected_ssid[6] = {0};
-static s32 Handle_Connect(struct wilc_vif *vif,
+static s32 handle_connect(struct wilc_vif *vif,
 			  struct connect_attr *pstrHostIFconnectAttr)
 {
 	s32 result = 0;
@@ -1377,7 +1377,7 @@ static s32 handle_connect_timeout(struct wilc_vif *vif)
 	return result;
 }
 
-static s32 Handle_RcvdNtwrkInfo(struct wilc_vif *vif,
+static s32 handle_rcvd_ntwrk_info(struct wilc_vif *vif,
 				struct rcvd_net_info *rcvd_info)
 {
 	u32 i;
@@ -1462,7 +1462,7 @@ static s32 host_int_get_assoc_res_info(struct wilc_vif *vif,
 				       u32 max_assoc_resp_info_len,
 				       u32 *rcvd_assoc_resp_info_len);
 
-static s32 Handle_RcvdGnrlAsyncInfo(struct wilc_vif *vif,
+static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 				    struct rcvd_async_info *rcvd_info)
 {
 	s32 result = 0;
@@ -1961,7 +1961,7 @@ _WPAPtk_end_case_:
 	return result;
 }
 
-static void Handle_Disconnect(struct wilc_vif *vif)
+static void handle_disconnect(struct wilc_vif *vif)
 {
 	struct wid wid;
 	struct host_if_drv *hif_drv = vif->hif_drv;
@@ -2105,7 +2105,7 @@ void wilc_resolve_disconnect_aberration(struct wilc_vif *vif)
 	}
 }
 
-static void Handle_GetRssi(struct wilc_vif *vif)
+static void handle_get_rssi(struct wilc_vif *vif)
 {
 	s32 result = 0;
 	struct wid wid;
@@ -2126,7 +2126,7 @@ static void Handle_GetRssi(struct wilc_vif *vif)
 	complete(&vif->hif_drv->comp_get_rssi);
 }
 
-static s32 Handle_GetStatistics(struct wilc_vif *vif,
+static s32 handle_get_statistics(struct wilc_vif *vif,
 				struct rf_info *pstrStatistics)
 {
 	struct wid wid_list[5];
@@ -2206,7 +2206,7 @@ static inline void ether_addr_copy(u8 *dst, const u8 *src)
 }
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0) */
 
-static s32 Handle_Get_InActiveTime(struct wilc_vif *vif,
+static s32 handle_get_inactive_time(struct wilc_vif *vif,
 				   struct sta_inactive_t *hif_sta_inactive)
 {
 	s32 result = 0;
@@ -2257,7 +2257,7 @@ static s32 Handle_Get_InActiveTime(struct wilc_vif *vif,
 	return result;
 }
 
-static void Handle_AddBeacon(struct wilc_vif *vif,
+static void handle_add_beacon(struct wilc_vif *vif,
 			     struct beacon_attr *pstrSetBeaconParam)
 {
 	s32 result = 0;
@@ -2310,7 +2310,7 @@ ERRORHANDLER:
 	kfree(pstrSetBeaconParam->tail);
 }
 
-static void Handle_DelBeacon(struct wilc_vif *vif)
+static void handle_del_beacon(struct wilc_vif *vif)
 {
 	s32 result = 0;
 	struct wid wid;
@@ -2367,7 +2367,7 @@ static u32 WILC_HostIf_PackStaParam(struct wilc_vif *vif, u8 *pu8Buffer,
 	return cur_byte - pu8Buffer;
 }
 
-static void Handle_AddStation(struct wilc_vif *vif,
+static void handle_add_station(struct wilc_vif *vif,
 			      struct add_sta_param *pstrStationParam)
 {
 	s32 result = 0;
@@ -2437,7 +2437,7 @@ ERRORHANDLER:
 	complete(&hif_wait_response);
 }
 
-static void Handle_DelStation(struct wilc_vif *vif,
+static void handle_del_station(struct wilc_vif *vif,
 			      struct del_sta *pstrDelStaParam)
 {
 	s32 result = 0;
@@ -2466,7 +2466,7 @@ ERRORHANDLER:
 	kfree(wid.val);
 }
 
-static void Handle_EditStation(struct wilc_vif *vif,
+static void handle_edit_station(struct wilc_vif *vif,
 			       struct add_sta_param *pstrStationParam)
 {
 	s32 result = 0;
@@ -2495,7 +2495,7 @@ ERRORHANDLER:
 	kfree(wid.val);
 }
 
-static int Handle_RemainOnChan(struct wilc_vif *vif,
+static int handle_remain_on_chan(struct wilc_vif *vif,
 			       struct remain_ch *hif_remain_ch)
 {
 	s32 result = 0;
@@ -2603,7 +2603,7 @@ ERRORHANDLER:
 	return result;
 }
 
-static int Handle_RegisterFrame(struct wilc_vif *vif,
+static int handle_register_frame(struct wilc_vif *vif,
 				struct reg_frame *hif_reg_frame)
 {
 	s32 result = 0;
@@ -2637,7 +2637,7 @@ static int Handle_RegisterFrame(struct wilc_vif *vif,
 	return result;
 }
 
-static u32 Handle_ListenStateExpired(struct wilc_vif *vif,
+static u32 handle_listen_state_expired(struct wilc_vif *vif,
 				     struct remain_ch *pstrHostIfRemainOnChan)
 {
 	u8 u8remain_on_chan_flag;
@@ -2721,7 +2721,7 @@ static void ListenTimerCB(unsigned long arg)
 		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
 }
 
-static void Handle_PowerManagement(struct wilc_vif *vif,
+static void handle_power_management(struct wilc_vif *vif,
 				   struct power_mgmt_param *pm_param)
 {
 	s32 result = 0;
@@ -2748,7 +2748,7 @@ static void Handle_PowerManagement(struct wilc_vif *vif,
 	store_power_save_current_state(vif, power_mode);
 }
 
-static void Handle_SetMulticastFilter(struct wilc_vif *vif,
+static void handle_set_mcast_filter(struct wilc_vif *vif,
 				      struct set_multicast *hif_set_mc)
 {
 	s32 result = 0;
@@ -2787,7 +2787,7 @@ ERRORHANDLER:
 	kfree(wid.val);
 }
 
-static void Handle_SetWowlanTrigger(struct wilc_vif *vif, u8 u8WowlanTrigger)
+static void handle_set_wowlan_trigger(struct wilc_vif *vif, u8 u8WowlanTrigger)
 {	
 	int ret = 0;
 	struct wid wid;
@@ -2886,15 +2886,15 @@ static void host_if_work(struct work_struct *work)
 		break;
 
 	case HOST_IF_MSG_CONNECT:
-		Handle_Connect(vif, &msg->body.con_info);
+		handle_connect(vif, &msg->body.con_info);
 		break;
 
 	case HOST_IF_MSG_RCVD_NTWRK_INFO:
-		Handle_RcvdNtwrkInfo(vif, &msg->body.net_info);
+		handle_rcvd_ntwrk_info(vif, &msg->body.net_info);
 		break;
 
 	case HOST_IF_MSG_RCVD_GNRL_ASYNC_INFO:
-		Handle_RcvdGnrlAsyncInfo(vif,
+		handle_rcvd_gnrl_async_info(vif,
 					 &msg->body.async_info);
 		break;
 
@@ -2911,7 +2911,7 @@ static void host_if_work(struct work_struct *work)
 		break;
 
 	case HOST_IF_MSG_DISCONNECT:
-		Handle_Disconnect(vif);
+		handle_disconnect(vif);
 		break;
 
 	case HOST_IF_MSG_RCVD_SCAN_COMPLETE:
@@ -2921,41 +2921,41 @@ static void host_if_work(struct work_struct *work)
 		handle_scan_done(vif, SCAN_EVENT_DONE);
 
 		if (vif->hif_drv->remain_on_ch_pending)
-			Handle_RemainOnChan(vif,
+			handle_remain_on_chan(vif,
 					    &msg->body.remain_on_ch);
 		break;
 
 	case HOST_IF_MSG_GET_RSSI:
-		Handle_GetRssi(vif);
+		handle_get_rssi(vif);
 		break;
 
 	case HOST_IF_MSG_GET_STATISTICS:
-		Handle_GetStatistics(vif,
+		handle_get_statistics(vif,
 				     (struct rf_info *)msg->body.data);
 		break;
 
 	case HOST_IF_MSG_ADD_BEACON:
-		Handle_AddBeacon(vif, &msg->body.beacon_info);
+		handle_add_beacon(vif, &msg->body.beacon_info);
 		break;
 
 	case HOST_IF_MSG_DEL_BEACON:
-		Handle_DelBeacon(vif);
+		handle_del_beacon(vif);
 		break;
 
 	case HOST_IF_MSG_ADD_STATION:
-		Handle_AddStation(vif, &msg->body.add_sta_info);
+		handle_add_station(vif, &msg->body.add_sta_info);
 		break;
 
 	case HOST_IF_MSG_DEL_STATION:
-		Handle_DelStation(vif, &msg->body.del_sta_info);
+		handle_del_station(vif, &msg->body.del_sta_info);
 		break;
 
 	case HOST_IF_MSG_EDIT_STATION:
-		Handle_EditStation(vif, &msg->body.edit_sta_info);
+		handle_edit_station(vif, &msg->body.edit_sta_info);
 		break;
 
 	case HOST_IF_MSG_GET_INACTIVETIME:
-		Handle_Get_InActiveTime(vif, &msg->body.mac_info);
+		handle_get_inactive_time(vif, &msg->body.mac_info);
 		break;
 
 	case HOST_IF_MSG_SCAN_TIMER_FIRED:
@@ -2969,7 +2969,7 @@ static void host_if_work(struct work_struct *work)
 		break;
 
 	case HOST_IF_MSG_POWER_MGMT:
-		Handle_PowerManagement(vif,
+		handle_power_management(vif,
 				       &msg->body.pwr_mgmt_info);
 		break;
 
@@ -2988,21 +2988,21 @@ static void host_if_work(struct work_struct *work)
 
 	case HOST_IF_MSG_REMAIN_ON_CHAN:
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "HOST_IF_MSG_REMAIN_ON_CHAN\n");
-		Handle_RemainOnChan(vif, &msg->body.remain_on_ch);
+		handle_remain_on_chan(vif, &msg->body.remain_on_ch);
 		break;
 
 	case HOST_IF_MSG_REGISTER_FRAME:
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "HOST_IF_MSG_REGISTER_FRAME\n");
-		Handle_RegisterFrame(vif, &msg->body.reg_frame);
+		handle_register_frame(vif, &msg->body.reg_frame);
 		break;
 
 	case HOST_IF_MSG_LISTEN_TIMER_FIRED:
-		Handle_ListenStateExpired(vif, &msg->body.remain_on_ch);
+		handle_listen_state_expired(vif, &msg->body.remain_on_ch);
 		break;
 
 	case HOST_IF_MSG_SET_MULTICAST_FILTER:
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "HOST_IF_MSG_SET_MULTICAST_FILTER\n");
-		Handle_SetMulticastFilter(vif, &msg->body.multicast_info);
+		handle_set_mcast_filter(vif, &msg->body.multicast_info);
 		break;
 
 	case HOST_IF_MSG_DEL_ALL_STA:
@@ -3027,7 +3027,7 @@ static void host_if_work(struct work_struct *work)
 		break;
 
 	case HOST_IF_MSG_SET_WOWLAN_TRIGGER:
-		Handle_SetWowlanTrigger(vif,msg->body.wow_trigger.wowlan_trigger);
+		handle_set_wowlan_trigger(vif,msg->body.wow_trigger.wowlan_trigger);
 		break;
 
 	default:
