@@ -2722,20 +2722,20 @@ static void ListenTimerCB(unsigned long arg)
 }
 
 static void Handle_PowerManagement(struct wilc_vif *vif,
-				   struct power_mgmt_param *strPowerMgmtParam)
+				   struct power_mgmt_param *pm_param)
 {
 	s32 result = 0;
 	struct wid wid;
-	s8 s8PowerMode;
+	s8 power_mode;
 
 	wid.id = (u16)WID_POWER_MANAGEMENT;
 
-	if (strPowerMgmtParam->enabled)
-		s8PowerMode = MIN_FAST_PS;
+	if (pm_param->enabled)
+		power_mode = MIN_FAST_PS;
 	else
-		s8PowerMode = NO_POWERSAVE;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling power mgmt to %d\n", s8PowerMode);
-	wid.val = &s8PowerMode;
+		power_mode = NO_POWERSAVE;
+	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling power mgmt to %d\n", power_mode);
+	wid.val = &power_mode;
 	wid.size = sizeof(char);
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling Power Management\n");
@@ -2745,7 +2745,7 @@ static void Handle_PowerManagement(struct wilc_vif *vif,
 		PRINT_ER(vif->ndev, "Failed to send power management\n");
 		return;
 	}
-	store_power_save_current_state(vif, s8PowerMode);
+	store_power_save_current_state(vif, power_mode);
 }
 
 static void Handle_SetMulticastFilter(struct wilc_vif *vif,
