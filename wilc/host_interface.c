@@ -2496,7 +2496,7 @@ ERRORHANDLER:
 }
 
 static int Handle_RemainOnChan(struct wilc_vif *vif,
-			       struct remain_ch *pstrHostIfRemainOnChan)
+			       struct remain_ch *hif_remain_ch)
 {
 	s32 result = 0;
 	u8 u8remain_on_chan_flag;
@@ -2511,13 +2511,13 @@ static int Handle_RemainOnChan(struct wilc_vif *vif,
 	}
 	
 	if (!hif_drv->remain_on_ch_pending) {
-		hif_drv->remain_on_ch.arg = pstrHostIfRemainOnChan->arg;
-		hif_drv->remain_on_ch.expired = pstrHostIfRemainOnChan->expired;
-		hif_drv->remain_on_ch.ready = pstrHostIfRemainOnChan->ready;
-		hif_drv->remain_on_ch.ch = pstrHostIfRemainOnChan->ch;
-		hif_drv->remain_on_ch.id = pstrHostIfRemainOnChan->id;
+		hif_drv->remain_on_ch.arg = hif_remain_ch->arg;
+		hif_drv->remain_on_ch.expired = hif_remain_ch->expired;
+		hif_drv->remain_on_ch.ready = hif_remain_ch->ready;
+		hif_drv->remain_on_ch.ch = hif_remain_ch->ch;
+		hif_drv->remain_on_ch.id = hif_remain_ch->id;
 	} else {
-		pstrHostIfRemainOnChan->ch = hif_drv->remain_on_ch.ch;
+		hif_remain_ch->ch = hif_drv->remain_on_ch.ch;
 	}
 
 	if (hif_drv_p2p != NULL) {
@@ -2564,7 +2564,7 @@ static int Handle_RemainOnChan(struct wilc_vif *vif,
 	}
 #endif
 
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting channel :%d\n", pstrHostIfRemainOnChan->ch);
+	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting channel :%d\n", hif_remain_ch->ch);
 	u8remain_on_chan_flag = true;
 	wid.id = (u16)WID_REMAIN_ON_CHAN;
 	wid.type = WID_STR;
@@ -2576,7 +2576,7 @@ static int Handle_RemainOnChan(struct wilc_vif *vif,
 	}
 
 	wid.val[0] = u8remain_on_chan_flag;
-	wid.val[1] = (s8)pstrHostIfRemainOnChan->ch;
+	wid.val[1] = (s8)hif_remain_ch->ch;
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				      wilc_get_vif_idx(vif));
@@ -2592,7 +2592,7 @@ ERRORHANDLER:
 #endif
 	mod_timer(&hif_drv->remain_on_ch_timer,
 			  jiffies +
-			  msecs_to_jiffies(pstrHostIfRemainOnChan->duration));
+			  msecs_to_jiffies(hif_remain_ch->duration));
 
 	if (hif_drv->remain_on_ch.ready)
 		hif_drv->remain_on_ch.ready(hif_drv->remain_on_ch.arg);
