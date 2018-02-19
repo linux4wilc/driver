@@ -3043,9 +3043,9 @@ free_msg:
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-static void TimerCB_Scan(struct timer_list *t)
+static void timer_scan_cb(struct timer_list *t)
 #else
-static void TimerCB_Scan(unsigned long arg)
+static void timer_scan_cb(unsigned long arg)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
@@ -3064,9 +3064,9 @@ static void TimerCB_Scan(unsigned long arg)
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-static void TimerCB_Connect(struct timer_list *t)
+static void timer_connect_cb(struct timer_list *t)
 #else
-static void TimerCB_Connect(unsigned long arg)
+static void timer_connect_cb(unsigned long arg)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
@@ -3857,12 +3857,12 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 		mod_timer(&periodic_rssi, jiffies + msecs_to_jiffies(5000));
 	}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-	timer_setup(&hif_drv->scan_timer, TimerCB_Scan, 0);
-	timer_setup(&hif_drv->connect_timer, TimerCB_Connect, 0);
+	timer_setup(&hif_drv->scan_timer, timer_scan_cb, 0);
+	timer_setup(&hif_drv->connect_timer, timer_connect_cb, 0);
 	timer_setup(&hif_drv->remain_on_ch_timer, ListenTimerCB, 0);
 #else
-	setup_timer(&hif_drv->scan_timer, TimerCB_Scan, 0);
-	setup_timer(&hif_drv->connect_timer, TimerCB_Connect, 0);
+	setup_timer(&hif_drv->scan_timer, timer_scan_cb, 0);
+	setup_timer(&hif_drv->connect_timer, timer_connect_cb, 0);
 	setup_timer(&hif_drv->remain_on_ch_timer, ListenTimerCB, 0);
 #endif
 
