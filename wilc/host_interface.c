@@ -3774,9 +3774,9 @@ int wilc_hif_set_cfg(struct wilc_vif *vif,
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-static void GetPeriodicRSSI(struct timer_list *unused)
+static void get_periodic_rssi(struct timer_list *unused)
 #else
-static void GetPeriodicRSSI(unsigned long arg)
+static void get_periodic_rssi(unsigned long arg)
 #endif
 {
 	struct wilc_vif *vif = periodic_rssi_vif;
@@ -3850,9 +3850,9 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 
 		periodic_rssi_vif = vif;
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-		timer_setup(&periodic_rssi, GetPeriodicRSSI, 0);
+		timer_setup(&periodic_rssi, get_periodic_rssi, 0);
 	#else
-		setup_timer(&periodic_rssi, GetPeriodicRSSI, (unsigned long)vif);
+		setup_timer(&periodic_rssi, get_periodic_rssi, (unsigned long)vif);
 	#endif
 		mod_timer(&periodic_rssi, jiffies + msecs_to_jiffies(5000));
 	}
