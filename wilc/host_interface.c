@@ -2207,7 +2207,7 @@ static inline void ether_addr_copy(u8 *dst, const u8 *src)
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0) */
 
 static s32 Handle_Get_InActiveTime(struct wilc_vif *vif,
-				   struct sta_inactive_t *strHostIfStaInactiveT)
+				   struct sta_inactive_t *hif_sta_inactive)
 {
 	s32 result = 0;
 	u8 *stamac;
@@ -2222,7 +2222,7 @@ static s32 Handle_Get_InActiveTime(struct wilc_vif *vif,
 		return -ENOMEM;
 
 	stamac = wid.val;
-	ether_addr_copy(stamac, strHostIfStaInactiveT->mac);
+	ether_addr_copy(stamac, hif_sta_inactive->mac);
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "SETING STA inactive time\n");
 	if (!hif_drv) {
