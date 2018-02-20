@@ -2306,41 +2306,41 @@ static void handle_del_beacon(struct wilc_vif *vif)
 }
 
 static u32 WILC_HostIf_PackStaParam(struct wilc_vif *vif, u8 *pu8Buffer,
-				    struct add_sta_param *pstrStationParam)
+				    struct add_sta_param *param)
 {
 	u8 *cur_byte;
 
 	cur_byte = pu8Buffer;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Packing STA params\n");
-	memcpy(cur_byte, pstrStationParam->bssid, ETH_ALEN);
+	memcpy(cur_byte, param->bssid, ETH_ALEN);
 	cur_byte +=  ETH_ALEN;
 
-	*cur_byte++ = pstrStationParam->aid & 0xFF;
-	*cur_byte++ = (pstrStationParam->aid >> 8) & 0xFF;
+	*cur_byte++ = param->aid & 0xFF;
+	*cur_byte++ = (param->aid >> 8) & 0xFF;
 
-	*cur_byte++ = pstrStationParam->rates_len;
-	if (pstrStationParam->rates_len > 0)
-		memcpy(cur_byte, pstrStationParam->rates,
-		       pstrStationParam->rates_len);
-	cur_byte += pstrStationParam->rates_len;
+	*cur_byte++ = param->rates_len;
+	if (param->rates_len > 0)
+		memcpy(cur_byte, param->rates,
+		       param->rates_len);
+	cur_byte += param->rates_len;
 
-	*cur_byte++ = pstrStationParam->ht_supported;
-	memcpy(cur_byte, &pstrStationParam->ht_capa,
+	*cur_byte++ = param->ht_supported;
+	memcpy(cur_byte, &param->ht_capa,
 	       sizeof(struct ieee80211_ht_cap));
 	cur_byte += sizeof(struct ieee80211_ht_cap);
 
-	*cur_byte++ = pstrStationParam->flags_mask & 0xFF;
-	*cur_byte++ = (pstrStationParam->flags_mask >> 8) & 0xFF;
+	*cur_byte++ = param->flags_mask & 0xFF;
+	*cur_byte++ = (param->flags_mask >> 8) & 0xFF;
 
-	*cur_byte++ = pstrStationParam->flags_set & 0xFF;
-	*cur_byte++ = (pstrStationParam->flags_set >> 8) & 0xFF;
+	*cur_byte++ = param->flags_set & 0xFF;
+	*cur_byte++ = (param->flags_set >> 8) & 0xFF;
 
 	return cur_byte - pu8Buffer;
 }
 
 static void handle_add_station(struct wilc_vif *vif,
-			       struct add_sta_param *pstrStationParam)
+			       struct add_sta_param *param)
 {
 	s32 result = 0;
 	struct wid wid;
@@ -2348,14 +2348,14 @@ static void handle_add_station(struct wilc_vif *vif,
 
 	wid.id = (u16)WID_ADD_STA;
 	wid.type = WID_BIN;
-	wid.size = WILC_ADD_STA_LENGTH + pstrStationParam->rates_len;
+	wid.size = WILC_ADD_STA_LENGTH + param->rates_len;
 
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
 	if (!wid.val)
 		goto ERRORHANDLER;
 
 	cur_byte = wid.val;
-	cur_byte += WILC_HostIf_PackStaParam(vif, cur_byte, pstrStationParam);
+	cur_byte += WILC_HostIf_PackStaParam(vif, cur_byte, param);
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				      wilc_get_vif_idx(vif));
@@ -2363,7 +2363,7 @@ static void handle_add_station(struct wilc_vif *vif,
 		PRINT_ER(vif->ndev, "Failed to send add station\n");
 
 ERRORHANDLER:
-	kfree(pstrStationParam->rates);
+	kfree(param->rates);
 	kfree(wid.val);
 }
 
@@ -2438,7 +2438,7 @@ ERRORHANDLER:
 }
 
 static void handle_edit_station(struct wilc_vif *vif,
-				struct add_sta_param *pstrStationParam)
+				struct add_sta_param *param)
 {
 	s32 result = 0;
 	struct wid wid;
@@ -2446,7 +2446,7 @@ static void handle_edit_station(struct wilc_vif *vif,
 
 	wid.id = (u16)WID_EDIT_STA;
 	wid.type = WID_BIN;
-	wid.size = WILC_ADD_STA_LENGTH + pstrStationParam->rates_len;
+	wid.size = WILC_ADD_STA_LENGTH + param->rates_len;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling edit station\n");
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
@@ -2454,7 +2454,7 @@ static void handle_edit_station(struct wilc_vif *vif,
 		goto ERRORHANDLER;
 
 	cur_byte = wid.val;
-	cur_byte += WILC_HostIf_PackStaParam(vif, cur_byte, pstrStationParam);
+	cur_byte += WILC_HostIf_PackStaParam(vif, cur_byte, param);
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				      wilc_get_vif_idx(vif));
@@ -2462,7 +2462,7 @@ static void handle_edit_station(struct wilc_vif *vif,
 		PRINT_ER(vif->ndev, "Failed to send edit station\n");
 
 ERRORHANDLER:
-	kfree(pstrStationParam->rates);
+	kfree(param->rates);
 	kfree(wid.val);
 }
 
