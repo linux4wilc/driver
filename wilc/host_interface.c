@@ -1381,13 +1381,13 @@ static s32 handle_rcvd_ntwrk_info(struct wilc_vif *vif,
 				struct rcvd_net_info *rcvd_info)
 {
 	u32 i;
-	bool bNewNtwrkFound;
+	bool found;
 	s32 result = 0;
-	struct network_info *pstrNetworkInfo = NULL;
-	void *pJoinParams = NULL;
+	struct network_info *info = NULL;
+	void *params = NULL;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
-	bNewNtwrkFound = true;
+	found = true;
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Handling received network info\n");
 
 	if (!hif_drv) {
@@ -1397,8 +1397,8 @@ static s32 handle_rcvd_ntwrk_info(struct wilc_vif *vif,
 	
 	if (hif_drv->usr_scan_req.scan_result) {
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "State: Scanning, parsing network information received\n");
-		wilc_parse_network_info(vif, rcvd_info->buffer, &pstrNetworkInfo);
-		if (!pstrNetworkInfo ||
+		wilc_parse_network_info(vif, rcvd_info->buffer, &info);
+		if (!info ||
 		    !hif_drv->usr_scan_req.scan_result) {
 			PRINT_ER(vif->ndev, "Driver is null\n");
 			result = -EINVAL;
@@ -1407,40 +1407,40 @@ static s32 handle_rcvd_ntwrk_info(struct wilc_vif *vif,
 
 		for (i = 0; i < hif_drv->usr_scan_req.rcvd_ch_cnt; i++) {
 			if (memcmp(hif_drv->usr_scan_req.net_info[i].bssid,
-				   pstrNetworkInfo->bssid, 6) == 0) {
-				if (pstrNetworkInfo->rssi <= hif_drv->usr_scan_req.net_info[i].rssi) {
+				   info->bssid, 6) == 0) {
+				if (info->rssi <= hif_drv->usr_scan_req.net_info[i].rssi) {
 					PRINT_INFO(vif->ndev, HOSTINF_DBG, "Network previously discovered\n");
 					goto done;
 				} else {
-					hif_drv->usr_scan_req.net_info[i].rssi = pstrNetworkInfo->rssi;
-					bNewNtwrkFound = false;
+					hif_drv->usr_scan_req.net_info[i].rssi = info->rssi;
+					found = false;
 					break;
 				}
 			}
 		}
 
-		if (bNewNtwrkFound) {
+		if (found) {
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, "New network found\n");
 			if (hif_drv->usr_scan_req.rcvd_ch_cnt < MAX_NUM_SCANNED_NETWORKS) {
-				hif_drv->usr_scan_req.net_info[hif_drv->usr_scan_req.rcvd_ch_cnt].rssi = pstrNetworkInfo->rssi;
+				hif_drv->usr_scan_req.net_info[hif_drv->usr_scan_req.rcvd_ch_cnt].rssi = info->rssi;
 
 				memcpy(hif_drv->usr_scan_req.net_info[hif_drv->usr_scan_req.rcvd_ch_cnt].bssid,
-				       pstrNetworkInfo->bssid, 6);
+				       info->bssid, 6);
 
 				hif_drv->usr_scan_req.rcvd_ch_cnt++;
 
-				pstrNetworkInfo->new_network = true;
-				pJoinParams = host_int_parse_join_bss_param(pstrNetworkInfo);
+				info->new_network = true;
+				params = host_int_parse_join_bss_param(info);
 
-				hif_drv->usr_scan_req.scan_result(SCAN_EVENT_NETWORK_FOUND, pstrNetworkInfo,
+				hif_drv->usr_scan_req.scan_result(SCAN_EVENT_NETWORK_FOUND, info,
 								  hif_drv->usr_scan_req.arg,
-								  pJoinParams);
+								  params);
 			} else {
 				PRINT_WRN(vif->ndev, HOSTINF_DBG, "Discovered networks exceeded max. limit\n");
 			}
 		} else {
-			pstrNetworkInfo->new_network = false;
-			hif_drv->usr_scan_req.scan_result(SCAN_EVENT_NETWORK_FOUND, pstrNetworkInfo,
+			info->new_network = false;
+			hif_drv->usr_scan_req.scan_result(SCAN_EVENT_NETWORK_FOUND, info,
 							  hif_drv->usr_scan_req.arg, NULL);
 		}
 	}
@@ -1449,9 +1449,9 @@ done:
 	kfree(rcvd_info->buffer);
 	rcvd_info->buffer = NULL;
 
-	if (pstrNetworkInfo) {
-		kfree(pstrNetworkInfo->ies);
-		kfree(pstrNetworkInfo);
+	if (info) {
+		kfree(info->ies);
+		kfree(info);
 	}
 
 	return result;
