@@ -784,7 +784,7 @@ static s32 handle_scan(struct wilc_vif *vif, struct scan_attr *scan_info)
 	u32 i;
 	u8 *buffer;
 	u8 valuesize = 0;
-	u8 *pu8HdnNtwrksWidVal = NULL;
+	u8 *hdn_ntwk_wid_val = NULL;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct host_if_drv *hif_drv_p2p  = wilc_get_drv_handler_by_ifc(vif->wilc, P2P_IFC);
 	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
@@ -839,8 +839,8 @@ static s32 handle_scan(struct wilc_vif *vif, struct scan_attr *scan_info)
 
 	for (i = 0; i < scan_info->hidden_network.n_ssids; i++)
 		valuesize += ((scan_info->hidden_network.net_info[i].ssid_len) + 1);
-	pu8HdnNtwrksWidVal = kmalloc(valuesize + 1, GFP_KERNEL);
-	wid_list[index].val = pu8HdnNtwrksWidVal;
+	hdn_ntwk_wid_val = kmalloc(valuesize + 1, GFP_KERNEL);
+	wid_list[index].val = hdn_ntwk_wid_val;
 	if (wid_list[index].val) {
 		buffer = wid_list[index].val;
 
@@ -925,7 +925,7 @@ ERRORHANDLER:
 	kfree(scan_info->hidden_network.net_info);
 	scan_info->hidden_network.net_info = NULL;
 
-	kfree(pu8HdnNtwrksWidVal);
+	kfree(hdn_ntwk_wid_val);
 
 	return result;
 }
