@@ -1857,7 +1857,7 @@ _WPARxGtk_end_case_:
 			if (!pu8keybuf) {
 				PRINT_ER(vif->ndev, "No buffer to send PTK Key\n");
 				ret = -ENOMEM;
-				goto _WPAPtk_end_case_;
+				goto out_wpa_ptk;
 			}
 
 			memcpy(pu8keybuf, pstrHostIFkeyAttr->attr.wpa.mac_addr, 6);
@@ -1886,7 +1886,7 @@ _WPARxGtk_end_case_:
 			if (!pu8keybuf) {
 				PRINT_ER(vif->ndev, "No buffer send PTK\n");
 				ret = -ENOMEM;
-				goto _WPAPtk_end_case_;
+				goto out_wpa_ptk;
 			}
 
 			memcpy(pu8keybuf, pstrHostIFkeyAttr->attr.wpa.mac_addr, 6);
@@ -1906,7 +1906,7 @@ _WPARxGtk_end_case_:
 			complete(&hif_drv->comp_test_key_block);
 		}
 
-_WPAPtk_end_case_:
+out_wpa_ptk:
 		kfree(pstrHostIFkeyAttr->attr.wpa.key);
 		if (ret)
 			return ret;
