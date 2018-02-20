@@ -2716,8 +2716,8 @@ static void handle_power_management(struct wilc_vif *vif,
 	store_power_save_current_state(vif, power_mode);
 }
 
-static void Handle_SetMulticastFilter(struct wilc_vif *vif,
-				      struct set_multicast *hif_set_mc)
+static void handle_set_mcast_filter(struct wilc_vif *vif,
+				    struct set_multicast *hif_set_mc)
 {
 	s32 result = 0;
 	struct wid wid;
@@ -2969,7 +2969,7 @@ static void host_if_work(struct work_struct *work)
 
 	case HOST_IF_MSG_SET_MULTICAST_FILTER:
 		PRINT_INFO(msg->vif->ndev, HOSTINF_DBG, "HOST_IF_MSG_SET_MULTICAST_FILTER\n");
-		Handle_SetMulticastFilter(msg->vif, &msg->body.multicast_info);
+		handle_set_mcast_filter(msg->vif, &msg->body.multicast_info);
 		break;
 
 	case HOST_IF_MSG_DEL_ALL_STA:
