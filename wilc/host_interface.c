@@ -985,7 +985,7 @@ static s32 handle_connect(struct wilc_vif *vif,
 	struct wid wid_list[8];
 	u32 wid_cnt = 0, dummyval = 0;
 	u8 *cur_byte = NULL;
-	struct join_bss_param *ptstrJoinBssParam;
+	struct join_bss_param *bss_param;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct host_if_drv *hif_drv_p2p  = wilc_get_drv_handler_by_ifc(vif->wilc, P2P_IFC);
 	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
@@ -1018,8 +1018,8 @@ static s32 handle_connect(struct wilc_vif *vif,
 	}
 
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Saving connection parameters in global structure\n");
-	ptstrJoinBssParam = pstrHostIFconnectAttr->params;
-	if (!ptstrJoinBssParam) {
+	bss_param = pstrHostIFconnectAttr->params;
+	if (!bss_param) {
 		PRINT_ER(vif->ndev, "Required BSSID not found\n");
 		result = -ENOENT;
 		goto ERRORHANDLER;
@@ -1134,8 +1134,8 @@ static s32 handle_connect(struct wilc_vif *vif,
 		PRINT_ER(vif->ndev, "Channel out of range\n");
 		*(cur_byte++) = 0xFF;
 	}
-	*(cur_byte++)  = (ptstrJoinBssParam->cap_info) & 0xFF;
-	*(cur_byte++)  = ((ptstrJoinBssParam->cap_info) >> 8) & 0xFF;
+	*(cur_byte++)  = (bss_param->cap_info) & 0xFF;
+	*(cur_byte++)  = ((bss_param->cap_info) >> 8) & 0xFF;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* Cap Info %0x*\n", (*(cur_byte - 2) | ((*(cur_byte - 1)) << 8)));
 
 	if (pstrHostIFconnectAttr->bssid)
@@ -1146,63 +1146,63 @@ static s32 handle_connect(struct wilc_vif *vif,
 		memcpy(cur_byte, pstrHostIFconnectAttr->bssid, 6);
 	cur_byte += 6;
 
-	*(cur_byte++)  = (ptstrJoinBssParam->beacon_period) & 0xFF;
-	*(cur_byte++)  = ((ptstrJoinBssParam->beacon_period) >> 8) & 0xFF;
+	*(cur_byte++)  = (bss_param->beacon_period) & 0xFF;
+	*(cur_byte++)  = ((bss_param->beacon_period) >> 8) & 0xFF;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* Beacon Period %d*\n", (*(cur_byte - 2) | ((*(cur_byte - 1)) << 8)));
-	*(cur_byte++)  =  ptstrJoinBssParam->dtim_period;
+	*(cur_byte++)  =  bss_param->dtim_period;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* DTIM Period %d*\n", (*(cur_byte - 1)));
 
-	memcpy(cur_byte, ptstrJoinBssParam->supp_rates, MAX_RATES_SUPPORTED + 1);
+	memcpy(cur_byte, bss_param->supp_rates, MAX_RATES_SUPPORTED + 1);
 	cur_byte += (MAX_RATES_SUPPORTED + 1);
 
-	*(cur_byte++)  =  ptstrJoinBssParam->wmm_cap;
+	*(cur_byte++)  =  bss_param->wmm_cap;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* wmm cap%d*\n", (*(cur_byte - 1)));
-	*(cur_byte++)  = ptstrJoinBssParam->uapsd_cap;
+	*(cur_byte++)  = bss_param->uapsd_cap;
 
-	*(cur_byte++)  = ptstrJoinBssParam->ht_capable;
-	hif_drv->usr_conn_req.ht_capable = ptstrJoinBssParam->ht_capable;
+	*(cur_byte++)  = bss_param->ht_capable;
+	hif_drv->usr_conn_req.ht_capable = bss_param->ht_capable;
 
-	*(cur_byte++)  =  ptstrJoinBssParam->rsn_found;
+	*(cur_byte++)  =  bss_param->rsn_found;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* rsn found %d*\n", *(cur_byte - 1));
-	*(cur_byte++)  =  ptstrJoinBssParam->rsn_grp_policy;
+	*(cur_byte++)  =  bss_param->rsn_grp_policy;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* rsn group policy %0x*\n", (*(cur_byte - 1)));
-	*(cur_byte++) =  ptstrJoinBssParam->mode_802_11i;
+	*(cur_byte++) =  bss_param->mode_802_11i;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* mode_802_11i %d*\n", (*(cur_byte - 1)));
-	memcpy(cur_byte, ptstrJoinBssParam->rsn_pcip_policy, sizeof(ptstrJoinBssParam->rsn_pcip_policy));
-	cur_byte += sizeof(ptstrJoinBssParam->rsn_pcip_policy);
+	memcpy(cur_byte, bss_param->rsn_pcip_policy, sizeof(bss_param->rsn_pcip_policy));
+	cur_byte += sizeof(bss_param->rsn_pcip_policy);
 
-	memcpy(cur_byte, ptstrJoinBssParam->rsn_auth_policy, sizeof(ptstrJoinBssParam->rsn_auth_policy));
-	cur_byte += sizeof(ptstrJoinBssParam->rsn_auth_policy);
+	memcpy(cur_byte, bss_param->rsn_auth_policy, sizeof(bss_param->rsn_auth_policy));
+	cur_byte += sizeof(bss_param->rsn_auth_policy);
 
-	memcpy(cur_byte, ptstrJoinBssParam->rsn_cap, sizeof(ptstrJoinBssParam->rsn_cap));
-	cur_byte += sizeof(ptstrJoinBssParam->rsn_cap);
+	memcpy(cur_byte, bss_param->rsn_cap, sizeof(bss_param->rsn_cap));
+	cur_byte += sizeof(bss_param->rsn_cap);
 
 	*(cur_byte++) = REAL_JOIN_REQ;
-	*(cur_byte++) = ptstrJoinBssParam->noa_enabled;
+	*(cur_byte++) = bss_param->noa_enabled;
 
-	if (ptstrJoinBssParam->noa_enabled) {
+	if (bss_param->noa_enabled) {
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "NOA present\n");
-		*(cur_byte++) = (ptstrJoinBssParam->tsf) & 0xFF;
-		*(cur_byte++) = ((ptstrJoinBssParam->tsf) >> 8) & 0xFF;
-		*(cur_byte++) = ((ptstrJoinBssParam->tsf) >> 16) & 0xFF;
-		*(cur_byte++) = ((ptstrJoinBssParam->tsf) >> 24) & 0xFF;
+		*(cur_byte++) = (bss_param->tsf) & 0xFF;
+		*(cur_byte++) = ((bss_param->tsf) >> 8) & 0xFF;
+		*(cur_byte++) = ((bss_param->tsf) >> 16) & 0xFF;
+		*(cur_byte++) = ((bss_param->tsf) >> 24) & 0xFF;
 
-		*(cur_byte++) = ptstrJoinBssParam->idx;
-		*(cur_byte++) = ptstrJoinBssParam->opp_enabled;
+		*(cur_byte++) = bss_param->idx;
+		*(cur_byte++) = bss_param->opp_enabled;
 
-		if (ptstrJoinBssParam->opp_enabled)
-			*(cur_byte++) = ptstrJoinBssParam->ct_window;
+		if (bss_param->opp_enabled)
+			*(cur_byte++) = bss_param->ct_window;
 
-		*(cur_byte++) = ptstrJoinBssParam->cnt;
+		*(cur_byte++) = bss_param->cnt;
 
-		memcpy(cur_byte, ptstrJoinBssParam->duration, sizeof(ptstrJoinBssParam->duration));
-		cur_byte += sizeof(ptstrJoinBssParam->duration);
+		memcpy(cur_byte, bss_param->duration, sizeof(bss_param->duration));
+		cur_byte += sizeof(bss_param->duration);
 
-		memcpy(cur_byte, ptstrJoinBssParam->interval, sizeof(ptstrJoinBssParam->interval));
-		cur_byte += sizeof(ptstrJoinBssParam->interval);
+		memcpy(cur_byte, bss_param->interval, sizeof(bss_param->interval));
+		cur_byte += sizeof(bss_param->interval);
 
-		memcpy(cur_byte, ptstrJoinBssParam->start_time, sizeof(ptstrJoinBssParam->start_time));
-		cur_byte += sizeof(ptstrJoinBssParam->start_time);
+		memcpy(cur_byte, bss_param->start_time, sizeof(bss_param->start_time));
+		cur_byte += sizeof(bss_param->start_time);
 	} else {
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "NOA not present\n");
 	}
