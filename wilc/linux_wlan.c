@@ -1050,8 +1050,7 @@ void wilc_wlan_deinitialize(struct net_device *dev)
 			}
 		}
 
-		if (&wl->txq_event)
-			complete(&wl->txq_event);
+		complete(&wl->txq_event);
 
 		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing Threads\n");
 		wlan_deinitialize_threads(dev);
@@ -1109,14 +1108,9 @@ static int wlan_deinit_locks(struct net_device *dev)
 
 	PRINT_INFO(vif->ndev, INIT_DBG, "De-Initializing Locks\n");
 
-	if (&wilc->hif_cs)
-		mutex_destroy(&wilc->hif_cs);
-
-	if (&wilc->cs)
-		mutex_destroy(&wilc->cs);
-
-	if (&wilc->rxq_cs)
-		mutex_destroy(&wilc->rxq_cs);
+	mutex_destroy(&wilc->hif_cs);
+	mutex_destroy(&wilc->cs);
+	mutex_destroy(&wilc->rxq_cs);
 
 	return 0;
 }
@@ -1180,8 +1174,7 @@ static void wlan_deinitialize_threads(struct net_device *dev)
 	wl->close = 1;
 	PRINT_INFO(vif->ndev, INIT_DBG,"Deinitializing Threads\n");
 
-	if (&wl->txq_event)
-		complete(&wl->txq_event);
+	complete(&wl->txq_event);
 
 	if (wl->txq_thread) {
 		kthread_stop(wl->txq_thread);
