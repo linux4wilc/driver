@@ -985,311 +985,297 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 
 	txb = wilc->tx_buffer;
 	wilc->txq_exit = 0;
-	if (wilc->txq_entries) {
-		do {
-			if (wilc->quit)
-				break;
-			if (ac_balance(ac_fw_count, ac_desired_ratio))
-				return -1;
-			
-			mutex_lock(&wilc->txq_add_to_head_cs);
-			wilc_wlan_txq_filter_dup_tcp_ack(dev);
+	if (!wilc->txq_entries) {
+		wilc->txq_exit = 1;
+		*txq_count = 0;
+		return 0;
+	}
 
-			PRINT_INFO(vif->ndev, TX_DBG,"Getting the head of the TxQ\n");
-			for(ac = 0; ac < NQUEUES; ac++)
-				tqe_q[ac] = wilc_wlan_txq_get_first(wilc, ac);
-			i = 0;
-			sum = 0;
-			max_size_over = 0;
-			num_pkts_to_add = ac_desired_ratio;
-			do {
-				ac_exist = 0;
-				for(ac = 0; (ac < NQUEUES) && (!max_size_over); ac++) {
-					if (tqe_q[ac]) {
-						ac_exist = 1;
-						for(k = 0; (k < num_pkts_to_add[ac]) && (!max_size_over) && tqe_q[ac]; k++) {
-							if (i < (WILC_VMM_TBL_SIZE - 1)) {
-								if (tqe_q[ac]->type == WILC_CFG_PKT)
-									vmm_sz = ETH_CONFIG_PKT_HDR_OFFSET;
-								else if (tqe_q[ac]->type == WILC_NET_PKT)
-									vmm_sz = ETH_ETHERNET_HDR_OFFSET;
-								else
-									vmm_sz = HOST_HDR_OFFSET;
+	if (wilc->quit)
+		goto out;
+	if (ac_balance(ac_fw_count, ac_desired_ratio))
+		return -1;
+	
+	mutex_lock(&wilc->txq_add_to_head_cs);
+	wilc_wlan_txq_filter_dup_tcp_ack(dev);
 
-								vmm_sz += tqe_q[ac]->buffer_size;
-								PRINT_INFO(vif->ndev, TX_DBG,"VMM Size before alignment = %d\n",vmm_sz);
-								if (vmm_sz & 0x3)
-									vmm_sz = (vmm_sz + 4) & ~0x3;
+	PRINT_INFO(vif->ndev, TX_DBG,"Getting the head of the TxQ\n");
+	for(ac = 0; ac < NQUEUES; ac++)
+		tqe_q[ac] = wilc_wlan_txq_get_first(wilc, ac);
+	i = 0;
+	sum = 0;
+	max_size_over = 0;
+	num_pkts_to_add = ac_desired_ratio;
+	do {
+		ac_exist = 0;
+		for(ac = 0; (ac < NQUEUES) && (!max_size_over); ac++) {
+			if (tqe_q[ac]) {
+				ac_exist = 1;
+				for(k = 0; (k < num_pkts_to_add[ac]) && (!max_size_over) && tqe_q[ac]; k++) {
+					if (i < (WILC_VMM_TBL_SIZE - 1)) {
+						if (tqe_q[ac]->type == WILC_CFG_PKT)
+							vmm_sz = ETH_CONFIG_PKT_HDR_OFFSET;
+						else if (tqe_q[ac]->type == WILC_NET_PKT)
+							vmm_sz = ETH_ETHERNET_HDR_OFFSET;
+						else
+							vmm_sz = HOST_HDR_OFFSET;
 
-								if ((sum + vmm_sz) > LINUX_TX_SIZE) {
-									max_size_over = 1;
-									break;
-								}
-								PRINT_INFO(vif->ndev, TX_DBG,"VMM Size AFTER alignment = %d\n",vmm_sz);
-								vmm_table[i] = vmm_sz / 4;
-								PRINT_INFO(vif->ndev, TX_DBG,"VMMTable entry size = %d\n",vmm_table[i]);
-								if (tqe_q[ac]->type == WILC_CFG_PKT) {
-									vmm_table[i] |= BIT(10);
-									PRINT_INFO(vif->ndev, TX_DBG,"VMMTable entry changed for CFG packet = %d\n",vmm_table[i]);
-								}
-								vmm_table[i] = cpu_to_le32(vmm_table[i]);
-								vmm_entries_ac[i] = ac;
+						vmm_sz += tqe_q[ac]->buffer_size;
+						PRINT_INFO(vif->ndev, TX_DBG,"VMM Size before alignment = %d\n",vmm_sz);
+						if (vmm_sz & 0x3)
+							vmm_sz = (vmm_sz + 4) & ~0x3;
 
-								i++;
-								sum += vmm_sz;
-								PRINT_INFO(vif->ndev, TX_DBG,"sum = %d\n",sum);
-								tqe_q[ac] = wilc_wlan_txq_get_next(wilc, tqe_q[ac]);
-							} else {
-								max_size_over = 1;
-								break;
-							}
+						if ((sum + vmm_sz) > LINUX_TX_SIZE) {
+							max_size_over = 1;
+							break;
 						}
+						PRINT_INFO(vif->ndev, TX_DBG,"VMM Size AFTER alignment = %d\n",vmm_sz);
+						vmm_table[i] = vmm_sz / 4;
+						PRINT_INFO(vif->ndev, TX_DBG,"VMMTable entry size = %d\n",vmm_table[i]);
+						if (tqe_q[ac]->type == WILC_CFG_PKT) {
+							vmm_table[i] |= BIT(10);
+							PRINT_INFO(vif->ndev, TX_DBG,"VMMTable entry changed for CFG packet = %d\n",vmm_table[i]);
+						}
+						vmm_table[i] = cpu_to_le32(vmm_table[i]);
+						vmm_entries_ac[i] = ac;
+
+						i++;
+						sum += vmm_sz;
+						PRINT_INFO(vif->ndev, TX_DBG,"sum = %d\n",sum);
+						tqe_q[ac] = wilc_wlan_txq_get_next(wilc, tqe_q[ac]);
+					} else {
+						max_size_over = 1;
+						break;
 					}
 				}
-				num_pkts_to_add = ac_preserve_ratio;
-			} while (!max_size_over && ac_exist);
+			}
+		}
+		num_pkts_to_add = ac_preserve_ratio;
+	} while (!max_size_over && ac_exist);
 
-			if (i == 0) {
-				PRINT_INFO(vif->ndev, TX_DBG,"Nothing in TX-Q\n");
-				break;
-			} 
-			vmm_table[i] = 0x0;
+	if (i == 0) {
+		PRINT_INFO(vif->ndev, TX_DBG,"Nothing in TX-Q\n");
+		goto out;
+	} 
+	vmm_table[i] = 0x0;
 
-			acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_WIFI);
+	acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_WIFI);
+	counter = 0;
+	func = wilc->hif_func;
+	do {
+		ret = func->hif_read_reg(wilc, WILC_HOST_TX_CTRL, &reg);
+		if (!ret) {
+			PRINT_ER(vif->ndev, "fail read reg vmm_tbl_entry..\n");
+			break;
+		}
+		if ((reg & 0x1) == 0){
+			ac_pkt_count(reg, ac_fw_count);
+			ac_acm_bit(wilc, reg);
+			break;
+		}
+
+		counter++;
+		if (counter > 200) {
 			counter = 0;
-			func = wilc->hif_func;
+			PRINT_INFO(vif->ndev, TX_DBG,
+				    "Looping in tx ctrl , force quit\n");
+			ret = func->hif_write_reg(wilc, WILC_HOST_TX_CTRL, 0);
+			break;
+		}
+	} while (!wilc->quit);
+
+	if (!ret)
+		goto _end_;
+
+	timeout = 200;
+	do {
+		ret = func->hif_block_tx(wilc,
+					 WILC_VMM_TBL_RX_SHADOW_BASE,
+					 (u8 *)vmm_table,
+					 ((i + 1) * 4));
+		if (!ret) {
+			PRINT_ER(vif->ndev, "ERR block TX of VMM table.\n");
+			break;
+		}
+		
+		if (wilc->chip == WILC_1000) {
+			ret = wilc->hif_func->hif_write_reg(wilc,
+							    WILC_HOST_VMM_CTL,
+							    0x2);
+			if (!ret) {
+				PRINT_ER(vif->ndev, 
+					  "fail write reg host_vmm_ctl..\n");
+				break;
+			}
+
 			do {
 				ret = func->hif_read_reg(wilc,
-						      WILC_HOST_TX_CTRL,
+						      WILC_HOST_VMM_CTL,
+						      &reg);
+				if (!ret)
+					break;
+				if ((reg >> 2) & 0x1) {
+					entries = ((reg >> 3) & 0x3f);
+					break;
+				}
+			} while (--timeout);
+		} else {
+			ret = func->hif_write_reg(wilc,
+					      WILC_HOST_VMM_CTL,
+					      0);
+			if (!ret) {
+				PRINT_ER(vif->ndev, 
+					  "fail write reg host_vmm_ctl..\n");
+				break;
+			}
+			/* interrupt firmware */
+			ret = func->hif_write_reg(wilc,
+					      WILC_INTERRUPT_CORTUS_0,
+					      1);
+			if (!ret) {
+				PRINT_ER(vif->ndev,
+					  "fail write reg WILC_INTERRUPT_CORTUS_0..\n");
+				break;
+			}
+
+			do {
+				ret = func->hif_read_reg(wilc,
+						      WILC_INTERRUPT_CORTUS_0,
 						      &reg);
 				if (!ret) {
 					PRINT_ER(vif->ndev,
-						  "fail read reg vmm_tbl_entry..\n");
+						  "fail read reg WILC_INTERRUPT_CORTUS_0..\n");
 					break;
 				}
-				if ((reg & 0x1) == 0){
-					ac_pkt_count(reg, ac_fw_count);
-					ac_acm_bit(wilc, reg);
-					break;
-				}
+				if (reg == 0) {
+					// Get the entries
 
-				counter++;
-				if (counter > 200) {
-					counter = 0;
-					PRINT_INFO(vif->ndev, TX_DBG,
-						    "Looping in tx ctrl , force quit\n");
-					ret = func->hif_write_reg(wilc,
-							      WILC_HOST_TX_CTRL,
-							      0);
-					break;
-				}
-			} while (!wilc->quit);
-
-			if (!ret)
-				goto _end_;
-
-			timeout = 200;
-			do {
-				ret = func->hif_block_tx(wilc,
-						     WILC_VMM_TBL_RX_SHADOW_BASE,
-						     (u8 *)vmm_table,
-						     ((i + 1) * 4));
-				if (!ret) {
-					PRINT_ER(vif->ndev,
-						  "ERR block TX of VMM table.\n");
-					break;
-				}
-				
-				if (wilc->chip == WILC_1000) {
-					ret = wilc->hif_func->hif_write_reg(wilc,
-									    WILC_HOST_VMM_CTL,
-									    0x2);
-					if (!ret) {
-						PRINT_ER(vif->ndev, 
-							  "fail write reg host_vmm_ctl..\n");
-						break;
-					}
-
-					do {
-						ret = func->hif_read_reg(wilc,
-								      WILC_HOST_VMM_CTL,
-								      &reg);
-						if (!ret)
-							break;
-						if ((reg >> 2) & 0x1) {
-							entries = ((reg >> 3) & 0x3f);
-							break;
-						}
-					} while (--timeout);
-				} else {
-					ret = func->hif_write_reg(wilc,
-							      WILC_HOST_VMM_CTL,
-							      0);
-					if (!ret) {
-						PRINT_ER(vif->ndev, 
-							  "fail write reg host_vmm_ctl..\n");
-						break;
-					}
-					/* interrupt firmware */
-					ret = func->hif_write_reg(wilc,
-							      WILC_INTERRUPT_CORTUS_0,
-							      1);
-					if (!ret) {
-						PRINT_ER(vif->ndev,
-							  "fail write reg WILC_INTERRUPT_CORTUS_0..\n");
-						break;
-					}
-
-					do {
-						ret = func->hif_read_reg(wilc,
-								      WILC_INTERRUPT_CORTUS_0,
-								      &reg);
-						if (!ret) {
-							PRINT_ER(vif->ndev,
-								  "fail read reg WILC_INTERRUPT_CORTUS_0..\n");
-							break;
-						}
-						if (reg == 0) {
-							// Get the entries
-
-							ret = func->hif_read_reg(wilc,
-									      WILC_HOST_VMM_CTL,
-									      &reg);
-							if (!ret) {
-								PRINT_ER(vif->ndev,
-									  "fail read reg host_vmm_ctl..\n");
-								break;
-							}
-							entries = ((reg >> 3) & 0x3f);
-							break;
-						}
-					} while (--timeout);
-				}
-				if (timeout <= 0) {
-					ret = func->hif_write_reg(wilc,
-							      WILC_HOST_VMM_CTL,
-							      0x0);
-					break;
-				}
-
-				if (!ret)
-					break;
-
-				if (entries == 0) {
-					PRINT_INFO(vif->ndev, TX_DBG,
-						    "no buffer in the chip (reg: %08x), retry later [[ %d, %x ]] \n",
-						    reg, i, vmm_table[i-1]);
 					ret = func->hif_read_reg(wilc,
-							      WILC_HOST_TX_CTRL,
+							      WILC_HOST_VMM_CTL,
 							      &reg);
 					if (!ret) {
 						PRINT_ER(vif->ndev,
-							  "fail read reg WILC_HOST_TX_CTRL..\n");
+							  "fail read reg host_vmm_ctl..\n");
 						break;
 					}
-					reg &= ~BIT(0);
-					ret = wilc->hif_func->hif_write_reg(wilc,
-								      WILC_HOST_TX_CTRL,
-								      reg);
-					if (!ret) {
-						PRINT_ER(vif->ndev,
-							  "fail write reg WILC_HOST_TX_CTRL..\n");
-						break;
-					}
+					entries = ((reg >> 3) & 0x3f);
 					break;
 				}
-				break;
-			} while (1);
+			} while (--timeout);
+		}
+		if (timeout <= 0) {
+			ret = func->hif_write_reg(wilc, WILC_HOST_VMM_CTL, 0x0);
+			break;
+		}
 
-			if (!ret)
-				goto _end_;
+		if (!ret)
+			break;
 
-			if (entries == 0) {
-				ret = WILC_TX_ERR_NO_BUF;
-				goto _end_;
-			}
-
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
-			schedule();
-			offset = 0;
-			i = 0;
-			do {
-				struct txq_entry_t *tqe;
-				tqe = wilc_wlan_txq_remove_from_head(dev,
-								     vmm_entries_ac[i]);
-				ac_pkt_num_to_chip[vmm_entries_ac[i]]++;
-				if (tqe && vmm_table[i] != 0) {
-					u32 header, buffer_offset;
-
-					vmm_table[i] = cpu_to_le32(vmm_table[i]);
-					vmm_sz = (vmm_table[i] & 0x3ff);
-					vmm_sz *= 4;
-					header = (tqe->type << 31) |
-						 (tqe->buffer_size << 15) |
-						 vmm_sz;
-					if (tqe->type == WILC_MGMT_PKT)
-						header |= BIT(30);
-					else
-						header &= ~BIT(30);
-
-					header = cpu_to_le32(header);
-					memcpy(&txb[offset], &header, 4);
-					if (tqe->type == WILC_CFG_PKT) {
-						buffer_offset = ETH_CONFIG_PKT_HDR_OFFSET;
-					} else if (tqe->type == WILC_NET_PKT) {
-						char *bssid = ((struct tx_complete_data *)(tqe->priv))->bssid;
-						int prio = tqe->q_num;
-
-						buffer_offset = ETH_ETHERNET_HDR_OFFSET;
-						memcpy(&txb[offset + 4], &prio, sizeof(prio));
-						memcpy(&txb[offset + 8], bssid ,6);
-					} else {
-						buffer_offset = HOST_HDR_OFFSET;
-					}
-
-					memcpy(&txb[offset + buffer_offset],
-					       tqe->buffer, tqe->buffer_size);
-					offset += vmm_sz;
-					i++;
-					tqe->status = 1;
-					if (tqe->tx_complete_func)
-						tqe->tx_complete_func(tqe->priv,
-								      tqe->status);
-					if (tqe->tcp_pending_ack_idx != NOT_TCP_ACK &&
-					    tqe->tcp_pending_ack_idx < MAX_PENDING_ACKS)
-						pending_acks_info[tqe->tcp_pending_ack_idx].txqe = NULL;
-					kfree(tqe);
-				} else {
-					break;
-				}
-			} while (--entries);
-			for(i = 0; i < NQUEUES; i++)
-				ac_fw_count[i] += ac_pkt_num_to_chip[i];
-
-			acquire_bus(wilc, ACQUIRE_AND_WAKEUP, 
-				    PWR_DEV_SRC_WIFI);
-
-			ret = func->hif_clear_int_ext(wilc, ENABLE_TX_VMM);
+		if (entries == 0) {
+			PRINT_INFO(vif->ndev, TX_DBG,
+				   "no buffer in the chip (reg: %08x), retry later [[ %d, %x ]] \n",
+				   reg, i, vmm_table[i-1]);
+			ret = func->hif_read_reg(wilc, WILC_HOST_TX_CTRL, &reg);
 			if (!ret) {
 				PRINT_ER(vif->ndev,
-					  "fail start tx VMM ...\n");
-				goto _end_;
+					  "fail read reg WILC_HOST_TX_CTRL..\n");
+				break;
+			}
+			reg &= ~BIT(0);
+			ret = func->hif_write_reg(wilc, WILC_HOST_TX_CTRL, reg);
+			if (!ret) {
+				PRINT_ER(vif->ndev,
+					  "fail write reg WILC_HOST_TX_CTRL..\n");
+				break;
+			}
+			break;
+		}
+		break;
+	} while (1);
+
+	if (!ret)
+		goto _end_;
+
+	if (entries == 0) {
+		ret = WILC_TX_ERR_NO_BUF;
+		goto _end_;
+	}
+
+	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
+	schedule();
+	offset = 0;
+	i = 0;
+	do {
+		struct txq_entry_t *tqe;
+		tqe = wilc_wlan_txq_remove_from_head(dev, vmm_entries_ac[i]);
+		ac_pkt_num_to_chip[vmm_entries_ac[i]]++;
+		if (tqe && vmm_table[i] != 0) {
+			u32 header, buffer_offset;
+
+			vmm_table[i] = cpu_to_le32(vmm_table[i]);
+			vmm_sz = (vmm_table[i] & 0x3ff);
+			vmm_sz *= 4;
+			header = (tqe->type << 31) |
+				 (tqe->buffer_size << 15) |
+				 vmm_sz;
+			if (tqe->type == WILC_MGMT_PKT)
+				header |= BIT(30);
+			else
+				header &= ~BIT(30);
+
+			header = cpu_to_le32(header);
+			memcpy(&txb[offset], &header, 4);
+			if (tqe->type == WILC_CFG_PKT) {
+				buffer_offset = ETH_CONFIG_PKT_HDR_OFFSET;
+			} else if (tqe->type == WILC_NET_PKT) {
+				char *bssid = ((struct tx_complete_data *)(tqe->priv))->bssid;
+				int prio = tqe->q_num;
+
+				buffer_offset = ETH_ETHERNET_HDR_OFFSET;
+				memcpy(&txb[offset + 4], &prio, sizeof(prio));
+				memcpy(&txb[offset + 8], bssid, 6);
+			} else {
+				buffer_offset = HOST_HDR_OFFSET;
 			}
 
-			ret = func->hif_block_tx_ext(wilc, 0, txb, offset);
-			if(!ret)
-				PRINT_ER(vif->ndev, 
-					  "fail block tx ext...\n");
+			memcpy(&txb[offset + buffer_offset],
+			       tqe->buffer, tqe->buffer_size);
+			offset += vmm_sz;
+			i++;
+			tqe->status = 1;
+			if (tqe->tx_complete_func)
+				tqe->tx_complete_func(tqe->priv,
+						      tqe->status);
+			if (tqe->tcp_pending_ack_idx != NOT_TCP_ACK &&
+			    tqe->tcp_pending_ack_idx < MAX_PENDING_ACKS)
+				pending_acks_info[tqe->tcp_pending_ack_idx].txqe = NULL;
+			kfree(tqe);
+		} else {
+			break;
+		}
+	} while (--entries);
+	for(i = 0; i < NQUEUES; i++)
+		ac_fw_count[i] += ac_pkt_num_to_chip[i];
+
+	acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_WIFI);
+
+	ret = func->hif_clear_int_ext(wilc, ENABLE_TX_VMM);
+	if (!ret) {
+		PRINT_ER(vif->ndev, "fail start tx VMM ...\n");
+		goto _end_;
+	}
+
+	ret = func->hif_block_tx_ext(wilc, 0, txb, offset);
+	if(!ret)
+		PRINT_ER(vif->ndev, "fail block tx ext...\n");
 
 _end_:
+	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
+	schedule();
 
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
-			schedule();
-			if (ret != 1)
-				break;
-		} while (0);
-		mutex_unlock(&wilc->txq_add_to_head_cs);
-	}
+out:
+	mutex_unlock(&wilc->txq_add_to_head_cs);
+
 	wilc->txq_exit = 1;
 	PRINT_INFO(vif->ndev, TX_DBG,"THREAD: Exiting txq\n");
 	*txq_count = wilc->txq_entries;
