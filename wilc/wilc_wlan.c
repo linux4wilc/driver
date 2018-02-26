@@ -1085,7 +1085,7 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 	} while (!wilc->quit);
 
 	if (!ret)
-		goto _end_;
+		goto out_release_bus;
 
 	timeout = 200;
 	do {
@@ -1194,11 +1194,11 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 	} while (1);
 
 	if (!ret)
-		goto _end_;
+		goto out_release_bus;
 
 	if (entries == 0) {
 		ret = WILC_TX_ERR_NO_BUF;
-		goto _end_;
+		goto out_release_bus;
 	}
 
 	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
@@ -1262,14 +1262,14 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 	ret = func->hif_clear_int_ext(wilc, ENABLE_TX_VMM);
 	if (!ret) {
 		PRINT_ER(vif->ndev, "fail start tx VMM ...\n");
-		goto _end_;
+		goto out_release_bus;
 	}
 
 	ret = func->hif_block_tx_ext(wilc, 0, txb, offset);
 	if(!ret)
 		PRINT_ER(vif->ndev, "fail block tx ext...\n");
 
-_end_:
+out_release_bus:
 	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
 	schedule();
 
