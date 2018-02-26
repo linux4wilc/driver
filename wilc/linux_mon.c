@@ -39,9 +39,6 @@ static u8 bssid[6];
 
 #define IEEE80211_RADIOTAP_F_TX_RTS	0x0004  /* used rts/cts handshake */
 #define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001  /* failed due to excessive*/
-#define IS_MANAGMEMENT				0x100
-#define IS_MANAGMEMENT_CALLBACK			0x080
-#define IS_MGMT_STATUS_SUCCES			0x040
 #define GET_PKT_OFFSET(a) (((a) >> 22) & 0x1ff)
 
 void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)

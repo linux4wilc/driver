@@ -1338,10 +1338,6 @@ static void wilc_wlan_handle_rxq(struct wilc *wilc)
 				break;
 			}
 
-			#define IS_MANAGMEMENT				0x100
-			#define IS_MANAGMEMENT_CALLBACK			0x080
-			#define IS_MGMT_STATUS_SUCCES			0x040
-
 			if (pkt_offset & IS_MANAGMEMENT) {
 				pkt_offset &= ~(IS_MANAGMEMENT |
 						IS_MANAGMEMENT_CALLBACK |
