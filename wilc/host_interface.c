@@ -931,8 +931,7 @@ ERRORHANDLER:
 	return result;
 }
 
-s32 handle_scan_done(struct wilc_vif *vif,
-			    enum scan_event enuEvent)
+s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 {
 	s32 result = 0;
 	u8 u8abort_running_scan;
@@ -947,13 +946,13 @@ s32 handle_scan_done(struct wilc_vif *vif,
 		return result;
 	}
 
-	if(enuEvent == SCAN_EVENT_DONE){
+	if(evt == SCAN_EVENT_DONE){
 		if (memcmp(hif_drv->assoc_bssid, null_bssid, ETH_ALEN) == 0) {
 			hif_drv->hif_state = HOST_IF_IDLE;
 		} else {
 			hif_drv->hif_state = HOST_IF_CONNECTED;
 		}
-	} else if (enuEvent == SCAN_EVENT_ABORTED) {
+	} else if (evt == SCAN_EVENT_ABORTED) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,"Abort running scan\n");		
 		u8abort_running_scan = 1;
 		wid.id = (u16)WID_ABORT_RUNNING_SCAN;
@@ -971,7 +970,7 @@ s32 handle_scan_done(struct wilc_vif *vif,
 	}
 
 	if (hif_drv->usr_scan_req.scan_result) {
-		hif_drv->usr_scan_req.scan_result(enuEvent, NULL,
+		hif_drv->usr_scan_req.scan_result(evt, NULL,
 						  hif_drv->usr_scan_req.arg, NULL);
 		hif_drv->usr_scan_req.scan_result = NULL;
 	}
