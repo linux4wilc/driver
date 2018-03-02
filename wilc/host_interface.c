@@ -3896,7 +3896,8 @@ int wilc_deinit(struct wilc_vif *vif)
 
 	if (hif_drv->usr_scan_req.scan_result) {
 		hif_drv->usr_scan_req.scan_result(SCAN_EVENT_ABORTED, NULL,
-						  hif_drv->usr_scan_req.arg, NULL);
+						  hif_drv->usr_scan_req.arg,
+						  NULL);
 		hif_drv->usr_scan_req.scan_result = NULL;
 	}
 
@@ -4266,7 +4267,8 @@ int wilc_del_allstation(struct wilc_vif *vif, u8 mac_addr[][ETH_ALEN])
 
 	for (i = 0; i < MAX_NUM_STA; i++) {
 		if (memcmp(mac_addr[i], zero_addr, ETH_ALEN)) {
-			memcpy(del_all_sta_info->del_all_sta[i], mac_addr[i], ETH_ALEN);
+			memcpy(del_all_sta_info->del_all_sta[i], mac_addr[i],
+			       ETH_ALEN);
 			PRINT_INFO(vif->ndev,
 				   CFG80211_DBG, "BSSID = %x%x%x%x%x%x\n",
 				   del_all_sta_info->del_all_sta[i][0],
