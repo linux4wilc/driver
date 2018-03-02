@@ -1965,7 +1965,7 @@ static void handle_disconnect(struct wilc_vif *vif)
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	s32 result = 0;
-	u16 u16DummyReasonCode = 0;
+	u16 dummy_reason_code = 0;
 	struct host_if_drv *hif_drv_p2p  = wilc_get_drv_handler_by_ifc(vif->wilc, P2P_IFC);
 	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
 
@@ -1992,7 +1992,7 @@ static void handle_disconnect(struct wilc_vif *vif)
 	}
 	wid.id = (u16)WID_DISCONNECT;
 	wid.type = WID_CHAR;
-	wid.val = (s8 *)&u16DummyReasonCode;
+	wid.val = (s8 *)&dummy_reason_code;
 	wid.size = sizeof(char);
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Sending disconnect request\n");
