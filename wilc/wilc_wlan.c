@@ -1285,9 +1285,83 @@ out:
 	return ret;
 }
 
+static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
+{
+	int offset = 0;
+	u32 header;
+	u32 pkt_len, pkt_offset, tp_len;
+	int is_cfg_packet;
+	u8 *buff_ptr;
+	struct wilc_vif *vif = wilc->vif[0];
+
+	do {
+		PRINT_INFO(vif->ndev, RX_DBG, "Handling rx buffer\n");
+		buff_ptr = buffer + offset;
+		memcpy(&header, buff_ptr, 4);
+		header = cpu_to_le32(header);
+		PRINT_INFO(vif->ndev, RX_DBG,
+			   "Header = %04x - Offset = %d\n",header,offset);
+
+		is_cfg_packet = (header >> 31) & 0x1;
+		pkt_offset = (header >> 22) & 0x1ff;
+		tp_len = (header >> 11) & 0x7ff;
+		pkt_len = header & 0x7ff;
+
+		if (pkt_len == 0 || tp_len == 0) {
+			PRINT_INFO(vif->ndev, RX_DBG, 
+				   "Data corrupted %d, %d\n",
+				   pkt_len, tp_len);
+			break;
+		}
+
+		if (pkt_offset & IS_MANAGMEMENT) {
+			pkt_offset &= ~(IS_MANAGMEMENT |
+					IS_MANAGMEMENT_CALLBACK |
+					IS_MGMT_STATUS_SUCCES);
+			buff_ptr += HOST_HDR_OFFSET;
+			wilc_wfi_mgmt_rx(wilc, buff_ptr, pkt_len);
+		} else {
+			if (!is_cfg_packet) {
+				if (pkt_len > 0) {
+					frmw_to_linux(wilc, buff_ptr,
+							   pkt_len,
+							   pkt_offset,
+							   PKT_STATUS_NEW);
+				}
+			} else {
+				struct wilc_cfg_rsp rsp;
+
+				buff_ptr += pkt_offset;
+
+				wilc_wlan_cfg_indicate_rx(wilc, buff_ptr,
+							  pkt_len,
+							  &rsp);
+				if (rsp.type == WILC_CFG_RSP) {
+					PRINT_INFO(vif->ndev, RX_DBG, 
+						   "cfg_seq %d rsp.seq %d\n",
+						   wilc->cfg_seq_no,
+						   rsp.seq_no);
+					if (wilc->cfg_seq_no == rsp.seq_no)
+						complete(&wilc->cfg_event);
+				} else if (rsp.type == WILC_CFG_RSP_STATUS) {
+					wilc_mac_indicate(wilc,
+							  WILC_MAC_INDICATE_STATUS);
+
+				} else if (rsp.type == WILC_CFG_RSP_SCAN) {
+					wilc_mac_indicate(wilc,
+							  WILC_MAC_INDICATE_SCAN);
+				}
+			}
+		}
+		offset += tp_len;
+		if (offset >= size)
+			break;
+	} while (1);
+}
+
 static void wilc_wlan_handle_rxq(struct wilc *wilc)
 {
-	int offset = 0, size;
+	int size;
 	u8 *buffer;
 	struct rxq_entry_t *rqe;
 	struct wilc_vif *vif = wilc->vif[0];
@@ -1297,14 +1371,14 @@ static void wilc_wlan_handle_rxq(struct wilc *wilc)
 	do {
 		if (wilc->quit) {
 			PRINT_INFO(vif->ndev, RX_DBG,
-				   "exit 1st do-while due to Clean_UP function \n");
+				   "Quitting. Exit handle RX queue\n");
 			complete(&wilc->cfg_event);
 			break;
 		}
 		rqe = wilc_wlan_rxq_remove(wilc);
 		if (!rqe) {
 			PRINT_INFO(vif->ndev, RX_DBG,
-				   "nothing in the queue - exit 1st do-while\n");
+				   "nothing in RX queue\n");
 			break;
 		}
 
@@ -1313,66 +1387,9 @@ static void wilc_wlan_handle_rxq(struct wilc *wilc)
 		PRINT_INFO(vif->ndev, RX_DBG,
 			   "rxQ entery Size = %d - Address = %p\n",
 			   size,buffer);
-		offset = 0;
 
-		do {
-			u32 header;
-			u32 pkt_len, pkt_offset, tp_len;
-			int is_cfg_packet;
+		wilc_wlan_handle_rx_buff(wilc, buffer, size);
 
-			PRINT_INFO(vif->ndev, RX_DBG,"In the 2nd do-while\n");
-			memcpy(&header, &buffer[offset], 4);
-			header = cpu_to_le32(header);
-			PRINT_INFO(vif->ndev, RX_DBG,
-				   "Header = %04x - Offset = %d\n",header,offset);
-
-			is_cfg_packet = (header >> 31) & 0x1;
-			pkt_offset = (header >> 22) & 0x1ff;
-			tp_len = (header >> 11) & 0x7ff;
-			pkt_len = header & 0x7ff;
-
-			if (pkt_len == 0 || tp_len == 0) {
-				PRINT_INFO(vif->ndev, RX_DBG, 
-					   "data corrupt, packet len or tp_len is 0 %d, %d\n",
-					   pkt_len, tp_len);
-				break;
-			}
-
-			if (pkt_offset & IS_MANAGMEMENT) {
-				pkt_offset &= ~(IS_MANAGMEMENT |
-						IS_MANAGMEMENT_CALLBACK |
-						IS_MGMT_STATUS_SUCCES);
-
-				wilc_wfi_mgmt_rx(wilc, &buffer[offset + HOST_HDR_OFFSET], pkt_len);
-			} else {
-				if (!is_cfg_packet) {
-					if (pkt_len > 0) {
-						frmw_to_linux(wilc,
-							      &buffer[offset],
-							      pkt_len,
-							      pkt_offset,
-							      PKT_STATUS_NEW);
-					}
-				} else {
-					struct wilc_cfg_rsp rsp;
-
-					wilc_wlan_cfg_indicate_rx(wilc, &buffer[pkt_offset + offset], pkt_len, &rsp);
-					if (rsp.type == WILC_CFG_RSP) {
-						PRINT_INFO(vif->ndev, RX_DBG, "wilc->cfg_seq_no = %d - rsp.seq_no = %d\n", wilc->cfg_seq_no, rsp.seq_no);
-						if (wilc->cfg_seq_no == rsp.seq_no)
-							complete(&wilc->cfg_event);
-					} else if (rsp.type == WILC_CFG_RSP_STATUS) {
-						wilc_mac_indicate(wilc, WILC_MAC_INDICATE_STATUS);
-
-					} else if (rsp.type == WILC_CFG_RSP_SCAN) {
-						wilc_mac_indicate(wilc, WILC_MAC_INDICATE_SCAN);
-					}
-				}
-			}
-			offset += tp_len;
-			if (offset >= size)
-				break;
-		} while (1);
 		kfree(rqe);
 	} while (1);
 
