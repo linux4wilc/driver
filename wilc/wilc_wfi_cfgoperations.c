@@ -439,10 +439,9 @@ static void add_network_to_shadow(struct network_info *nw_info,
 	last_scanned_shadow[ap_index].join_params = pJoinParams;
 }
 
-static void CfgScanResult(enum scan_event scan_event,
-			  struct network_info *network_info,
-			  void *user_void,
-			  void *join_params)
+static void cfg_scan_result(enum scan_event scan_event,
+			    struct network_info *network_info,
+			    void *user_void, void *join_params)
 {
 	struct wilc_priv *priv;
 	struct wiphy *wiphy;
@@ -778,7 +777,7 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 					au8ScanChanList,
 					request->n_channels,
 					(const u8 *)request->ie,
-					request->ie_len, CfgScanResult,
+					request->ie_len, cfg_scan_result,
 					(void *)priv, &hidden_ntwk);
 		} else {
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
@@ -787,7 +786,7 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 					au8ScanChanList,
 					request->n_channels,
 					(const u8 *)request->ie,
-					request->ie_len, CfgScanResult,
+					request->ie_len, cfg_scan_result,
 					(void *)priv, NULL);
 		}
 	} else {
