@@ -1051,7 +1051,8 @@ static s32 handle_connect(struct wilc_vif *vif,
 
 	hif_drv->usr_conn_req.ssid_len = conn_attr->ssid_len;
 	if (conn_attr->ssid) {
-		hif_drv->usr_conn_req.ssid = kmalloc(conn_attr->ssid_len + 1, GFP_KERNEL);
+		hif_drv->usr_conn_req.ssid = kmalloc(conn_attr->ssid_len + 1,
+						     GFP_KERNEL);
 		memcpy(hif_drv->usr_conn_req.ssid,
 		       conn_attr->ssid,
 		       conn_attr->ssid_len);
@@ -1060,7 +1061,8 @@ static s32 handle_connect(struct wilc_vif *vif,
 
 	hif_drv->usr_conn_req.ies_len = conn_attr->ies_len;
 	if (conn_attr->ies) {
-		hif_drv->usr_conn_req.ies = kmalloc(conn_attr->ies_len, GFP_KERNEL);
+		hif_drv->usr_conn_req.ies = kmalloc(conn_attr->ies_len,
+						    GFP_KERNEL);
 		memcpy(hif_drv->usr_conn_req.ies,
 		       conn_attr->ies,
 		       conn_attr->ies_len);
@@ -1187,10 +1189,12 @@ static s32 handle_connect(struct wilc_vif *vif,
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* rsn group policy %0x*\n", (*(cur_byte - 1)));
 	*(cur_byte++) =  bss_param->mode_802_11i;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* mode_802_11i %d*\n", (*(cur_byte - 1)));
-	memcpy(cur_byte, bss_param->rsn_pcip_policy, sizeof(bss_param->rsn_pcip_policy));
+	memcpy(cur_byte, bss_param->rsn_pcip_policy,
+	       sizeof(bss_param->rsn_pcip_policy));
 	cur_byte += sizeof(bss_param->rsn_pcip_policy);
 
-	memcpy(cur_byte, bss_param->rsn_auth_policy, sizeof(bss_param->rsn_auth_policy));
+	memcpy(cur_byte, bss_param->rsn_auth_policy,
+	       sizeof(bss_param->rsn_auth_policy));
 	cur_byte += sizeof(bss_param->rsn_auth_policy);
 
 	memcpy(cur_byte, bss_param->rsn_cap, sizeof(bss_param->rsn_cap));
@@ -1214,13 +1218,16 @@ static s32 handle_connect(struct wilc_vif *vif,
 
 		*(cur_byte++) = bss_param->cnt;
 
-		memcpy(cur_byte, bss_param->duration, sizeof(bss_param->duration));
+		memcpy(cur_byte, bss_param->duration,
+		       sizeof(bss_param->duration));
 		cur_byte += sizeof(bss_param->duration);
 
-		memcpy(cur_byte, bss_param->interval, sizeof(bss_param->interval));
+		memcpy(cur_byte, bss_param->interval,
+		       sizeof(bss_param->interval));
 		cur_byte += sizeof(bss_param->interval);
 
-		memcpy(cur_byte, bss_param->start_time, sizeof(bss_param->start_time));
+		memcpy(cur_byte, bss_param->start_time,
+		       sizeof(bss_param->start_time));
 		cur_byte += sizeof(bss_param->start_time);
 	} else {
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "NOA not present\n");
@@ -1278,7 +1285,8 @@ error:
 
 			if (conn_attr->ies) {
 				conn_info.req_ies_len = conn_attr->ies_len;
-				conn_info.req_ies = kmalloc(conn_attr->ies_len, GFP_KERNEL);
+				conn_info.req_ies = kmalloc(conn_attr->ies_len,
+							    GFP_KERNEL);
 				memcpy(conn_info.req_ies,
 				       conn_attr->ies,
 				       conn_attr->ies_len);
