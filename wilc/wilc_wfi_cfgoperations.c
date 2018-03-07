@@ -366,8 +366,7 @@ static void remove_network_from_shadow(unsigned long arg)
 	}
 }
 
-static int is_network_in_shadow(struct network_info *pstrNetworkInfo,
-				struct wilc_priv *priv)
+static int is_network_in_shadow(struct network_info *nw_info, struct wilc_priv *priv)
 {
 	int state = -1;
 	int i;
@@ -380,7 +379,7 @@ static int is_network_in_shadow(struct network_info *pstrNetworkInfo,
 	} else {
 		for (i = 0; i < last_scanned_cnt; i++) {
 			if (memcmp(last_scanned_shadow[i].bssid,
-				   pstrNetworkInfo->bssid, 6) == 0) {
+				   nw_info->bssid, 6) == 0) {
 				state = i;
 				break;
 			}
@@ -389,10 +388,10 @@ static int is_network_in_shadow(struct network_info *pstrNetworkInfo,
 	return state;
 }
 
-static void add_network_to_shadow(struct network_info *pstrNetworkInfo,
+static void add_network_to_shadow(struct network_info *nw_info,
 				  struct wilc_priv *priv, void *pJoinParams)
 {
-	int ap_found = is_network_in_shadow(pstrNetworkInfo, priv);
+	int ap_found = is_network_in_shadow(nw_info, priv);
 	u32 ap_index = 0;
 	u8 rssi_index = 0;
 
@@ -408,30 +407,30 @@ static void add_network_to_shadow(struct network_info *pstrNetworkInfo,
 		ap_index = ap_found;
 	}
 	rssi_index = last_scanned_shadow[ap_index].rssi_history.index;
-	last_scanned_shadow[ap_index].rssi_history.samples[rssi_index++] = pstrNetworkInfo->rssi;
+	last_scanned_shadow[ap_index].rssi_history.samples[rssi_index++] = nw_info->rssi;
 	if (rssi_index == NUM_RSSI) {
 		rssi_index = 0;
 		last_scanned_shadow[ap_index].rssi_history.full = true;
 	}
 	last_scanned_shadow[ap_index].rssi_history.index = rssi_index;
-	last_scanned_shadow[ap_index].rssi = pstrNetworkInfo->rssi;
-	last_scanned_shadow[ap_index].cap_info = pstrNetworkInfo->cap_info;
-	last_scanned_shadow[ap_index].ssid_len = pstrNetworkInfo->ssid_len;
+	last_scanned_shadow[ap_index].rssi = nw_info->rssi;
+	last_scanned_shadow[ap_index].cap_info = nw_info->cap_info;
+	last_scanned_shadow[ap_index].ssid_len = nw_info->ssid_len;
 	memcpy(last_scanned_shadow[ap_index].ssid,
-	       pstrNetworkInfo->ssid, pstrNetworkInfo->ssid_len);
+	       nw_info->ssid, nw_info->ssid_len);
 	memcpy(last_scanned_shadow[ap_index].bssid,
-	       pstrNetworkInfo->bssid, ETH_ALEN);
-	last_scanned_shadow[ap_index].beacon_period = pstrNetworkInfo->beacon_period;
-	last_scanned_shadow[ap_index].dtim_period = pstrNetworkInfo->dtim_period;
-	last_scanned_shadow[ap_index].ch = pstrNetworkInfo->ch;
-	last_scanned_shadow[ap_index].ies_len = pstrNetworkInfo->ies_len;
-	last_scanned_shadow[ap_index].tsf_hi = pstrNetworkInfo->tsf_hi;
+	       nw_info->bssid, ETH_ALEN);
+	last_scanned_shadow[ap_index].beacon_period = nw_info->beacon_period;
+	last_scanned_shadow[ap_index].dtim_period = nw_info->dtim_period;
+	last_scanned_shadow[ap_index].ch = nw_info->ch;
+	last_scanned_shadow[ap_index].ies_len = nw_info->ies_len;
+	last_scanned_shadow[ap_index].tsf_hi = nw_info->tsf_hi;
 	if (ap_found != -1)
 		kfree(last_scanned_shadow[ap_index].ies);
-	last_scanned_shadow[ap_index].ies = kmalloc(pstrNetworkInfo->ies_len,
+	last_scanned_shadow[ap_index].ies = kmalloc(nw_info->ies_len,
 						    GFP_KERNEL);
 	memcpy(last_scanned_shadow[ap_index].ies,
-	       pstrNetworkInfo->ies, pstrNetworkInfo->ies_len);
+	       nw_info->ies, nw_info->ies_len);
 	last_scanned_shadow[ap_index].time_scan = jiffies;
 	last_scanned_shadow[ap_index].time_scan_cached = jiffies;
 	last_scanned_shadow[ap_index].found = 1;
@@ -815,7 +814,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 
 	struct wilc_priv *priv;
 	struct host_if_drv *wfi_drv;
-	struct network_info *pstrNetworkInfo = NULL;
+	struct network_info *nw_info = NULL;
 	struct wilc_vif *vif;
 
 	wilc_connecting = 1;
@@ -867,12 +866,12 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 	if (sel_bssi_idx < last_scanned_cnt) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Required bss is in scan results\n");
-		pstrNetworkInfo = &last_scanned_shadow[sel_bssi_idx];
+		nw_info = &last_scanned_shadow[sel_bssi_idx];
 		PRINT_D(vif->ndev, CFG80211_DBG,
 			"network BSSID to be associated: %x%x%x%x%x%x\n",
-			pstrNetworkInfo->bssid[0], pstrNetworkInfo->bssid[1],
-			pstrNetworkInfo->bssid[2], pstrNetworkInfo->bssid[3],
-			pstrNetworkInfo->bssid[4], pstrNetworkInfo->bssid[5]);
+			nw_info->bssid[0], nw_info->bssid[1],
+			nw_info->bssid[2], nw_info->bssid[3],
+			nw_info->bssid[4], nw_info->bssid[5]);
 	} else {
 		ret = -ENOENT;
 		wilc_connecting = 0;
@@ -1003,20 +1002,20 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 	}
 
 	PRINT_D(vif->ndev, CFG80211_DBG, "Required Channel = %d\n",
-		pstrNetworkInfo->ch);
-	curr_channel = pstrNetworkInfo->ch;
+		nw_info->ch);
+	curr_channel = nw_info->ch;
 
 	if (!wfi_drv->p2p_connect)
-		wlan_channel = pstrNetworkInfo->ch;
+		wlan_channel = nw_info->ch;
 
-	wilc_wlan_set_bssid(dev, pstrNetworkInfo->bssid, STATION_MODE);
+	wilc_wlan_set_bssid(dev, nw_info->bssid, STATION_MODE);
 
-	ret = wilc_set_join_req(vif, pstrNetworkInfo->bssid, sme->ssid,
+	ret = wilc_set_join_req(vif, nw_info->bssid, sme->ssid,
 				sme->ssid_len, sme->ie, sme->ie_len,
 				cfg_connect_result, (void *)priv,
 				u8security, auth_type,
-				pstrNetworkInfo->ch,
-				pstrNetworkInfo->join_params);
+				nw_info->ch,
+				nw_info->join_params);
 	if (ret != 0) {
 		PRINT_ER(dev, "wilc_set_join_req(): Error(%d)\n", ret);
 		ret = -ENOENT;
