@@ -449,127 +449,132 @@ static void cfg_scan_result(enum scan_event scan_event,
 	struct ieee80211_channel *channel;
 	struct cfg80211_bss *bss = NULL;
 
-	priv = (struct wilc_priv *)user_void;
-	if (priv->cfg_scanning) {
-		if (scan_event == SCAN_EVENT_NETWORK_FOUND) {
-			wiphy = priv->dev->ieee80211_ptr->wiphy;
+	priv = user_void;
+	if (!priv->cfg_scanning)
+		return;
 
-			if (!wiphy)
+	if (scan_event == SCAN_EVENT_NETWORK_FOUND) {
+		wiphy = priv->dev->ieee80211_ptr->wiphy;
+
+		if (!wiphy || !network_info)
+			return;
+
+		if (wiphy->signal_type == CFG80211_SIGNAL_TYPE_UNSPEC &&
+		    (((s32)network_info->rssi * 100) < 0 ||
+		    ((s32)network_info->rssi * 100) > 100))
+			return;
+
+		s32Freq = ieee80211_channel_to_frequency((s32)network_info->ch,
+							 NL80211_BAND_2GHZ);
+		channel = ieee80211_get_channel(wiphy, s32Freq);
+
+		if (!channel)
+			return;
+		PRINT_D(priv->dev, CFG80211_DBG,
+			"Network Info:: CHANNEL Frequency: %d, RSSI: %d, CapabilityInfo: %d, BeaconPeriod: %d\n",
+			channel->center_freq,
+			((s32)network_info->rssi * 100),
+			network_info->cap_info,
+			network_info->beacon_period);
+
+		if (network_info->new_network) {
+			if (priv->rcvd_ch_cnt >= MAX_NUM_SCANNED_NETWORKS) {
+				PRINT_ER(priv->dev,
+					 "Discovered networks exceeded the max limit\n");
+				return;
+			}
+			
+			PRINT_INFO(priv->dev, CFG80211_DBG,
+				    "Network %s found\n",
+				    network_info->ssid);
+			priv->rcvd_ch_cnt++;
+
+			add_network_to_shadow(network_info, priv, join_params);
+
+			if (memcmp("DIRECT-", network_info->ssid, 7))
 				return;
 
-			if (wiphy->signal_type == CFG80211_SIGNAL_TYPE_UNSPEC &&
-			    (((s32)network_info->rssi * 100) < 0 ||
-			    ((s32)network_info->rssi * 100) > 100))
+			bss = cfg80211_inform_bss(wiphy,
+						  channel,
+					#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)
+						  CFG80211_BSS_FTYPE_UNKNOWN,
+					#endif
+						  network_info->bssid,
+						  network_info->tsf_hi,
+						  network_info->cap_info,
+						  network_info->beacon_period,
+						  (const u8 *)network_info->ies,
+						  (size_t)network_info->ies_len,
+						  (s32)network_info->rssi * 100,
+						  GFP_KERNEL);
+			cfg80211_put_bss(wiphy, bss);
+		} else {
+			u32 i;
+
+			for (i = 0; i < priv->rcvd_ch_cnt; i++) {
+				if (memcmp(last_scanned_shadow[i].bssid,
+					   network_info->bssid, 6) == 0)
+					break;
+			}
+
+			if (i >= priv->rcvd_ch_cnt)
 				return;
 
-			if (network_info) {
-				s32Freq = ieee80211_channel_to_frequency((s32)network_info->ch, NL80211_BAND_2GHZ);
-				channel = ieee80211_get_channel(wiphy, s32Freq);
-
-				if (!channel)
-					return;
-				PRINT_D(priv->dev, CFG80211_DBG,
-					"Network Info:: CHANNEL Frequency: %d, RSSI: %d, CapabilityInfo: %d, BeaconPeriod: %d\n",
-					channel->center_freq,
-					((s32)network_info->rssi * 100),
-					network_info->cap_info,
-					network_info->beacon_period);
-
-				if (network_info->new_network) {
-					if (priv->rcvd_ch_cnt < MAX_NUM_SCANNED_NETWORKS) {
-						PRINT_INFO(priv->dev, CFG80211_DBG,
-						"Network %s found\n",
-						network_info->ssid);
-						priv->rcvd_ch_cnt++;
-
-						add_network_to_shadow(network_info, priv, join_params);
-
-						if (!(memcmp("DIRECT-", network_info->ssid, 7))) {
-							bss = cfg80211_inform_bss(wiphy,
-										  channel,
-									#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)
-										  CFG80211_BSS_FTYPE_UNKNOWN,
-									#endif
-										  network_info->bssid,
-										  network_info->tsf_hi,
-										  network_info->cap_info,
-										  network_info->beacon_period,
-										  (const u8 *)network_info->ies,
-										  (size_t)network_info->ies_len,
-										  (s32)network_info->rssi * 100,
-										  GFP_KERNEL);
-							cfg80211_put_bss(wiphy, bss);
-						}
-					} else {
-						PRINT_ER(priv->dev,
-							 "Discovered networks exceeded the max limit\n");
-					}
-				} else {
-					u32 i;
-
-					for (i = 0; i < priv->rcvd_ch_cnt; i++) {
-						if (memcmp(last_scanned_shadow[i].bssid, network_info->bssid, 6) == 0) {
-							PRINT_INFO(priv->dev, CFG80211_DBG,
-								   "Update RSSI of %s\n", last_scanned_shadow[i].ssid);
-							last_scanned_shadow[i].rssi = network_info->rssi;
-							last_scanned_shadow[i].time_scan = jiffies;
-							break;
-						}
-					}
-				}
-			}
-		} else if (scan_event == SCAN_EVENT_DONE) {
 			PRINT_INFO(priv->dev, CFG80211_DBG,
-				   "Scan Done[%p]\n", priv->dev);
-			PRINT_INFO(priv->dev, CFG80211_DBG,
-				   "Refreshing Scan ...\n");
-			refresh_scan(priv, false);
-
-			if (priv->rcvd_ch_cnt > 0)
-				PRINT_INFO(priv->dev, CFG80211_DBG,
-					   "%d Network(s) found\n",
-					   priv->rcvd_ch_cnt);
-			else
-				PRINT_INFO(priv->dev, CFG80211_DBG,
-					   "No networks found\n");
-			mutex_lock(&priv->scan_req_lock);
-
-			if (priv->scan_req) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
-				struct cfg80211_scan_info info = {
-					.aborted = false,
-				};
-
-				cfg80211_scan_done(priv->scan_req, &info);
-#else
-				cfg80211_scan_done(priv->scan_req, false);
-#endif
-				priv->rcvd_ch_cnt = 0;
-				priv->cfg_scanning = false;
-				priv->scan_req = NULL;
-			}
-			mutex_unlock(&priv->scan_req_lock);
-		} else if (scan_event == SCAN_EVENT_ABORTED) {
-			mutex_lock(&priv->scan_req_lock);
-
-			PRINT_INFO(priv->dev, CFG80211_DBG, "Scan Aborted \n");
-			if (priv->scan_req) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
-				struct cfg80211_scan_info info = {
-					.aborted = false,
-				};
-				cfg80211_scan_done(priv->scan_req, &info);
-#else
-				cfg80211_scan_done(priv->scan_req, false);
-#endif
-
-				update_scan_time();
-				refresh_scan(priv, false);
-				priv->cfg_scanning = false;
-				priv->scan_req = NULL;
-			}
-			mutex_unlock(&priv->scan_req_lock);
+				   "Update RSSI of %s\n",
+				   last_scanned_shadow[i].ssid);
+			last_scanned_shadow[i].rssi = network_info->rssi;
+			last_scanned_shadow[i].time_scan = jiffies;
 		}
+	} else if (scan_event == SCAN_EVENT_DONE) {
+		PRINT_INFO(priv->dev, CFG80211_DBG, "Scan Done[%p]\n",
+			   priv->dev);
+		PRINT_INFO(priv->dev, CFG80211_DBG, "Refreshing Scan ...\n");
+		refresh_scan(priv, false);
+
+		if (priv->rcvd_ch_cnt > 0)
+			PRINT_INFO(priv->dev, CFG80211_DBG,
+				   "%d Network(s) found\n", priv->rcvd_ch_cnt);
+		else
+			PRINT_INFO(priv->dev, CFG80211_DBG,
+				   "No networks found\n");
+		mutex_lock(&priv->scan_req_lock);
+
+		if (priv->scan_req) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
+			struct cfg80211_scan_info info = {
+				.aborted = false,
+			};
+
+			cfg80211_scan_done(priv->scan_req, &info);
+#else
+			cfg80211_scan_done(priv->scan_req, false);
+#endif
+			priv->rcvd_ch_cnt = 0;
+			priv->cfg_scanning = false;
+			priv->scan_req = NULL;
+		}
+		mutex_unlock(&priv->scan_req_lock);
+	} else if (scan_event == SCAN_EVENT_ABORTED) {
+		mutex_lock(&priv->scan_req_lock);
+
+		PRINT_INFO(priv->dev, CFG80211_DBG, "Scan Aborted \n");
+		if (priv->scan_req) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
+			struct cfg80211_scan_info info = {
+				.aborted = false,
+			};
+			cfg80211_scan_done(priv->scan_req, &info);
+#else
+			cfg80211_scan_done(priv->scan_req, false);
+#endif
+
+			update_scan_time();
+			refresh_scan(priv, false);
+			priv->cfg_scanning = false;
+			priv->scan_req = NULL;
+		}
+		mutex_unlock(&priv->scan_req_lock);
 	}
 }
 
