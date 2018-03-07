@@ -821,7 +821,7 @@ static s32 handle_scan(struct wilc_vif *vif, struct scan_attr *scan_info)
 			PRINT_INFO(vif->ndev, GENERIC_DBG,"Don't scan. P2P_IFC is in state [%d]\n",
 			 hif_drv_p2p->hif_state);
 			result = -EBUSY;
-			goto ERRORHANDLER;
+			goto error;
 		}
 	}
 
@@ -831,19 +831,19 @@ static s32 handle_scan(struct wilc_vif *vif, struct scan_attr *scan_info)
 			PRINT_INFO(vif->ndev, GENERIC_DBG,"Don't scan. WLAN_IFC is in state [%d]\n",
 			 hif_drv_wlan->hif_state);
 			result = -EBUSY;
-			goto ERRORHANDLER;
+			goto error;
 		}
 	}
 	if(wilc_connecting) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
 		result = -EBUSY;
-		goto ERRORHANDLER;
+		goto error;
 	}
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	if (wilc_optaining_ip) {
 		PRINT_ER(vif->ndev, "Don't do obss scan\n");
 		result = -EBUSY;
-		goto ERRORHANDLER;
+		goto error;
 	}
 #endif
 
@@ -927,7 +927,7 @@ static s32 handle_scan(struct wilc_vif *vif, struct scan_attr *scan_info)
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to send scan parameters\n");
 
-ERRORHANDLER:
+error:
 	if (result) {
 		del_timer(&hif_drv->scan_timer);
 		handle_scan_done(vif, SCAN_EVENT_ABORTED);
@@ -1016,7 +1016,7 @@ static s32 handle_connect(struct wilc_vif *vif,
 			PRINT_INFO(vif->ndev, GENERIC_DBG,"Don't scan. P2P_IFC is in state [%d]\n",
 			 hif_drv_p2p->hif_state);
 			 result = -EFAULT;
-			goto ERRORHANDLER;
+			goto error;
 		}
 	}
 	if (hif_drv_wlan != NULL) {
@@ -1024,7 +1024,7 @@ static s32 handle_connect(struct wilc_vif *vif,
 			PRINT_INFO(vif->ndev, GENERIC_DBG,"Don't scan. WLAN_IFC is in state [%d]\n",
 			 hif_drv_wlan->hif_state);
 			result = -EFAULT;
-			goto ERRORHANDLER;
+			goto error;
 		}
 	}
 	if (memcmp(conn_attr->bssid, wilc_connected_ssid, ETH_ALEN) == 0) {
@@ -1038,7 +1038,7 @@ static s32 handle_connect(struct wilc_vif *vif,
 	if (!bss_param) {
 		PRINT_ER(vif->ndev, "Required BSSID not found\n");
 		result = -ENOENT;
-		goto ERRORHANDLER;
+		goto error;
 	}
 
 	if (conn_attr->bssid) {
@@ -1132,7 +1132,7 @@ static s32 handle_connect(struct wilc_vif *vif,
 	}
 	if (!wid_list[wid_cnt].val) {
 		result = -EFAULT;
-		goto ERRORHANDLER;
+		goto error;
 	}
 
 	cur_byte = wid_list[wid_cnt].val;
@@ -1254,13 +1254,13 @@ static s32 handle_connect(struct wilc_vif *vif,
 	if (result) {
 		PRINT_ER(vif->ndev, "failed to send config packet\n");
 		result = -EFAULT;
-		goto ERRORHANDLER;
+		goto error;
 	} else {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,"set HOST_IF_WAITING_CONN_RESP\n");
 		hif_drv->hif_state = HOST_IF_WAITING_CONN_RESP;
 	}
 
-ERRORHANDLER:
+error:
 	if (result) {
 		struct connect_info conn_info;
 
@@ -2254,7 +2254,7 @@ static void handle_add_beacon(struct wilc_vif *vif, struct beacon_attr *param)
 	wid.size = param->head_len + param->tail_len + 16;
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
 	if (!wid.val)
-		goto ERRORHANDLER;
+		goto error;
 
 	cur_byte = wid.val;
 	*cur_byte++ = (param->interval & 0xFF);
@@ -2289,7 +2289,7 @@ static void handle_add_beacon(struct wilc_vif *vif, struct beacon_attr *param)
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to send add beacon\n");
 
-ERRORHANDLER:
+error:
 	kfree(wid.val);
 	kfree(param->head);
 	kfree(param->tail);
@@ -2365,7 +2365,7 @@ static void handle_add_station(struct wilc_vif *vif,
 
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
 	if (!wid.val)
-		goto ERRORHANDLER;
+		goto error;
 
 	cur_byte = wid.val;
 	cur_byte += WILC_HostIf_PackStaParam(vif, cur_byte, param);
@@ -2375,7 +2375,7 @@ static void handle_add_station(struct wilc_vif *vif,
 	if (result != 0)
 		PRINT_ER(vif->ndev, "Failed to send add station\n");
 
-ERRORHANDLER:
+error:
 	kfree(param->rates);
 	kfree(wid.val);
 }
@@ -2396,7 +2396,7 @@ static void handle_del_all_sta(struct wilc_vif *vif,
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling delete station\n");
 	wid.val = kmalloc((param->assoc_sta * ETH_ALEN) + 1, GFP_KERNEL);
 	if (!wid.val)
-		goto ERRORHANDLER;
+		goto error;
 
 	curr_byte = wid.val;
 
@@ -2416,7 +2416,7 @@ static void handle_del_all_sta(struct wilc_vif *vif,
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to send add station\n");
 
-ERRORHANDLER:
+error:
 	kfree(wid.val);
 
 	complete(&hif_wait_response);
@@ -2435,7 +2435,7 @@ static void handle_del_station(struct wilc_vif *vif, struct del_sta *param)
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling delete station\n");
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
 	if (!wid.val)
-		goto ERRORHANDLER;
+		goto error;
 
 	cur_byte = wid.val;
 
@@ -2446,7 +2446,7 @@ static void handle_del_station(struct wilc_vif *vif, struct del_sta *param)
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to send add station\n");
 
-ERRORHANDLER:
+error:
 	kfree(wid.val);
 }
 
@@ -2464,7 +2464,7 @@ static void handle_edit_station(struct wilc_vif *vif,
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling edit station\n");
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
 	if (!wid.val)
-		goto ERRORHANDLER;
+		goto error;
 
 	cur_byte = wid.val;
 	cur_byte += WILC_HostIf_PackStaParam(vif, cur_byte, param);
@@ -2474,7 +2474,7 @@ static void handle_edit_station(struct wilc_vif *vif,
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to send edit station\n");
 
-ERRORHANDLER:
+error:
 	kfree(param->rates);
 	kfree(wid.val);
 }
@@ -2510,13 +2510,13 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 				hif_drv_p2p->hif_state);
 			hif_drv->remain_on_ch_pending = 1;
 			result = -EBUSY;
-			goto ERRORHANDLER;
+			goto error;
 		} else if ((hif_drv_p2p->hif_state != HOST_IF_IDLE) &&
 		(hif_drv_p2p->hif_state != HOST_IF_CONNECTED)) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,"Interface busy connecting or listening. P2P_IFC is in state [%d]\n",
 			 hif_drv_p2p->hif_state);
 			result = -EBUSY;
-			goto ERRORHANDLER;
+			goto error;
 		}
 	}
 	if (hif_drv_wlan != NULL) {
@@ -2525,26 +2525,26 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 				hif_drv_wlan->hif_state);
 			hif_drv->remain_on_ch_pending = 1;
 			result = -EBUSY;
-			goto ERRORHANDLER;
+			goto error;
 		} else if ((hif_drv_wlan->hif_state != HOST_IF_IDLE) &&
 		(hif_drv_wlan->hif_state != HOST_IF_CONNECTED)) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,"Interface busy connecting or listening. WLAN_IFC is in state [%d]\n",
 			 hif_drv_wlan->hif_state);
 			result = -EBUSY;
-			goto ERRORHANDLER;
+			goto error;
 		}
 	}
 
 	if(wilc_connecting) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
 		result = -EBUSY;
-		goto ERRORHANDLER;
+		goto error;
 	}
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	if (wilc_optaining_ip) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "[handle_scan]: Don't do obss scan until IP adresss is obtained\n");
 		result = -EBUSY;
-		goto ERRORHANDLER;
+		goto error;
 	}
 #endif
 
@@ -2556,7 +2556,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
 	if (!wid.val) {
 		result = -ENOMEM;
-		goto ERRORHANDLER;
+		goto error;
 	}
 
 	wid.val[0] = u8remain_on_chan_flag;
@@ -2568,7 +2568,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 		PRINT_ER(vif->ndev, "Failed to set remain on channel\n");
 
 	hif_drv->hif_state = HOST_IF_P2P_LISTEN;
-ERRORHANDLER:
+error:
 	
 	hif_drv->remain_on_ch_timer_vif = vif;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
@@ -2740,7 +2740,7 @@ static void handle_set_mcast_filter(struct wilc_vif *vif,
 	wid.size = sizeof(struct set_multicast) + (hif_set_mc->cnt * ETH_ALEN);
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
 	if (!wid.val)
-		goto ERRORHANDLER;
+		goto error;
 
 	cur_byte = wid.val;
 	*cur_byte++ = (hif_set_mc->enabled & 0xFF);
@@ -2762,7 +2762,7 @@ static void handle_set_mcast_filter(struct wilc_vif *vif,
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to send setup multicast\n");
 
-ERRORHANDLER:
+error:
 	kfree(wid.val);
 }
 
@@ -4156,7 +4156,7 @@ int wilc_add_beacon(struct wilc_vif *vif, u32 interval, u32 dtim_period,
 	beacon_info->head = kmemdup(head, head_len, GFP_KERNEL);
 	if (!beacon_info->head) {
 		result = -ENOMEM;
-		goto ERRORHANDLER;
+		goto error;
 	}
 	beacon_info->tail_len = tail_len;
 
@@ -4164,7 +4164,7 @@ int wilc_add_beacon(struct wilc_vif *vif, u32 interval, u32 dtim_period,
 		beacon_info->tail = kmemdup(tail, tail_len, GFP_KERNEL);
 		if (!beacon_info->tail) {
 			result = -ENOMEM;
-			goto ERRORHANDLER;
+			goto error;
 		}
 	} else {
 		beacon_info->tail = NULL;
@@ -4174,7 +4174,7 @@ int wilc_add_beacon(struct wilc_vif *vif, u32 interval, u32 dtim_period,
 	if (result)
 		PRINT_ER(vif->ndev, "wilc mq send fail\n");
 
-ERRORHANDLER:
+error:
 	if (result) {
 		kfree(beacon_info->head);
 
