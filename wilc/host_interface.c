@@ -1482,21 +1482,21 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 				       struct rcvd_async_info *rcvd_info)
 {
 	s32 result = 0;
-	u8 u8MsgType = 0;
-	u8 u8MsgID = 0;
-	u16 u16MsgLen = 0;
-	u16 u16WidID = (u16)WID_NIL;
-	u8 u8WidLen  = 0;
-	u8 u8MacStatus;
-	u8 u8MacStatusReasonCode;
-	u8 u8MacStatusAdditionalInfo;
+	u8 msg_type = 0;
+	u8 msg_id = 0;
+	u16 msg_len = 0;
+	u16 wid_id = (u16)WID_NIL;
+	u8 wid_len  = 0;
+	u8 mac_status;
+	u8 mac_status_reason_code;
+	u8 mac_status_additional_info;
 	struct connect_info conn_info;
 	struct disconnect_info disconn_info;
-	s32 s32Err = 0;
+	s32 err = 0;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "Driver is null\n");
+		PRINT_ER(vif->ndev, "Driver handler is NULL\n");
 		return -ENODEV;
 	}
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Current State = %d,Received state = %d\n",
@@ -1508,75 +1508,80 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 	    hif_drv->usr_scan_req.scan_result) {
 		if (!rcvd_info->buffer ||
 		    !hif_drv->usr_conn_req.conn_result) {
-			PRINT_ER(vif->ndev, "Driver is null\n");
+			PRINT_ER(vif->ndev, "driver is null\n");
 			return -EINVAL;
 		}
 
-		u8MsgType = rcvd_info->buffer[0];
+		msg_type = rcvd_info->buffer[0];
 
-		if ('I' != u8MsgType) {
+		if ('I' != msg_type) {
 			PRINT_ER(vif->ndev, "Received Message incorrect.\n");
 			return -EFAULT;
 		}
 
-		u8MsgID = rcvd_info->buffer[1];
-		u16MsgLen = MAKE_WORD16(rcvd_info->buffer[2], rcvd_info->buffer[3]);
-		u16WidID = MAKE_WORD16(rcvd_info->buffer[4], rcvd_info->buffer[5]);
-		u8WidLen = rcvd_info->buffer[6];
-		u8MacStatus  = rcvd_info->buffer[7];
-		u8MacStatusReasonCode = rcvd_info->buffer[8];
-		u8MacStatusAdditionalInfo = rcvd_info->buffer[9];
-		PRINT_INFO(vif->ndev, HOSTINF_DBG, "Recieved MAC status = %d with Reason = %d , Info = %d\n",
-			u8MacStatus, u8MacStatusReasonCode,
-			 u8MacStatusAdditionalInfo);
+		msg_id = rcvd_info->buffer[1];
+		msg_len = MAKE_WORD16(rcvd_info->buffer[2], rcvd_info->buffer[3]);
+		wid_id = MAKE_WORD16(rcvd_info->buffer[4], rcvd_info->buffer[5]);
+		wid_len = rcvd_info->buffer[6];
+		mac_status  = rcvd_info->buffer[7];
+		mac_status_reason_code = rcvd_info->buffer[8];
+		mac_status_additional_info = rcvd_info->buffer[9];
+		PRINT_INFO(vif->ndev, HOSTINF_DBG, 
+			   "Recieved MAC status= %d Reason= %d Info = %d\n",
+			   mac_status, mac_status_reason_code,
+			   mac_status_additional_info);
 		if (hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP) {
-			u32 u32RcvdAssocRespInfoLen = 0;
-			struct connect_resp_info *pstrConnectRespInfo = NULL;
+			u32 rcvd_assoc_resp_info_len = 0;
+			struct connect_resp_info *connect_resp_info = NULL;
 
-			PRINT_INFO(vif->ndev, HOSTINF_DBG, "Recieved MAC status = %d with Reason = %d , Code = %d\n",
-				 u8MacStatus, u8MacStatusReasonCode,
-				 u8MacStatusAdditionalInfo);
+			PRINT_INFO(vif->ndev, HOSTINF_DBG,
+				   "Recieved MAC status= %d Reason= %d Code= %d\n",
+				   mac_status, mac_status_reason_code,
+				   mac_status_additional_info);
 			memset(&conn_info, 0, sizeof(struct connect_info));
 
-			if (u8MacStatus == MAC_CONNECTED) {
+			if (mac_status == MAC_CONNECTED) {
 				memset(rcv_assoc_resp, 0, MAX_ASSOC_RESP_FRAME_SIZE);
 
 				host_int_get_assoc_res_info(vif,
 							    rcv_assoc_resp,
 							    MAX_ASSOC_RESP_FRAME_SIZE,
-							    &u32RcvdAssocRespInfoLen);
+							    &rcvd_assoc_resp_info_len);
 
-				PRINT_D(vif->ndev, HOSTINF_DBG,"Received association response with length = %d\n", u32RcvdAssocRespInfoLen);
-				if (u32RcvdAssocRespInfoLen != 0) {
-					PRINT_INFO(vif->ndev, HOSTINF_DBG, "Parsing association response\n");
-					s32Err = wilc_parse_assoc_resp_info(rcv_assoc_resp, u32RcvdAssocRespInfoLen,
-									    &pstrConnectRespInfo);
-					if (s32Err) {
-						PRINT_ER(vif->ndev, "wilc_parse_assoc_resp_info() returned error %d\n", s32Err);
+				PRINT_D(vif->ndev, HOSTINF_DBG,
+					"Received association response = %d\n",
+					rcvd_assoc_resp_info_len);
+				if (rcvd_assoc_resp_info_len != 0) {
+					PRINT_INFO(vif->ndev, HOSTINF_DBG, 
+						   "Parsing association response\n");
+					err = wilc_parse_assoc_resp_info(rcv_assoc_resp, rcvd_assoc_resp_info_len,
+									 &connect_resp_info);
+					if (err) {
+						PRINT_ER(vif->ndev, "wilc_parse_assoc_resp_info() returned error %d\n", err);
 					} else {
-						conn_info.status = pstrConnectRespInfo->status;
+						conn_info.status = connect_resp_info->status;
 
-						if (conn_info.status == SUCCESSFUL_STATUSCODE && pstrConnectRespInfo->ies) {
+						if (conn_info.status == SUCCESSFUL_STATUSCODE && connect_resp_info->ies) {
 							PRINT_D(vif->ndev, HOSTINF_DBG,"Association response received : Successful connection status\n");
-							conn_info.resp_ies_len = pstrConnectRespInfo->ies_len;
-							conn_info.resp_ies = kmalloc(pstrConnectRespInfo->ies_len, GFP_KERNEL);
-							memcpy(conn_info.resp_ies, pstrConnectRespInfo->ies,
-							       pstrConnectRespInfo->ies_len);
+							conn_info.resp_ies_len = connect_resp_info->ies_len;
+							conn_info.resp_ies = kmalloc(connect_resp_info->ies_len, GFP_KERNEL);
+							memcpy(conn_info.resp_ies, connect_resp_info->ies,
+							       connect_resp_info->ies_len);
 						}
 
-						if (pstrConnectRespInfo) {
-							kfree(pstrConnectRespInfo->ies);
-							kfree(pstrConnectRespInfo);
+						if (connect_resp_info) {
+							kfree(connect_resp_info->ies);
+							kfree(connect_resp_info);
 						}
 					}
 				}
 			}
 
-			if (u8MacStatus == MAC_CONNECTED &&
+			if (mac_status == MAC_CONNECTED &&
 			    conn_info.status != SUCCESSFUL_STATUSCODE)	{
 				PRINT_ER(vif->ndev, "Received MAC status is MAC_CONNECTED while the received status code in Asoc Resp is not SUCCESSFUL_STATUSCODE\n");
 				eth_zero_addr(wilc_connected_ssid);
-			} else if (u8MacStatus == MAC_DISCONNECTED)    {
+			} else if (mac_status == MAC_DISCONNECTED)    {
 				PRINT_ER(vif->ndev, "Received MAC status is MAC_DISCONNECTED\n");
 				eth_zero_addr(wilc_connected_ssid);
 			}
@@ -1584,7 +1589,7 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 			if (hif_drv->usr_conn_req.bssid) {
 				memcpy(conn_info.bssid, hif_drv->usr_conn_req.bssid, 6);
 
-				if (u8MacStatus == MAC_CONNECTED &&
+				if (mac_status == MAC_CONNECTED &&
 				    conn_info.status == SUCCESSFUL_STATUSCODE)	{
 					memcpy(hif_drv->assoc_bssid,
 					       hif_drv->usr_conn_req.bssid, ETH_ALEN);
@@ -1602,22 +1607,21 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 			del_timer(&hif_drv->connect_timer);
 			hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_CONN_RESP,
 							  &conn_info,
-							  u8MacStatus,
+							  mac_status,
 							  NULL,
 							  hif_drv->usr_conn_req.arg);
 
-			if (u8MacStatus == MAC_CONNECTED &&
+			if (mac_status == MAC_CONNECTED &&
 			    conn_info.status == SUCCESSFUL_STATUSCODE)	{
 
 				PRINT_INFO(vif->ndev, HOSTINF_DBG, "MAC status : CONNECTED and Connect Status : Successful\n");
 				hif_drv->hif_state = HOST_IF_CONNECTED;
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-
 				handle_pwrsave_during_obtainingIP(vif, IP_STATE_OBTAINING);
 #endif
 			} else {
-				PRINT_INFO(vif->ndev, HOSTINF_DBG, "MAC status : %d and Connect Status : %d\n", u8MacStatus, conn_info.status);
+				PRINT_INFO(vif->ndev, HOSTINF_DBG, "MAC status : %d and Connect Status : %d\n", mac_status, conn_info.status);
 				hif_drv->hif_state = HOST_IF_IDLE;
 				scan_while_connected = false;
 			}
@@ -1635,7 +1639,7 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 			hif_drv->usr_conn_req.ies_len = 0;
 			kfree(hif_drv->usr_conn_req.ies);
 			hif_drv->usr_conn_req.ies = NULL;
-		} else if ((u8MacStatus == MAC_DISCONNECTED) &&
+		} else if ((mac_status == MAC_DISCONNECTED) &&
 			   (hif_drv->hif_state == HOST_IF_CONNECTED)) {
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, "Received MAC_DISCONNECTED from the FW\n");
 			memset(&disconn_info, 0, sizeof(struct disconnect_info));
@@ -1688,10 +1692,12 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 			hif_drv->hif_state = HOST_IF_IDLE;
 			scan_while_connected = false;
 
-		} else if ((u8MacStatus == MAC_DISCONNECTED) &&
+		} else if ((mac_status == MAC_DISCONNECTED) &&
 			   (hif_drv->usr_scan_req.scan_result)) {
-			PRINT_INFO(vif->ndev, HOSTINF_DBG, "Received MAC_DISCONNECTED from the FW while scanning\n");
-			PRINT_WRN(vif->ndev, HOSTINF_DBG, "\n\n<< Abort the running Scan >>\n\n");
+			PRINT_INFO(vif->ndev, HOSTINF_DBG, 
+				   "Received MAC_DISCONNECTED from the FW while scanning\n");
+			PRINT_WRN(vif->ndev, HOSTINF_DBG,
+				  "\n\n<< Abort the running Scan >>\n\n");
 			del_timer(&hif_drv->scan_timer);
 			if (hif_drv->usr_scan_req.scan_result)
 				handle_scan_done(vif, SCAN_EVENT_ABORTED);
