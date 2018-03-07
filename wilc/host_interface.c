@@ -1262,33 +1262,33 @@ static s32 handle_connect(struct wilc_vif *vif,
 
 ERRORHANDLER:
 	if (result) {
-		struct connect_info strConnectInfo;
+		struct connect_info conn_info;
 
 		del_timer(&hif_drv->connect_timer);
 
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "could not start connecting to the required network\n");
-		memset(&strConnectInfo, 0, sizeof(struct connect_info));
+		memset(&conn_info, 0, sizeof(struct connect_info));
 
 		if (conn_attr->result) {
 			if (conn_attr->bssid)
-				memcpy(strConnectInfo.bssid, conn_attr->bssid, 6);
+				memcpy(conn_info.bssid, conn_attr->bssid, 6);
 
 			if (conn_attr->ies) {
-				strConnectInfo.req_ies_len = conn_attr->ies_len;
-				strConnectInfo.req_ies = kmalloc(conn_attr->ies_len, GFP_KERNEL);
-				memcpy(strConnectInfo.req_ies,
+				conn_info.req_ies_len = conn_attr->ies_len;
+				conn_info.req_ies = kmalloc(conn_attr->ies_len, GFP_KERNEL);
+				memcpy(conn_info.req_ies,
 				       conn_attr->ies,
 				       conn_attr->ies_len);
 			}
 
 			conn_attr->result(CONN_DISCONN_EVENT_CONN_RESP,
-							       &strConnectInfo,
+							       &conn_info,
 							       MAC_DISCONNECTED,
 							       NULL,
 							       conn_attr->arg);
 			hif_drv->hif_state = HOST_IF_IDLE;
-			kfree(strConnectInfo.req_ies);
-			strConnectInfo.req_ies = NULL;
+			kfree(conn_info.req_ies);
+			conn_info.req_ies = NULL;
 
 		} else {
 			PRINT_ER(vif->ndev, "Connect callback is NULL\n");
@@ -1479,7 +1479,7 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 	u8 u8MacStatus;
 	u8 u8MacStatusReasonCode;
 	u8 u8MacStatusAdditionalInfo;
-	struct connect_info strConnectInfo;
+	struct connect_info conn_info;
 	struct disconnect_info disconn_info;
 	s32 s32Err = 0;
 	struct host_if_drv *hif_drv = vif->hif_drv;
@@ -1525,7 +1525,7 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, "Recieved MAC status = %d with Reason = %d , Code = %d\n",
 				 u8MacStatus, u8MacStatusReasonCode,
 				 u8MacStatusAdditionalInfo);
-			memset(&strConnectInfo, 0, sizeof(struct connect_info));
+			memset(&conn_info, 0, sizeof(struct connect_info));
 
 			if (u8MacStatus == MAC_CONNECTED) {
 				memset(rcv_assoc_resp, 0, MAX_ASSOC_RESP_FRAME_SIZE);
@@ -1543,13 +1543,13 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 					if (s32Err) {
 						PRINT_ER(vif->ndev, "wilc_parse_assoc_resp_info() returned error %d\n", s32Err);
 					} else {
-						strConnectInfo.status = pstrConnectRespInfo->status;
+						conn_info.status = pstrConnectRespInfo->status;
 
-						if (strConnectInfo.status == SUCCESSFUL_STATUSCODE && pstrConnectRespInfo->ies) {
+						if (conn_info.status == SUCCESSFUL_STATUSCODE && pstrConnectRespInfo->ies) {
 							PRINT_D(vif->ndev, HOSTINF_DBG,"Association response received : Successful connection status\n");
-							strConnectInfo.resp_ies_len = pstrConnectRespInfo->ies_len;
-							strConnectInfo.resp_ies = kmalloc(pstrConnectRespInfo->ies_len, GFP_KERNEL);
-							memcpy(strConnectInfo.resp_ies, pstrConnectRespInfo->ies,
+							conn_info.resp_ies_len = pstrConnectRespInfo->ies_len;
+							conn_info.resp_ies = kmalloc(pstrConnectRespInfo->ies_len, GFP_KERNEL);
+							memcpy(conn_info.resp_ies, pstrConnectRespInfo->ies,
 							       pstrConnectRespInfo->ies_len);
 						}
 
@@ -1562,7 +1562,7 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 			}
 
 			if (u8MacStatus == MAC_CONNECTED &&
-			    strConnectInfo.status != SUCCESSFUL_STATUSCODE)	{
+			    conn_info.status != SUCCESSFUL_STATUSCODE)	{
 				PRINT_ER(vif->ndev, "Received MAC status is MAC_CONNECTED while the received status code in Asoc Resp is not SUCCESSFUL_STATUSCODE\n");
 				eth_zero_addr(wilc_connected_ssid);
 			} else if (u8MacStatus == MAC_DISCONNECTED)    {
@@ -1571,32 +1571,32 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 			}
 
 			if (hif_drv->usr_conn_req.bssid) {
-				memcpy(strConnectInfo.bssid, hif_drv->usr_conn_req.bssid, 6);
+				memcpy(conn_info.bssid, hif_drv->usr_conn_req.bssid, 6);
 
 				if (u8MacStatus == MAC_CONNECTED &&
-				    strConnectInfo.status == SUCCESSFUL_STATUSCODE)	{
+				    conn_info.status == SUCCESSFUL_STATUSCODE)	{
 					memcpy(hif_drv->assoc_bssid,
 					       hif_drv->usr_conn_req.bssid, ETH_ALEN);
 				}
 			}
 
 			if (hif_drv->usr_conn_req.ies) {
-				strConnectInfo.req_ies_len = hif_drv->usr_conn_req.ies_len;
-				strConnectInfo.req_ies = kmalloc(hif_drv->usr_conn_req.ies_len, GFP_KERNEL);
-				memcpy(strConnectInfo.req_ies,
+				conn_info.req_ies_len = hif_drv->usr_conn_req.ies_len;
+				conn_info.req_ies = kmalloc(hif_drv->usr_conn_req.ies_len, GFP_KERNEL);
+				memcpy(conn_info.req_ies,
 				       hif_drv->usr_conn_req.ies,
 				       hif_drv->usr_conn_req.ies_len);
 			}
 
 			del_timer(&hif_drv->connect_timer);
 			hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_CONN_RESP,
-							  &strConnectInfo,
+							  &conn_info,
 							  u8MacStatus,
 							  NULL,
 							  hif_drv->usr_conn_req.arg);
 
 			if (u8MacStatus == MAC_CONNECTED &&
-			    strConnectInfo.status == SUCCESSFUL_STATUSCODE)	{
+			    conn_info.status == SUCCESSFUL_STATUSCODE)	{
 
 				PRINT_INFO(vif->ndev, HOSTINF_DBG, "MAC status : CONNECTED and Connect Status : Successful\n");
 				hif_drv->hif_state = HOST_IF_CONNECTED;
@@ -1606,16 +1606,16 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 				handle_pwrsave_during_obtainingIP(vif, IP_STATE_OBTAINING);
 #endif
 			} else {
-				PRINT_INFO(vif->ndev, HOSTINF_DBG, "MAC status : %d and Connect Status : %d\n", u8MacStatus, strConnectInfo.status);
+				PRINT_INFO(vif->ndev, HOSTINF_DBG, "MAC status : %d and Connect Status : %d\n", u8MacStatus, conn_info.status);
 				hif_drv->hif_state = HOST_IF_IDLE;
 				scan_while_connected = false;
 			}
 
-			kfree(strConnectInfo.resp_ies);
-			strConnectInfo.resp_ies = NULL;
+			kfree(conn_info.resp_ies);
+			conn_info.resp_ies = NULL;
 
-			kfree(strConnectInfo.req_ies);
-			strConnectInfo.req_ies = NULL;
+			kfree(conn_info.req_ies);
+			conn_info.req_ies = NULL;
 			hif_drv->usr_conn_req.ssid_len = 0;
 			kfree(hif_drv->usr_conn_req.ssid);
 			hif_drv->usr_conn_req.ssid = NULL;
