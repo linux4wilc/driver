@@ -723,7 +723,7 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 	u32 i;
 	s32 ret = 0;
 	u8 au8ScanChanList[MAX_NUM_SCANNED_NETWORKS];
-	struct hidden_network strHiddenNetwork;
+	struct hidden_network hidden_ntwk;
 	struct wilc_vif *vif;
 
 	priv = wiphy_priv(wiphy);
@@ -754,23 +754,23 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 			   "Number of SSIDs %d\n",
 			   request->n_ssids);
 		if (request->n_ssids >= 1) {
-			strHiddenNetwork.net_info =
+			hidden_ntwk.net_info =
 				kmalloc_array(request->n_ssids,
 					      sizeof(struct hidden_network),
 					      GFP_KERNEL);
-			if (!strHiddenNetwork.net_info)
+			if (!hidden_ntwk.net_info)
 				return -ENOMEM;
-			strHiddenNetwork.n_ssids = request->n_ssids;
+			hidden_ntwk.n_ssids = request->n_ssids;
 
 			for (i = 0; i < request->n_ssids; i++) {
 				if (request->ssids[i].ssid_len != 0) {
-					strHiddenNetwork.net_info[i].ssid = kmalloc(request->ssids[i].ssid_len, GFP_KERNEL);
-					memcpy(strHiddenNetwork.net_info[i].ssid, request->ssids[i].ssid, request->ssids[i].ssid_len);
-					strHiddenNetwork.net_info[i].ssid_len = request->ssids[i].ssid_len;
+					hidden_ntwk.net_info[i].ssid = kmalloc(request->ssids[i].ssid_len, GFP_KERNEL);
+					memcpy(hidden_ntwk.net_info[i].ssid, request->ssids[i].ssid, request->ssids[i].ssid_len);
+					hidden_ntwk.net_info[i].ssid_len = request->ssids[i].ssid_len;
 				} else {
 					PRINT_INFO(vif->ndev, CFG80211_DBG,
 						   "Received one NULL SSID\n");
-					strHiddenNetwork.n_ssids -= 1;
+					hidden_ntwk.n_ssids -= 1;
 				}
 			}
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
@@ -780,7 +780,7 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 					request->n_channels,
 					(const u8 *)request->ie,
 					request->ie_len, CfgScanResult,
-					(void *)priv, &strHiddenNetwork);
+					(void *)priv, &hidden_ntwk);
 		} else {
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
 				   "Trigger Scan Request\n");
