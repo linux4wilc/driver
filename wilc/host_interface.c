@@ -995,7 +995,7 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 
 u8 wilc_connected_ssid[6] = {0};
 static s32 handle_connect(struct wilc_vif *vif,
-			  struct connect_attr *pstrHostIFconnectAttr)
+			  struct connect_attr *conn_attr)
 {
 	s32 result = 0;
 	struct wid wid_list[8];
@@ -1027,46 +1027,46 @@ static s32 handle_connect(struct wilc_vif *vif,
 			goto ERRORHANDLER;
 		}
 	}
-	if (memcmp(pstrHostIFconnectAttr->bssid, wilc_connected_ssid, ETH_ALEN) == 0) {
+	if (memcmp(conn_attr->bssid, wilc_connected_ssid, ETH_ALEN) == 0) {
 		result = 0;
 		PRINT_ER(vif->ndev, "Discard connect request\n");
 		return result;
 	}
 
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Saving connection parameters in global structure\n");
-	bss_param = pstrHostIFconnectAttr->params;
+	bss_param = conn_attr->params;
 	if (!bss_param) {
 		PRINT_ER(vif->ndev, "Required BSSID not found\n");
 		result = -ENOENT;
 		goto ERRORHANDLER;
 	}
 
-	if (pstrHostIFconnectAttr->bssid) {
+	if (conn_attr->bssid) {
 		hif_drv->usr_conn_req.bssid = kmalloc(6, GFP_KERNEL);
-		memcpy(hif_drv->usr_conn_req.bssid, pstrHostIFconnectAttr->bssid, 6);
+		memcpy(hif_drv->usr_conn_req.bssid, conn_attr->bssid, 6);
 	}
 
-	hif_drv->usr_conn_req.ssid_len = pstrHostIFconnectAttr->ssid_len;
-	if (pstrHostIFconnectAttr->ssid) {
-		hif_drv->usr_conn_req.ssid = kmalloc(pstrHostIFconnectAttr->ssid_len + 1, GFP_KERNEL);
+	hif_drv->usr_conn_req.ssid_len = conn_attr->ssid_len;
+	if (conn_attr->ssid) {
+		hif_drv->usr_conn_req.ssid = kmalloc(conn_attr->ssid_len + 1, GFP_KERNEL);
 		memcpy(hif_drv->usr_conn_req.ssid,
-		       pstrHostIFconnectAttr->ssid,
-		       pstrHostIFconnectAttr->ssid_len);
-		hif_drv->usr_conn_req.ssid[pstrHostIFconnectAttr->ssid_len] = '\0';
+		       conn_attr->ssid,
+		       conn_attr->ssid_len);
+		hif_drv->usr_conn_req.ssid[conn_attr->ssid_len] = '\0';
 	}
 
-	hif_drv->usr_conn_req.ies_len = pstrHostIFconnectAttr->ies_len;
-	if (pstrHostIFconnectAttr->ies) {
-		hif_drv->usr_conn_req.ies = kmalloc(pstrHostIFconnectAttr->ies_len, GFP_KERNEL);
+	hif_drv->usr_conn_req.ies_len = conn_attr->ies_len;
+	if (conn_attr->ies) {
+		hif_drv->usr_conn_req.ies = kmalloc(conn_attr->ies_len, GFP_KERNEL);
 		memcpy(hif_drv->usr_conn_req.ies,
-		       pstrHostIFconnectAttr->ies,
-		       pstrHostIFconnectAttr->ies_len);
+		       conn_attr->ies,
+		       conn_attr->ies_len);
 	}
 
-	hif_drv->usr_conn_req.security = pstrHostIFconnectAttr->security;
-	hif_drv->usr_conn_req.auth_type = pstrHostIFconnectAttr->auth_type;
-	hif_drv->usr_conn_req.conn_result = pstrHostIFconnectAttr->result;
-	hif_drv->usr_conn_req.arg = pstrHostIFconnectAttr->arg;
+	hif_drv->usr_conn_req.security = conn_attr->security;
+	hif_drv->usr_conn_req.auth_type = conn_attr->auth_type;
+	hif_drv->usr_conn_req.conn_result = conn_attr->result;
+	hif_drv->usr_conn_req.arg = conn_attr->arg;
 
 	wid_list[wid_cnt].id = WID_SUCCESS_FRAME_COUNT;
 	wid_list[wid_cnt].type = WID_INT;
@@ -1092,7 +1092,7 @@ static s32 handle_connect(struct wilc_vif *vif,
 	wid_list[wid_cnt].size = hif_drv->usr_conn_req.ies_len;
 	wid_cnt++;
 
-	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7)) {
+	if (memcmp("DIRECT-", conn_attr->ssid, 7)) {
 		info_element_size = hif_drv->usr_conn_req.ies_len;
 		info_element = kmalloc(info_element_size, GFP_KERNEL);
 		memcpy(info_element, hif_drv->usr_conn_req.ies,
@@ -1104,7 +1104,7 @@ static s32 handle_connect(struct wilc_vif *vif,
 	wid_list[wid_cnt].val = (s8 *)&hif_drv->usr_conn_req.security;
 	wid_cnt++;
 
-	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7))
+	if (memcmp("DIRECT-", conn_attr->ssid, 7))
 		mode_11i = hif_drv->usr_conn_req.security;
 
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Encrypt Mode = %x\n", hif_drv->usr_conn_req.security);
@@ -1114,19 +1114,19 @@ static s32 handle_connect(struct wilc_vif *vif,
 	wid_list[wid_cnt].val = (s8 *)&hif_drv->usr_conn_req.auth_type;
 	wid_cnt++;
 
-	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7))
+	if (memcmp("DIRECT-", conn_attr->ssid, 7))
 		auth_type = (u8)hif_drv->usr_conn_req.auth_type;
 
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Authentication Type = %x\n", hif_drv->usr_conn_req.auth_type);
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Connecting to network of SSID %s on channel %d\n",
-		 hif_drv->usr_conn_req.ssid, pstrHostIFconnectAttr->ch);
+		 hif_drv->usr_conn_req.ssid, conn_attr->ch);
 
 	wid_list[wid_cnt].id = (u16)WID_JOIN_REQ_EXTENDED;
 	wid_list[wid_cnt].type = WID_STR;
 	wid_list[wid_cnt].size = 112;
 	wid_list[wid_cnt].val = kmalloc(wid_list[wid_cnt].size, GFP_KERNEL);
 
-	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7)) {
+	if (memcmp("DIRECT-", conn_attr->ssid, 7)) {
 		join_req_size = wid_list[wid_cnt].size;
 		join_req = kmalloc(join_req_size, GFP_KERNEL);
 	}
@@ -1137,15 +1137,15 @@ static s32 handle_connect(struct wilc_vif *vif,
 
 	cur_byte = wid_list[wid_cnt].val;
 
-	if (pstrHostIFconnectAttr->ssid) {
-		memcpy(cur_byte, pstrHostIFconnectAttr->ssid, pstrHostIFconnectAttr->ssid_len);
-		cur_byte[pstrHostIFconnectAttr->ssid_len] = '\0';
+	if (conn_attr->ssid) {
+		memcpy(cur_byte, conn_attr->ssid, conn_attr->ssid_len);
+		cur_byte[conn_attr->ssid_len] = '\0';
 	}
 	cur_byte += MAX_SSID_LEN;
 	*(cur_byte++) = INFRASTRUCTURE;
 
-	if (pstrHostIFconnectAttr->ch >= 1 && pstrHostIFconnectAttr->ch <= 14) {
-		*(cur_byte++) = pstrHostIFconnectAttr->ch;
+	if (conn_attr->ch >= 1 && conn_attr->ch <= 14) {
+		*(cur_byte++) = conn_attr->ch;
 	} else {
 		PRINT_ER(vif->ndev, "Channel out of range\n");
 		*(cur_byte++) = 0xFF;
@@ -1154,12 +1154,12 @@ static s32 handle_connect(struct wilc_vif *vif,
 	*(cur_byte++)  = ((bss_param->cap_info) >> 8) & 0xFF;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* Cap Info %0x*\n", (*(cur_byte - 2) | ((*(cur_byte - 1)) << 8)));
 
-	if (pstrHostIFconnectAttr->bssid)
-		memcpy(cur_byte, pstrHostIFconnectAttr->bssid, 6);
+	if (conn_attr->bssid)
+		memcpy(cur_byte, conn_attr->bssid, 6);
 	cur_byte += 6;
 
-	if (pstrHostIFconnectAttr->bssid)
-		memcpy(cur_byte, pstrHostIFconnectAttr->bssid, 6);
+	if (conn_attr->bssid)
+		memcpy(cur_byte, conn_attr->bssid, 6);
 	cur_byte += 6;
 
 	*(cur_byte++)  = (bss_param->beacon_period) & 0xFF;
@@ -1226,22 +1226,22 @@ static s32 handle_connect(struct wilc_vif *vif,
 	cur_byte = wid_list[wid_cnt].val;
 	wid_cnt++;
 
-	if (memcmp("DIRECT-", pstrHostIFconnectAttr->ssid, 7)) {
+	if (memcmp("DIRECT-", conn_attr->ssid, 7)) {
 		memcpy(join_req, cur_byte, join_req_size);
 		join_req_vif = vif;
 	}
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG,"send HOST_IF_WAITING_CONN_RESP\n");
-	if (pstrHostIFconnectAttr->bssid) {
+	if (conn_attr->bssid) {
 		memcpy(wilc_connected_ssid,
-		       pstrHostIFconnectAttr->bssid, ETH_ALEN);
+		       conn_attr->bssid, ETH_ALEN);
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "save Bssid = %x:%x:%x:%x:%x:%x\n",
-			 (pstrHostIFconnectAttr->bssid[0]),
-			 (pstrHostIFconnectAttr->bssid[1]),
-			 (pstrHostIFconnectAttr->bssid[2]),
-			 (pstrHostIFconnectAttr->bssid[3]),
-			 (pstrHostIFconnectAttr->bssid[4]),
-			 (pstrHostIFconnectAttr->bssid[5]));
+			 (conn_attr->bssid[0]),
+			 (conn_attr->bssid[1]),
+			 (conn_attr->bssid[2]),
+			 (conn_attr->bssid[3]),
+			 (conn_attr->bssid[4]),
+			 (conn_attr->bssid[5]));
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "save bssid = %x:%x:%x:%x:%x:%x\n",
 			 (wilc_connected_ssid[0]), (wilc_connected_ssid[1]),
 			 (wilc_connected_ssid[2]), (wilc_connected_ssid[3]),
@@ -1269,23 +1269,23 @@ ERRORHANDLER:
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "could not start connecting to the required network\n");
 		memset(&strConnectInfo, 0, sizeof(struct connect_info));
 
-		if (pstrHostIFconnectAttr->result) {
-			if (pstrHostIFconnectAttr->bssid)
-				memcpy(strConnectInfo.bssid, pstrHostIFconnectAttr->bssid, 6);
+		if (conn_attr->result) {
+			if (conn_attr->bssid)
+				memcpy(strConnectInfo.bssid, conn_attr->bssid, 6);
 
-			if (pstrHostIFconnectAttr->ies) {
-				strConnectInfo.req_ies_len = pstrHostIFconnectAttr->ies_len;
-				strConnectInfo.req_ies = kmalloc(pstrHostIFconnectAttr->ies_len, GFP_KERNEL);
+			if (conn_attr->ies) {
+				strConnectInfo.req_ies_len = conn_attr->ies_len;
+				strConnectInfo.req_ies = kmalloc(conn_attr->ies_len, GFP_KERNEL);
 				memcpy(strConnectInfo.req_ies,
-				       pstrHostIFconnectAttr->ies,
-				       pstrHostIFconnectAttr->ies_len);
+				       conn_attr->ies,
+				       conn_attr->ies_len);
 			}
 
-			pstrHostIFconnectAttr->result(CONN_DISCONN_EVENT_CONN_RESP,
+			conn_attr->result(CONN_DISCONN_EVENT_CONN_RESP,
 							       &strConnectInfo,
 							       MAC_DISCONNECTED,
 							       NULL,
-							       pstrHostIFconnectAttr->arg);
+							       conn_attr->arg);
 			hif_drv->hif_state = HOST_IF_IDLE;
 			kfree(strConnectInfo.req_ies);
 			strConnectInfo.req_ies = NULL;
@@ -1295,14 +1295,14 @@ ERRORHANDLER:
 		}
 	}
 
-	kfree(pstrHostIFconnectAttr->bssid);
-	pstrHostIFconnectAttr->bssid = NULL;
+	kfree(conn_attr->bssid);
+	conn_attr->bssid = NULL;
 
-	kfree(pstrHostIFconnectAttr->ssid);
-	pstrHostIFconnectAttr->ssid = NULL;
+	kfree(conn_attr->ssid);
+	conn_attr->ssid = NULL;
 
-	kfree(pstrHostIFconnectAttr->ies);
-	pstrHostIFconnectAttr->ies = NULL;
+	kfree(conn_attr->ies);
+	conn_attr->ies = NULL;
 
 	kfree(cur_byte);
 	return result;
