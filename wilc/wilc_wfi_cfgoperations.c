@@ -389,7 +389,7 @@ static int is_network_in_shadow(struct network_info *nw_info, struct wilc_priv *
 }
 
 static void add_network_to_shadow(struct network_info *nw_info,
-				  struct wilc_priv *priv, void *pJoinParams)
+				  struct wilc_priv *priv, void *join_params)
 {
 	int ap_found = is_network_in_shadow(nw_info, priv);
 	u32 ap_index = 0;
@@ -436,7 +436,7 @@ static void add_network_to_shadow(struct network_info *nw_info,
 	last_scanned_shadow[ap_index].found = 1;
 	if (ap_found != -1)
 		kfree(last_scanned_shadow[ap_index].join_params);
-	last_scanned_shadow[ap_index].join_params = pJoinParams;
+	last_scanned_shadow[ap_index].join_params = join_params;
 }
 
 static void cfg_scan_result(enum scan_event scan_event,
