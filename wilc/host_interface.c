@@ -2329,7 +2329,7 @@ static void handle_del_beacon(struct wilc_vif *vif)
 		PRINT_ER(vif->ndev, "Failed to send delete beacon\n");
 }
 
-static u32 WILC_HostIf_PackStaParam(struct wilc_vif *vif, u8 *buff,
+static u32 wilc_hif_pack_sta_param(struct wilc_vif *vif, u8 *buff,
 				    struct add_sta_param *param)
 {
 	u8 *cur_byte;
@@ -2379,7 +2379,7 @@ static void handle_add_station(struct wilc_vif *vif,
 		goto error;
 
 	cur_byte = wid.val;
-	cur_byte += WILC_HostIf_PackStaParam(vif, cur_byte, param);
+	cur_byte += wilc_hif_pack_sta_param(vif, cur_byte, param);
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				      wilc_get_vif_idx(vif));
@@ -2478,7 +2478,7 @@ static void handle_edit_station(struct wilc_vif *vif,
 		goto error;
 
 	cur_byte = wid.val;
-	cur_byte += WILC_HostIf_PackStaParam(vif, cur_byte, param);
+	cur_byte += wilc_hif_pack_sta_param(vif, cur_byte, param);
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				      wilc_get_vif_idx(vif));
