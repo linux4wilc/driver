@@ -1663,11 +1663,39 @@ static int flush_pmksa(struct wiphy *wiphy, struct net_device *netdev)
 	return 0;
 }
 
+static inline void wilc_wfi_cfg_parse_ch_attr(struct wilc_vif *vif, u8 *buf,
+					      u8 ch_list_attr_idx,
+					      u8 op_ch_attr_idx)
+{
+	int i = 0;
+	int j = 0;
+
+	if (ch_list_attr_idx) {
+		u8 limit = ch_list_attr_idx + 3 + buf[ch_list_attr_idx + 1];
+
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "Modify channel list attribute\n");
+		for (i = ch_list_attr_idx + 3; i < limit; i++) {
+			if (buf[i] == 0x51) {
+				for (j = i + 2; j < ((i + 2) + buf[i + 1]); j++)
+					buf[j] = wlan_channel;
+				break;
+			}
+		}
+	}
+
+	if (op_ch_attr_idx) {
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "Modify operating channel attribute\n");
+		buf[op_ch_attr_idx + 6] = 0x51;
+		buf[op_ch_attr_idx + 7] = wlan_channel;
+	}
+}
+
 static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 * buf,
 					 u32 len, bool p2p_mode)
 {
 	u32 index = 0;
-	u32 i = 0, j = 0;
 
 	u8 op_channel_attr_index = 0;
 	u8 channel_list_attr_index = 0;
@@ -1685,33 +1713,15 @@ static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 * buf,
 			op_channel_attr_index = index;
 		index += buf[index + 1] + 3;
 	}
-	if (wlan_channel != INVALID_CHANNEL) {
-		if (channel_list_attr_index) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Modify channel list attribute\n");
-			for (i = channel_list_attr_index + 3; i < ((channel_list_attr_index + 3) + buf[channel_list_attr_index + 1]); i++) {
-				if (buf[i] == 0x51) {
-					for (j = i + 2; j < ((i + 2) + buf[i + 1]); j++)
-						buf[j] = wlan_channel;
-					break;
-				}
-			}
-		}
-
-		if (op_channel_attr_index) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Modify operating channel attribute\n");
-			buf[op_channel_attr_index + 6] = 0x51;
-			buf[op_channel_attr_index + 7] = wlan_channel;
-		}
-	}
+	if (wlan_channel != INVALID_CHANNEL)
+		wilc_wfi_cfg_parse_ch_attr(vif, buf, channel_list_attr_index,
+					   op_channel_attr_index);
 }
 
 static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 * buf,
 					 u32 len,bool oper_ch, u8 p2p_mode)
 {
 	u32 index = 0;
-	u32 i = 0, j = 0;
 
 	u8 op_channel_attr_index = 0;
 	u8 channel_list_attr_index = 0;
@@ -1731,26 +1741,9 @@ static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 * buf,
 			op_channel_attr_index = index;
 		index += buf[index + 1] + 3;
 	}
-	if (wlan_channel != INVALID_CHANNEL && oper_ch) {
-		if (channel_list_attr_index) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Modify channel list attribute\n");
-			for (i = channel_list_attr_index + 3; i < ((channel_list_attr_index + 3) + buf[channel_list_attr_index + 1]); i++) {
-				if (buf[i] == 0x51) {
-					for (j = i + 2; j < ((i + 2) + buf[i + 1]); j++)
-						buf[j] = wlan_channel;
-					break;
-				}
-			}
-		}
-
-		if (op_channel_attr_index) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Modify operating channel attribute\n");
-			buf[op_channel_attr_index + 6] = 0x51;
-			buf[op_channel_attr_index + 7] = wlan_channel;
-		}
-	}
+	if (wlan_channel != INVALID_CHANNEL && oper_ch)
+		wilc_wfi_cfg_parse_ch_attr(vif, buf, channel_list_attr_index,
+					   op_channel_attr_index);
 }
 
 void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
