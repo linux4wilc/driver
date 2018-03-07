@@ -952,7 +952,7 @@ error:
 s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 {
 	s32 result = 0;
-	u8 u8abort_running_scan;
+	u8 abort_running_scan;
 	struct wid wid;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	u8 null_bssid[6] = {0};
@@ -972,10 +972,10 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 		}
 	} else if (evt == SCAN_EVENT_ABORTED) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,"Abort running scan\n");		
-		u8abort_running_scan = 1;
+		abort_running_scan = 1;
 		wid.id = (u16)WID_ABORT_RUNNING_SCAN;
 		wid.type = WID_CHAR;
-		wid.val = (s8 *)&u8abort_running_scan;
+		wid.val = (s8 *)&abort_running_scan;
 		wid.size = sizeof(char);
 
 		result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
@@ -1710,7 +1710,7 @@ static int handle_key(struct wilc_vif *vif, struct key_attr *hif_key)
 	struct wid wid;
 	struct wid wid_list[5];
 	u8 i;
-	u8 *pu8keybuf;
+	u8 *key_buf;
 	s8 s8idxarray[1];
 	s8 ret = 0;
 	struct host_if_drv *hif_drv = vif->hif_drv;
@@ -1731,16 +1731,16 @@ static int handle_key(struct wilc_vif *vif, struct key_attr *hif_key)
 			wid_list[1].size = sizeof(char);
 			wid_list[1].val = (s8 *)&hif_key->attr.wep.auth_type;
 
-			pu8keybuf = kmalloc(hif_key->attr.wep.key_len + 2,
+			key_buf = kmalloc(hif_key->attr.wep.key_len + 2,
 					    GFP_KERNEL);
-			if (!pu8keybuf) {
+			if (!key_buf) {
 				PRINT_ER(vif->ndev, "No buffer to send Key\n");
 				return -ENOMEM;
 			}
-			pu8keybuf[0] = hif_key->attr.wep.index;
-			pu8keybuf[1] = hif_key->attr.wep.key_len;
+			key_buf[0] = hif_key->attr.wep.index;
+			key_buf[1] = hif_key->attr.wep.key_len;
 
-			memcpy(&pu8keybuf[2], hif_key->attr.wep.key,
+			memcpy(&key_buf[2], hif_key->attr.wep.key,
 			       hif_key->attr.wep.key_len);
 
 			kfree(hif_key->attr.wep.key);
@@ -1748,34 +1748,34 @@ static int handle_key(struct wilc_vif *vif, struct key_attr *hif_key)
 			wid_list[2].id = (u16)WID_WEP_KEY_VALUE;
 			wid_list[2].type = WID_STR;
 			wid_list[2].size = hif_key->attr.wep.key_len + 2;
-			wid_list[2].val = (s8 *)pu8keybuf;
+			wid_list[2].val = (s8 *)key_buf;
 
 			result = wilc_send_config_pkt(vif, SET_CFG,
 						      wid_list, 3,
 						      wilc_get_vif_idx(vif));
-			kfree(pu8keybuf);
+			kfree(key_buf);
 		} else if (hif_key->action & ADDKEY) {
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling WEP key\n");
-			pu8keybuf = kmalloc(hif_key->attr.wep.key_len + 2, GFP_KERNEL);
-			if (!pu8keybuf) {
+			key_buf = kmalloc(hif_key->attr.wep.key_len + 2, GFP_KERNEL);
+			if (!key_buf) {
 				PRINT_ER(vif->ndev, "No buffer to send Key\n");
 				return -ENOMEM;
 			}
-			pu8keybuf[0] = hif_key->attr.wep.index;
-			memcpy(pu8keybuf + 1, &hif_key->attr.wep.key_len, 1);
-			memcpy(pu8keybuf + 2, hif_key->attr.wep.key,
+			key_buf[0] = hif_key->attr.wep.index;
+			memcpy(key_buf + 1, &hif_key->attr.wep.key_len, 1);
+			memcpy(key_buf + 2, hif_key->attr.wep.key,
 			       hif_key->attr.wep.key_len);
 			kfree(hif_key->attr.wep.key);
 
 			wid.id = (u16)WID_ADD_WEP_KEY;
 			wid.type = WID_STR;
-			wid.val = (s8 *)pu8keybuf;
+			wid.val = (s8 *)key_buf;
 			wid.size = hif_key->attr.wep.key_len + 2;
 
 			result = wilc_send_config_pkt(vif, SET_CFG,
 						      &wid, 1,
 						      wilc_get_vif_idx(vif));
-			kfree(pu8keybuf);
+			kfree(key_buf);
 		} else if (hif_key->action & REMOVEKEY) {
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, "Removing key\n");
 			wid.id = (u16)WID_REMOVE_WEP_KEY;
@@ -1804,19 +1804,19 @@ static int handle_key(struct wilc_vif *vif, struct key_attr *hif_key)
 
 	case WPA_RX_GTK:
 		if (hif_key->action & ADDKEY_AP) {
-			pu8keybuf = kzalloc(RX_MIC_KEY_MSG_LEN, GFP_KERNEL);
-			if (!pu8keybuf) {
+			key_buf = kzalloc(RX_MIC_KEY_MSG_LEN, GFP_KERNEL);
+			if (!key_buf) {
 				PRINT_ER(vif->ndev, "No buffer to send RxGTK Key\n");
 				ret = -ENOMEM;
 				goto out_wpa_rx_gtk;
 			}
 
 			if (hif_key->attr.wpa.seq)
-				memcpy(pu8keybuf + 6, hif_key->attr.wpa.seq, 8);
+				memcpy(key_buf + 6, hif_key->attr.wpa.seq, 8);
 
-			memcpy(pu8keybuf + 14, &hif_key->attr.wpa.index, 1);
-			memcpy(pu8keybuf + 15, &hif_key->attr.wpa.key_len, 1);
-			memcpy(pu8keybuf + 16, hif_key->attr.wpa.key,
+			memcpy(key_buf + 14, &hif_key->attr.wpa.index, 1);
+			memcpy(key_buf + 15, &hif_key->attr.wpa.key_len, 1);
+			memcpy(key_buf + 16, hif_key->attr.wpa.key,
 			       hif_key->attr.wpa.key_len);
 
 			wid_list[0].id = (u16)WID_11I_MODE;
@@ -1826,45 +1826,45 @@ static int handle_key(struct wilc_vif *vif, struct key_attr *hif_key)
 
 			wid_list[1].id = (u16)WID_ADD_RX_GTK;
 			wid_list[1].type = WID_STR;
-			wid_list[1].val = (s8 *)pu8keybuf;
+			wid_list[1].val = (s8 *)key_buf;
 			wid_list[1].size = RX_MIC_KEY_MSG_LEN;
 
 			result = wilc_send_config_pkt(vif, SET_CFG,
 						      wid_list, 2,
 						      wilc_get_vif_idx(vif));
 
-			kfree(pu8keybuf);
+			kfree(key_buf);
 			complete(&hif_drv->comp_test_key_block);
 		} else if (hif_key->action & ADDKEY) {
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling group key(Rx) function\n");
-			pu8keybuf = kzalloc(RX_MIC_KEY_MSG_LEN, GFP_KERNEL);
-			if (!pu8keybuf) {
+			key_buf = kzalloc(RX_MIC_KEY_MSG_LEN, GFP_KERNEL);
+			if (!key_buf) {
 				PRINT_ER(vif->ndev, "No buffer to send RxGTK Key\n");
 				ret = -ENOMEM;
 				goto out_wpa_rx_gtk;
 			}
 
 			if (hif_drv->hif_state == HOST_IF_CONNECTED)
-				memcpy(pu8keybuf, hif_drv->assoc_bssid, ETH_ALEN);
+				memcpy(key_buf, hif_drv->assoc_bssid, ETH_ALEN);
 			else
 				PRINT_ER(vif->ndev, "Couldn't handle\n");
 
-			memcpy(pu8keybuf + 6, hif_key->attr.wpa.seq, 8);
-			memcpy(pu8keybuf + 14, &hif_key->attr.wpa.index, 1);
-			memcpy(pu8keybuf + 15, &hif_key->attr.wpa.key_len, 1);
-			memcpy(pu8keybuf + 16, hif_key->attr.wpa.key,
+			memcpy(key_buf + 6, hif_key->attr.wpa.seq, 8);
+			memcpy(key_buf + 14, &hif_key->attr.wpa.index, 1);
+			memcpy(key_buf + 15, &hif_key->attr.wpa.key_len, 1);
+			memcpy(key_buf + 16, hif_key->attr.wpa.key,
 			       hif_key->attr.wpa.key_len);
 
 			wid.id = (u16)WID_ADD_RX_GTK;
 			wid.type = WID_STR;
-			wid.val = (s8 *)pu8keybuf;
+			wid.val = (s8 *)key_buf;
 			wid.size = RX_MIC_KEY_MSG_LEN;
 
 			result = wilc_send_config_pkt(vif, SET_CFG,
 						      &wid, 1,
 						      wilc_get_vif_idx(vif));
 
-			kfree(pu8keybuf);
+			kfree(key_buf);
 			complete(&hif_drv->comp_test_key_block);
 		}
 out_wpa_rx_gtk:
@@ -1877,17 +1877,17 @@ out_wpa_rx_gtk:
 
 	case WPA_PTK:
 		if (hif_key->action & ADDKEY_AP) {
-			pu8keybuf = kmalloc(PTK_KEY_MSG_LEN + 1, GFP_KERNEL);
-			if (!pu8keybuf) {
+			key_buf = kmalloc(PTK_KEY_MSG_LEN + 1, GFP_KERNEL);
+			if (!key_buf) {
 				PRINT_ER(vif->ndev, "No buffer to send PTK Key\n");
 				ret = -ENOMEM;
 				goto out_wpa_ptk;
 			}
 
-			memcpy(pu8keybuf, hif_key->attr.wpa.mac_addr, 6);
-			memcpy(pu8keybuf + 6, &hif_key->attr.wpa.index, 1);
-			memcpy(pu8keybuf + 7, &hif_key->attr.wpa.key_len, 1);
-			memcpy(pu8keybuf + 8, hif_key->attr.wpa.key,
+			memcpy(key_buf, hif_key->attr.wpa.mac_addr, 6);
+			memcpy(key_buf + 6, &hif_key->attr.wpa.index, 1);
+			memcpy(key_buf + 7, &hif_key->attr.wpa.key_len, 1);
+			memcpy(key_buf + 8, hif_key->attr.wpa.key,
 			       hif_key->attr.wpa.key_len);
 
 			wid_list[0].id = (u16)WID_11I_MODE;
@@ -1897,36 +1897,36 @@ out_wpa_rx_gtk:
 
 			wid_list[1].id = (u16)WID_ADD_PTK;
 			wid_list[1].type = WID_STR;
-			wid_list[1].val = (s8 *)pu8keybuf;
+			wid_list[1].val = (s8 *)key_buf;
 			wid_list[1].size = PTK_KEY_MSG_LEN + 1;
 
 			result = wilc_send_config_pkt(vif, SET_CFG,
 						      wid_list, 2,
 						      wilc_get_vif_idx(vif));
-			kfree(pu8keybuf);
+			kfree(key_buf);
 			complete(&hif_drv->comp_test_key_block);
 		} else if (hif_key->action & ADDKEY) {
-			pu8keybuf = kmalloc(PTK_KEY_MSG_LEN, GFP_KERNEL);
-			if (!pu8keybuf) {
+			key_buf = kmalloc(PTK_KEY_MSG_LEN, GFP_KERNEL);
+			if (!key_buf) {
 				PRINT_ER(vif->ndev, "No buffer send PTK\n");
 				ret = -ENOMEM;
 				goto out_wpa_ptk;
 			}
 
-			memcpy(pu8keybuf, hif_key->attr.wpa.mac_addr, 6);
-			memcpy(pu8keybuf + 6, &hif_key->attr.wpa.key_len, 1);
-			memcpy(pu8keybuf + 7, hif_key->attr.wpa.key,
+			memcpy(key_buf, hif_key->attr.wpa.mac_addr, 6);
+			memcpy(key_buf + 6, &hif_key->attr.wpa.key_len, 1);
+			memcpy(key_buf + 7, hif_key->attr.wpa.key,
 			       hif_key->attr.wpa.key_len);
 
 			wid.id = (u16)WID_ADD_PTK;
 			wid.type = WID_STR;
-			wid.val = (s8 *)pu8keybuf;
+			wid.val = (s8 *)key_buf;
 			wid.size = PTK_KEY_MSG_LEN;
 
 			result = wilc_send_config_pkt(vif, SET_CFG,
 						      &wid, 1,
 						      wilc_get_vif_idx(vif));
-			kfree(pu8keybuf);
+			kfree(key_buf);
 			complete(&hif_drv->comp_test_key_block);
 		}
 
@@ -1939,28 +1939,28 @@ out_wpa_ptk:
 
 	case PMKSA:
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling PMKSA key\n");
-		pu8keybuf = kmalloc((hif_key->attr.pmkid.numpmkid * PMKSA_KEY_LEN) + 1, GFP_KERNEL);
-		if (!pu8keybuf) {
+		key_buf = kmalloc((hif_key->attr.pmkid.numpmkid * PMKSA_KEY_LEN) + 1, GFP_KERNEL);
+		if (!key_buf) {
 			PRINT_ER(vif->ndev, "No buffer to send PMKSA Key\n");
 			return -ENOMEM;
 		}
 
-		pu8keybuf[0] = hif_key->attr.pmkid.numpmkid;
+		key_buf[0] = hif_key->attr.pmkid.numpmkid;
 
 		for (i = 0; i < hif_key->attr.pmkid.numpmkid; i++) {
-			memcpy(pu8keybuf + ((PMKSA_KEY_LEN * i) + 1), hif_key->attr.pmkid.pmkidlist[i].bssid, ETH_ALEN);
-			memcpy(pu8keybuf + ((PMKSA_KEY_LEN * i) + ETH_ALEN + 1), hif_key->attr.pmkid.pmkidlist[i].pmkid, PMKID_LEN);
+			memcpy(key_buf + ((PMKSA_KEY_LEN * i) + 1), hif_key->attr.pmkid.pmkidlist[i].bssid, ETH_ALEN);
+			memcpy(key_buf + ((PMKSA_KEY_LEN * i) + ETH_ALEN + 1), hif_key->attr.pmkid.pmkidlist[i].pmkid, PMKID_LEN);
 		}
 
 		wid.id = (u16)WID_PMKID_INFO;
 		wid.type = WID_STR;
-		wid.val = (s8 *)pu8keybuf;
+		wid.val = (s8 *)key_buf;
 		wid.size = (hif_key->attr.pmkid.numpmkid * PMKSA_KEY_LEN) + 1;
 
 		result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 					      wilc_get_vif_idx(vif));
 
-		kfree(pu8keybuf);
+		kfree(key_buf);
 		break;
 	}
 
@@ -2329,12 +2329,12 @@ static void handle_del_beacon(struct wilc_vif *vif)
 		PRINT_ER(vif->ndev, "Failed to send delete beacon\n");
 }
 
-static u32 WILC_HostIf_PackStaParam(struct wilc_vif *vif, u8 *pu8Buffer,
+static u32 WILC_HostIf_PackStaParam(struct wilc_vif *vif, u8 *buff,
 				    struct add_sta_param *param)
 {
 	u8 *cur_byte;
 
-	cur_byte = pu8Buffer;
+	cur_byte = buff;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Packing STA params\n");
 	memcpy(cur_byte, param->bssid, ETH_ALEN);
@@ -2360,7 +2360,7 @@ static u32 WILC_HostIf_PackStaParam(struct wilc_vif *vif, u8 *pu8Buffer,
 	*cur_byte++ = param->flags_set & 0xFF;
 	*cur_byte++ = (param->flags_set >> 8) & 0xFF;
 
-	return cur_byte - pu8Buffer;
+	return cur_byte - buff;
 }
 
 static void handle_add_station(struct wilc_vif *vif,
@@ -2494,7 +2494,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 				 struct remain_ch *hif_remain_ch)
 {
 	s32 result = 0;
-	u8 u8remain_on_chan_flag;
+	u8 remain_on_chan_flag;
 	struct wid wid;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct host_if_drv *hif_drv_p2p  = wilc_get_drv_handler_by_ifc(vif->wilc, P2P_IFC);
@@ -2560,7 +2560,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 #endif
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting channel :%d\n", hif_remain_ch->ch);
-	u8remain_on_chan_flag = true;
+	remain_on_chan_flag = true;
 	wid.id = (u16)WID_REMAIN_ON_CHAN;
 	wid.type = WID_STR;
 	wid.size = 2;
@@ -2570,7 +2570,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 		goto error;
 	}
 
-	wid.val[0] = u8remain_on_chan_flag;
+	wid.val[0] = remain_on_chan_flag;
 	wid.val[1] = (s8)hif_remain_ch->ch;
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
@@ -2635,7 +2635,7 @@ static int handle_register_frame(struct wilc_vif *vif,
 static u32 handle_listen_state_expired(struct wilc_vif *vif,
 				       struct remain_ch *hif_remain_ch)
 {
-	u8 u8remain_on_chan_flag;
+	u8 remain_on_chan_flag;
 	struct wid wid;
 	s32 result = 0;
 	struct host_if_drv *hif_drv = vif->hif_drv;
@@ -2645,7 +2645,7 @@ static u32 handle_listen_state_expired(struct wilc_vif *vif,
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "CANCEL REMAIN ON CHAN\n");
 
 	if (hif_drv->hif_state == HOST_IF_P2P_LISTEN) {
-		u8remain_on_chan_flag = false;
+		remain_on_chan_flag = false;
 		wid.id = (u16)WID_REMAIN_ON_CHAN;
 		wid.type = WID_STR;
 		wid.size = 2;
@@ -2656,7 +2656,7 @@ static u32 handle_listen_state_expired(struct wilc_vif *vif,
 			return -ENOMEM;
 		}
 
-		wid.val[0] = u8remain_on_chan_flag;
+		wid.val[0] = remain_on_chan_flag;
 		wid.val[1] = FALSE_FRMWR_CHANNEL;
 
 		result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
