@@ -1353,9 +1353,9 @@ static int wilc_mac_open(struct net_device *ndev)
 	wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 				 vif->iftype, vif->ifc_id);
 	wilc_set_operation_mode(vif, vif->iftype);
-			wilc_get_mac_address(vif, mac_add);
-			PRINT_INFO(vif->ndev, INIT_DBG, "Mac address: %pM\n", mac_add);
-			memcpy(vif->src_addr, mac_add, ETH_ALEN);
+	wilc_get_mac_address(vif, mac_add);
+	PRINT_INFO(vif->ndev, INIT_DBG, "Mac address: %pM\n", mac_add);
+	memcpy(vif->src_addr, mac_add, ETH_ALEN);
 
 	memcpy(ndev->dev_addr, vif->src_addr, ETH_ALEN);
 
