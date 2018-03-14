@@ -1115,6 +1115,7 @@ static int wlan_deinit_locks(struct net_device *dev)
 
 	mutex_destroy(&wilc->hif_cs);
 	mutex_destroy(&wilc->cs);
+	mutex_destroy(&wilc->txq_add_to_head_cs);
 	mutex_destroy(&wilc->rxq_cs);
 
 	return 0;
