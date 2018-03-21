@@ -211,6 +211,7 @@ struct host_if_set_ant {
 	u8 mode;
 	u8 antenna1;
 	u8 antenna2;
+	u8 gpio_mode;
 };
 
 union message_body {
@@ -4487,6 +4488,25 @@ int wilc_get_tx_power(struct wilc_vif *vif, u8 *tx_power)
 	return ret;
 }
 
+bool is_valid_gpio(struct wilc_vif *vif, u8 gpio)
+{
+	switch(vif->wilc->chip) {
+	case WILC_1000:
+		if(gpio == 0 || gpio == 1 || gpio == 4 || gpio == 6)
+			return true;
+		else
+			return false;
+	case WILC_3000:
+		if(gpio == 0 || gpio == 3 || gpio == 4 ||
+			(gpio >= 17 && gpio <= 20))
+			return true;
+		else
+			return false;
+	default:
+		return false;
+	}
+}
+
 int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 {
 	int ret = 0;
@@ -4500,32 +4520,37 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 	msg.vif = vif;
 	msg.body.set_ant.mode = mode;
 	attr_syfs_p = &vif->attr_sysfs;
-	if (attr_syfs_p->ant_swtch_mode == ANT_SWTCH_SNGL_GPIO_CTRL)
-		{
-			if(((attr_syfs_p->antenna1 >= 17) && (attr_syfs_p->antenna1 <= 21)) ||
-				(attr_syfs_p->antenna1 == 3) || (attr_syfs_p->antenna1 == 4))
-				msg.body.set_ant.antenna1 = attr_syfs_p->antenna1;
-			else
-				return WILC_FAIL;
-		}
-	else if (attr_syfs_p->ant_swtch_mode == ANT_SWTCH_DUAL_GPIO_CTRL)
-		{
-			if((((attr_syfs_p->antenna1 >= 17) && (attr_syfs_p->antenna1 <= 21)) ||(attr_syfs_p->antenna1 == 3) || (attr_syfs_p->antenna1 == 4))\
-				&& (((attr_syfs_p->antenna2 >= 17) && (attr_syfs_p->antenna2 <= 21)) ||(attr_syfs_p->antenna2 == 3) || (attr_syfs_p->antenna2 == 4))) 
-				{
-					msg.body.set_ant.antenna1 = attr_syfs_p->antenna1;
-					msg.body.set_ant.antenna2 = attr_syfs_p->antenna2;
-				}
-			else
-				return WILC_FAIL;
 
+	if(attr_syfs_p->ant_swtch_mode == ANT_SWTCH_INVALID_GPIO_CTRL) {
+	  PRINT_ER(vif->ndev, "Ant switch GPIO mode is invalid. Set it first using /sys/wilc/ant_swtch_mode \n");
+	  return WILC_FAIL;
+	}
+
+	if (is_valid_gpio(vif, attr_syfs_p->antenna1)){ 
+		msg.body.set_ant.antenna1 = attr_syfs_p->antenna1;
+	}
+	else {
+		PRINT_ER(vif->ndev, "Invalid GPIO %d\n", attr_syfs_p->antenna1);
+		return WILC_FAIL;
+	}
+
+	if (attr_syfs_p->ant_swtch_mode == ANT_SWTCH_DUAL_GPIO_CTRL) {
+		if ((attr_syfs_p->antenna2 != attr_syfs_p->antenna1) &&
+			is_valid_gpio(vif, attr_syfs_p->antenna2)) {
+			msg.body.set_ant.antenna2 = attr_syfs_p->antenna2;
+		} else {
+			PRINT_ER(vif->ndev, "Invalid GPIO %d\n", attr_syfs_p->antenna2);
+			return WILC_FAIL;
 		}
+	}
+
+	msg.body.set_ant.gpio_mode = attr_syfs_p->ant_swtch_mode;
 	ret = wilc_enqueue_cmd(&msg);
 	if(ret) {
 		PRINT_ER(vif->ndev, "Failed to send get host channel param's message queue ");
 		return -EINVAL;
 	}	
-	return (ret);
+	return ret;
 }
 
 int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger)

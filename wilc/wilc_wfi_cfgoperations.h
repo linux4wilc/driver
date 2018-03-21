@@ -21,6 +21,6 @@ int WILC_WFI_deinit_mon_interface(void);
 struct net_device *WILC_WFI_init_mon_interface(const char *name, struct net_device *real_dev);
 void wilc_mgmt_frame_register(struct wiphy *wiphy, struct wireless_dev *wdev,
 			      u16 frame_type, bool reg);
-void wilc_sysfs_init(struct wilc_vif *vif);
+void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2);
 void wilc_sysfs_exit(void);
 #endif

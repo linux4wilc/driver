@@ -112,8 +112,6 @@
 #define WILC_HAVE_SDIO_IRQ_GPIO		BIT(0)
 #define WILC_HAVE_SLEEP_CLK_SRC_RTC	BIT(2)
 #define WILC_HAVE_SLEEP_CLK_SRC_XO	BIT(3)
-#define WILC_HAVE_ANT_SWTCH_SNGL_GPIO_CTRL BIT(9)
-#define WILC_HAVE_ANT_SWTCH_DUAL_GPIO_CTRL BIT(10)
 
 /********************************************
  *

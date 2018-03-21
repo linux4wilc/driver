@@ -2510,7 +2510,7 @@ static int set_antenna(struct wiphy *wiphy, u32 tx_ant, u32 rx_ant)
 	if (!tx_ant || !rx_ant)
 		return -EINVAL;
 
-	ret = wilc_set_antenna(vif, (u8)tx_ant);
+	ret = wilc_set_antenna(vif, (u8)(tx_ant-1));
 	if (ret)
 		PRINT_ER(vif->ndev, "Failed to set tx antenna\n");
 
