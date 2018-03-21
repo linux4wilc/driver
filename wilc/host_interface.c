@@ -1047,6 +1047,10 @@ static s32 handle_connect(struct wilc_vif *vif,
 
 	if (conn_attr->bssid) {
 		hif_drv->usr_conn_req.bssid = kmalloc(6, GFP_KERNEL);
+		if (!hif_drv->usr_conn_req.bssid) {
+			result = -ENOMEM;
+			goto error;
+		}
 		memcpy(hif_drv->usr_conn_req.bssid, conn_attr->bssid, 6);
 	}
 
@@ -1054,6 +1058,10 @@ static s32 handle_connect(struct wilc_vif *vif,
 	if (conn_attr->ssid) {
 		hif_drv->usr_conn_req.ssid = kmalloc(conn_attr->ssid_len + 1,
 						     GFP_KERNEL);
+		if (!hif_drv->usr_conn_req.ssid) {
+			result = -ENOMEM;
+			goto error;
+		}
 		memcpy(hif_drv->usr_conn_req.ssid,
 		       conn_attr->ssid,
 		       conn_attr->ssid_len);
@@ -1064,6 +1072,10 @@ static s32 handle_connect(struct wilc_vif *vif,
 	if (conn_attr->ies) {
 		hif_drv->usr_conn_req.ies = kmalloc(conn_attr->ies_len,
 						    GFP_KERNEL);
+		if (!hif_drv->usr_conn_req.ies) {
+			result = -ENOMEM;
+			goto error;
+		}
 		memcpy(hif_drv->usr_conn_req.ies,
 		       conn_attr->ies,
 		       conn_attr->ies_len);
