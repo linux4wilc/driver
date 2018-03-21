@@ -253,11 +253,6 @@ static int wilc_sdio_suspend(struct device *dev)
 	mutex_lock(&wilc->hif_cs);
 
 	ret = wilc_sdio_reset(wilc);
-	if (ret) {
-		dev_err(&func->dev, "Fail reset sdio\n");
-		return ret;
-	}
-	sdio_claim_host(func);
 
 	return 0;
 }
@@ -268,7 +263,6 @@ static int wilc_sdio_resume(struct device *dev)
 	struct wilc *wilc = sdio_get_drvdata(func);
 
 	dev_info(&func->dev, "sdio resume\n");
-	sdio_release_host(func);
 	chip_wakeup(wilc, 0);
 	sdio_init(wilc, true);
 
