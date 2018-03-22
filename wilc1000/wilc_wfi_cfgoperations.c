@@ -1867,8 +1867,8 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
-			       u32 *flags,
-			       enum nl80211_iftype type, struct vif_params *params)
+			       enum nl80211_iftype type, u32 *flags,
+			       struct vif_params *params)
 #else
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			       enum nl80211_iftype type, struct vif_params *params)
@@ -1973,7 +1973,7 @@ static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 	if (s32Error != 0)
 		netdev_err(dev, "Error in setting channel\n");
 
-	
+
 	if(wl->vif[1]->ndev == dev)
 		wilc_wlan_set_bssid(dev, wl->vif[1]->src_addr, AP_MODE);
 	else
