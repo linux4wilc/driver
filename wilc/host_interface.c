@@ -3930,12 +3930,15 @@ void wilc_network_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 	msg.vif = vif;
 
 	msg.body.net_info.len = length;
-	msg.body.net_info.buffer = kmalloc(length, GFP_KERNEL);
-	memcpy(msg.body.net_info.buffer, buffer, length);
+	msg.body.net_info.buffer = kmemdup(buffer, length, GFP_KERNEL);
+	if (!msg.body.net_info.buffer)
+		return;
 
 	result = wilc_enqueue_cmd(&msg);
-	if (result)
+	if (result) {
 		PRINT_ER(vif->ndev, "message parameters (%d)\n", result);
+		kfree(msg.body.net_info.buffer);
+	}
 }
 
 void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length)
