@@ -281,15 +281,6 @@ static int debug_thread(void *arg)
 						kfree(hif_drv->usr_conn_req.ies);
 						hif_drv->usr_conn_req.ies = NULL;
 
-						if (join_req != NULL && join_req_vif == vif) {
-							kfree(join_req);
-							join_req = NULL;
-						}
-						if (info_element != NULL && join_req_vif == vif) {
-							kfree(info_element);
-							info_element = NULL;
-						}
-
 						hif_drv->hif_state = HOST_IF_IDLE;
 						scan_while_connected = false;
 
