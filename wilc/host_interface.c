@@ -122,6 +122,9 @@ struct send_buffered_eap {
 	void *user_arg;
 };
 
+extern void filter_shadow_scan(void* pUserVoid, u8 *ch_freq_list,
+							   u8 ch_list_len);
+
 signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 				  wilc_frmw_to_linux frmw_to_linux,
 				  free_eap_buf_param eap_buf_param,
@@ -893,6 +896,12 @@ static s32 handle_scan(struct wilc_vif *vif, struct scan_attr *scan_info)
 	else if (hif_drv->hif_state == HOST_IF_IDLE)
 		scan_while_connected = false;
 
+    /* 
+     * Remove APs from shadow scan list which are 
+     * not in the requested scan channels list 
+     */
+	filter_shadow_scan(vif, scan_info->ch_freq_list, scan_info->ch_list_len);
+	
 	result = wilc_send_config_pkt(vif, SET_CFG, wid_list,
 				      index,
 				      wilc_get_vif_idx(vif));

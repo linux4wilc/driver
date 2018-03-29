@@ -197,7 +197,7 @@ static bool g_wep_keys_saved;
 #define AGING_TIME	(9 * 1000)
 #define during_ip_time	15000
 
-static void clear_shadow_scan(struct wilc_vif *vif)
+void clear_shadow_scan(struct wilc_vif *vif)
 {
 	int i;
 
@@ -206,15 +206,50 @@ static void clear_shadow_scan(struct wilc_vif *vif)
 		PRINT_D(vif->ndev, CORECONFIG_DBG, "destroy aging timer\n");
 
 		for (i = 0; i < last_scanned_cnt; i++) {
-			if (last_scanned_shadow[last_scanned_cnt].ies) {
+			if (last_scanned_shadow[i].ies) {
 				kfree(last_scanned_shadow[i].ies);
-				last_scanned_shadow[last_scanned_cnt].ies = NULL;
+				last_scanned_shadow[i].ies = NULL;
 			}
 
 			kfree(last_scanned_shadow[i].join_params);
 			last_scanned_shadow[i].join_params = NULL;
 		}
 		last_scanned_cnt = 0;
+	}
+}
+
+void filter_shadow_scan(void* pUserVoid, u8 *ch_freq_list, u8 ch_list_len)
+{
+	struct WILC_WFI_priv* priv;
+	int i;
+	int ch_index;
+	int j;
+ 	priv = (struct WILC_WFI_priv*)pUserVoid;
+
+	if(ch_list_len > 0) {
+		for(i = 0;i < last_scanned_cnt;) {
+			for(ch_index=0;ch_index < ch_list_len;ch_index++) 				
+				if(last_scanned_shadow[i].ch == (ch_freq_list[ch_index] + 1))
+					break;
+
+			/* filter only un-matched channels */
+			if (ch_index == ch_list_len){
+				if (last_scanned_shadow[i].ies){
+					kfree(last_scanned_shadow[i].ies);
+					last_scanned_shadow[i].ies = NULL;
+				}
+
+				kfree(last_scanned_shadow[i].join_params);
+				last_scanned_shadow[i].join_params = NULL;
+
+				for(j=i;(j<last_scanned_cnt-1);j++)
+					last_scanned_shadow[j] = last_scanned_shadow[j+1];
+
+				last_scanned_cnt--;
+				continue;
+			}
+			i++;
+		}
 	}
 }
 
