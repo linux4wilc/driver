@@ -281,7 +281,7 @@ static void refresh_scan(struct wilc_priv *priv, bool direct_scan)
 
 		network_info = &last_scanned_shadow[i];
 
-		if (network_info->found)
+		if (!network_info)
 			continue;
 
 		if (!memcmp("DIRECT-", network_info->ssid, 7) && !direct_scan)
