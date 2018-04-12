@@ -357,13 +357,13 @@ static void remove_network_from_shadow(unsigned long arg)
 
 	PRINT_INFO(priv->dev, CFG80211_DBG, "Number of cached networks: %d\n",
 		   last_scanned_cnt);
-	if (last_scanned_cnt != 0) {
+
+	if (last_scanned_cnt != 0)
 		mod_timer(&priv->aging_timer,
 			  jiffies + msecs_to_jiffies(AGING_TIME));
-	} else {
+	else 
 		PRINT_INFO(priv->dev, CFG80211_DBG,
 			   "No need to restart Aging timer\n");
-	}
 }
 
 static int is_network_in_shadow(struct network_info *nw_info, struct wilc_priv *priv)
