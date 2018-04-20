@@ -590,7 +590,7 @@ static struct net_device *get_if_handler(struct wilc *wilc, u8 *mac_header)
 				return wilc->vif[i]->ndev;
 	}
 
-	PRINT_WRN(wilc->vif[0]->ndev, GENERIC_DBG, "Invalide handle\n");
+	PRINT_WRN(wilc->vif[0]->ndev, GENERIC_DBG, "Invalid handle\n");
 	return NULL;
 }
 
