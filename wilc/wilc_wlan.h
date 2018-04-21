@@ -332,7 +332,7 @@ void wilc_wlan_power_off_sequence(struct wilc *wilc);
 
 void wilc_bt_init(struct wilc *wilc);
 void wilc_bt_deinit(void);
-void eap_buff_timeout(unsigned long pUserVoid);
+void eap_buff_timeout(struct timer_list *t);
 void acquire_bus(struct wilc *wilc, enum BUS_ACQUIRE acquire, int source);
 void release_bus(struct wilc *wilc, enum BUS_RELEASE release, int source);
 int wilc_wlan_init(struct net_device *dev);

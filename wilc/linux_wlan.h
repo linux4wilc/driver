@@ -32,7 +32,7 @@
 
 void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state);
 void store_power_save_current_state(struct wilc_vif *vif, bool val);
-void clear_duringIP(unsigned long data);
+void clear_duringIP(struct timer_list *t);
 
 
 

@@ -144,6 +144,9 @@ struct wilc_priv {
 	bool bInP2PlistenState;
 	struct wilc_buffered_eap *buffered_eap;
 
+	struct timer_list aging_timer;
+	struct timer_list eap_buff_timer;
+	struct timer_list during_ip_timer;
 };
 
 struct frame_reg {
@@ -242,6 +245,10 @@ struct wilc {
 	uint8_t power_status[PWR_DEV_SRC_MAX];
 	uint8_t keep_awake[PWR_DEV_SRC_MAX];
 	struct mutex cs;
+
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+	struct timer_list during_ip_timer;
+#endif
 };
 
 struct WILC_WFI_mon_priv {

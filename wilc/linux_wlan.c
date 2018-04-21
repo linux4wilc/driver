@@ -37,10 +37,12 @@
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 bool g_ignore_PS_state = false;
 #define duringIP_TIME		15000
-extern struct timer_list wilc_during_ip_timer;
 
 void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 {
+	struct wilc_priv *priv;
+
+	priv = wdev_priv(vif->ndev->ieee80211_ptr);
 
 	switch(state)
 	{
@@ -57,8 +59,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		wilc_set_power_mgmt(vif, 0, 0);
 
 		/* Start the DuringIPTimer */
-		wilc_during_ip_timer.data = (uint32_t)vif;
-		mod_timer(&wilc_during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
+		mod_timer(&priv->during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
 
 		break;
 
@@ -75,7 +76,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 			wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 		}
 
-		del_timer(&wilc_during_ip_timer);
+		del_timer(&priv->during_ip_timer);
 
 		break;
 
@@ -85,8 +86,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		wilc_optaining_ip = true;
 
 		/* Start the DuringIPTimer */
-		wilc_during_ip_timer.data = (unsigned long)vif;
-		mod_timer(&wilc_during_ip_timer, (jiffies + msecs_to_jiffies(duringIP_TIME)));
+		mod_timer(&priv->during_ip_timer, (jiffies + msecs_to_jiffies(duringIP_TIME)));
 
 		break;
 
@@ -96,7 +96,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		wilc_optaining_ip = false;
 
 		/* Stop the DuringIPTimer */
-		del_timer(&wilc_during_ip_timer);
+		del_timer(&priv->during_ip_timer);
 
 		break;
 	}
@@ -117,9 +117,10 @@ void store_power_save_current_state(struct wilc_vif *vif, bool val)
 	vif->pwrsave_current_state = val;
 }
 
-void clear_duringIP(unsigned long arg)
+void clear_duringIP(struct timer_list *t)
 {
-	struct wilc_vif *vif = (struct wilc_vif *)arg;
+	struct wilc_priv *priv = from_timer(priv, t, during_ip_timer);
+	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	PRINT_ER(vif->ndev, "Unable to Obtain IP\n");
 
@@ -523,7 +524,7 @@ void free_eap_buff_params(void *vp)
 	}
 }
 
-void eap_buff_timeout(unsigned long user)
+void eap_buff_timeout(struct timer_list *t)
 {
     u8 null_bssid[ETH_ALEN] = {0};
     static u8 timeout = 5;
@@ -531,14 +532,13 @@ void eap_buff_timeout(unsigned long user)
     struct wilc_priv *priv;
     struct wilc_vif *vif ;
 
-    priv = (struct wilc_priv *)user;
+    priv = from_timer(priv, t, eap_buff_timer);
     vif = netdev_priv(priv->dev);
     if (!(memcmp(priv->au8AssociatedBss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
-            eap_buff_timer.data = (unsigned long)user;
-            mod_timer(&eap_buff_timer,(jiffies + msecs_to_jiffies(10)));
+            mod_timer(&priv->eap_buff_timer,(jiffies + msecs_to_jiffies(10)));
             return;
     }
-    del_timer(&eap_buff_timer);
+    del_timer(&priv->eap_buff_timer);
     timeout = 5;
 
     status = wilc_send_buffered_eap(vif,
@@ -1665,9 +1665,8 @@ void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset, u8
 			priv->buffered_eap->pkt_offset = pkt_offset;
 			memcpy(priv->buffered_eap->buff, buff -
 			       pkt_offset, size + pkt_offset);
-                       eap_buff_timer.data = (unsigned long) priv;
-                       mod_timer(&eap_buff_timer,(jiffies +
-                                                  msecs_to_jiffies(10))) ;
+           mod_timer(&priv->eap_buff_timer,(jiffies +
+                                      msecs_to_jiffies(10))) ;
 			return;
 		}
 		skb = dev_alloc_skb(frame_len);

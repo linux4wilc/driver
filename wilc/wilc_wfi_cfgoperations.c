@@ -94,12 +94,7 @@ static const struct wiphy_wowlan_support wowlan_support = {
 
 static struct network_info last_scanned_shadow[MAX_NUM_SCANNED_NETWORKS_SHADOW];
 static u32 last_scanned_cnt;
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-struct timer_list wilc_during_ip_timer;
-#endif
-static struct timer_list hAgingTimer;
 static u8 op_ifcs;
-struct timer_list eap_buff_timer;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
 #define CHAN2G(_channel, _freq, _flags) {	 \
@@ -199,10 +194,11 @@ static bool g_wep_keys_saved;
 
 void clear_shadow_scan(struct wilc_vif *vif)
 {
+	struct wilc_priv *priv = wiphy_priv(vif->ndev->ieee80211_ptr->wiphy);
 	int i;
 
 	if (op_ifcs == 0) {
-		del_timer_sync(&hAgingTimer);
+		del_timer_sync(&priv->aging_timer);
 		PRINT_D(vif->ndev, CORECONFIG_DBG, "destroy aging timer\n");
 
 		for (i = 0; i < last_scanned_cnt; i++) {
@@ -329,9 +325,9 @@ static void update_scan_time(void)
 		last_scanned_shadow[i].time_scan = jiffies;
 }
 
-static void remove_network_from_shadow(unsigned long arg)
+static void remove_network_from_shadow(struct timer_list *t)
 {
-	struct wilc_priv* priv = (struct wilc_priv*)arg;
+	struct wilc_priv* priv = from_timer(priv, t, aging_timer);
 	unsigned long now = jiffies;
 	int i, j;
 
@@ -353,8 +349,7 @@ static void remove_network_from_shadow(unsigned long arg)
 
 	PRINT_INFO(priv->dev, CFG80211_DBG, "Number of cached networks: %d\n", last_scanned_cnt);
 	if (last_scanned_cnt != 0) {
-		hAgingTimer.data = arg;
-		mod_timer(&hAgingTimer, jiffies + msecs_to_jiffies(AGING_TIME));
+		mod_timer(&priv->aging_timer, jiffies + msecs_to_jiffies(AGING_TIME));
 	} else {
 		PRINT_INFO(priv->dev, CFG80211_DBG, "No need to restart Aging timer\n");
 	}
@@ -368,8 +363,7 @@ static int is_network_in_shadow(struct network_info *pstrNetworkInfo,
 
 	if (last_scanned_cnt == 0) {
 		PRINT_INFO(priv->dev, CFG80211_DBG, "Starting Aging timer\n");
-		hAgingTimer.data = (unsigned long)priv;
-		mod_timer(&hAgingTimer, jiffies + msecs_to_jiffies(AGING_TIME));
+		mod_timer(&priv->aging_timer, jiffies + msecs_to_jiffies(AGING_TIME));
 		state = -1;
 	} else {
 		for (i = 0; i < last_scanned_cnt; i++) {
@@ -2732,17 +2726,17 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net, struct device *de
 int wilc_init_host_int(struct net_device *net)
 {
 	int s32Error = 0;
-
 	struct wilc_priv *priv;
 
 	PRINT_INFO(net, INIT_DBG, "Host[%p][%p]\n", net, net->ieee80211_ptr);
 	priv = wdev_priv(net->ieee80211_ptr);
 	if (op_ifcs == 0) {
-		setup_timer(&hAgingTimer, remove_network_from_shadow, (unsigned long)priv);
+		timer_setup(&priv->aging_timer, remove_network_from_shadow,
+				   (unsigned long)priv);
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		setup_timer(&wilc_during_ip_timer, clear_duringIP, 0);
+		timer_setup(&priv->during_ip_timer, clear_duringIP, 0);
 	#endif
-		setup_timer(&eap_buff_timer, eap_buff_timeout, 0);
+		timer_setup(&priv->eap_buff_timer, eap_buff_timeout, 0);
 	}
 	op_ifcs++;
 
@@ -2778,8 +2772,8 @@ int wilc_deinit_host_int(struct net_device *net)
 	clear_shadow_scan(vif);
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	if (op_ifcs == 0){
-		del_timer_sync(&wilc_during_ip_timer);
-		del_timer_sync(&eap_buff_timer);
+		del_timer_sync(&priv->during_ip_timer);
+		del_timer_sync(&priv->eap_buff_timer);
 	}
 #endif
 
