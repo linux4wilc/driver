@@ -436,7 +436,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 {
 	struct wilc_priv *priv;
 	struct wiphy *wiphy;
-	s32 s32Freq;
+	s32 freq;
 	struct ieee80211_channel *channel;
 	struct cfg80211_bss *bss = NULL;
 
@@ -455,9 +455,9 @@ static void cfg_scan_result(enum scan_event scan_event,
 		    ((s32)network_info->rssi * 100) > 100))
 			return;
 
-		s32Freq = ieee80211_channel_to_frequency((s32)network_info->ch,
+		freq = ieee80211_channel_to_frequency((s32)network_info->ch,
 							 NL80211_BAND_2GHZ);
-		channel = ieee80211_get_channel(wiphy, s32Freq);
+		channel = ieee80211_get_channel(wiphy, freq);
 
 		if (!channel)
 			return;
@@ -1729,7 +1729,7 @@ static void wilc_wfi_cfg_parse_rx_vendor_spec(struct wilc_priv *priv, u8 *buff,
 	}
 }
 
-void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
+void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 {
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
