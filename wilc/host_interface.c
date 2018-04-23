@@ -3774,7 +3774,6 @@ static void get_periodic_rssi(unsigned long arg)
 
 int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 {
-	int result = 0;
 	struct host_if_drv *hif_drv;
 	struct wilc_vif *vif;
 	struct wilc *wilc;
@@ -3790,8 +3789,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 	hif_drv  = kzalloc(sizeof(*hif_drv), GFP_KERNEL);
 	if (!hif_drv) {
 		PRINT_ER(dev, "Driver is null\n");
-		result = -ENOMEM;
-		goto _fail_;
+		return -ENOMEM;
 	}
 	*hif_drv_handler = hif_drv;
 	for (i = 0; i <= wilc->vif_num; i++)
@@ -3820,12 +3818,11 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "INIT: CLIENT COUNT %d\n", 
 				clients_count);
-	if (clients_count == 0)	{
+	if (clients_count == 0) {
 		hif_workqueue = create_singlethread_workqueue("WILC_wq");
 		if (!hif_workqueue) {
 			PRINT_ER(vif->ndev, "Failed to create workqueue\n");
-			result = -ENOMEM;
-			goto _fail_;
+			return -ENOMEM;
 		}
 
 		periodic_rssi_vif = vif;
@@ -3868,8 +3865,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 
 	clients_count++;
 
-_fail_:
-	return result;
+	return 0;
 }
 
 int wilc_deinit(struct wilc_vif *vif)
