@@ -1431,16 +1431,16 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 		wilc_get_statistics(vif, &stats);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 		sinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL) |
-						BIT(NL80211_STA_INFO_RX_PACKETS) |
-						BIT(NL80211_STA_INFO_TX_PACKETS) |
-						BIT(NL80211_STA_INFO_TX_FAILED) |
-						BIT(NL80211_STA_INFO_TX_BITRATE);
+			      BIT(NL80211_STA_INFO_RX_PACKETS) |
+			      BIT(NL80211_STA_INFO_TX_PACKETS) |
+			      BIT(NL80211_STA_INFO_TX_FAILED) |
+			      BIT(NL80211_STA_INFO_TX_BITRATE);
 #else
-		sinfo->filled |= STATION_INFO_SIGNAL | 
-						STATION_INFO_RX_PACKETS |
-						STATION_INFO_TX_PACKETS | 
-						STATION_INFO_TX_FAILED |
-						STATION_INFO_TX_BITRATE;
+		sinfo->filled |= STATION_INFO_SIGNAL |
+			      STATION_INFO_RX_PACKETS |
+			      STATION_INFO_TX_PACKETS |
+			      STATION_INFO_TX_FAILED |
+			      STATION_INFO_TX_BITRATE;
 #endif
 		sinfo->signal = stats.rssi;
 		sinfo->rx_packets = stats.rx_cnt;
