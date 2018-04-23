@@ -570,6 +570,17 @@ static void cfg_scan_result(enum scan_event scan_event,
 	}
 }
 
+static inline bool wilc_wfi_cfg_scan_time_expired(int i)
+{
+	unsigned long now = jiffies;
+
+	if (time_after(now, last_scanned_shadow[i].time_scan_cached +
+		       (unsigned long)(nl80211_SCAN_RESULT_EXPIRE - (1 * HZ))))
+		return true;
+	else
+		return false;
+}
+
 int wilc_connecting;
 
 static void cfg_connect_result(enum conn_event conn_disconn_evt,
@@ -623,17 +634,14 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 				conn_info->bssid[0], conn_info->bssid[1],
 				conn_info->bssid[2], conn_info->bssid[3],
 				conn_info->bssid[4], conn_info->bssid[5]);
-			memcpy(priv->associated_bss, conn_info->bssid, ETH_ALEN);
+			memcpy(priv->associated_bss, conn_info->bssid,
+			       ETH_ALEN);
 
 			for (i = 0; i < last_scanned_cnt; i++) {
 				if (memcmp(last_scanned_shadow[i].bssid,
 					   conn_info->bssid,
 					   ETH_ALEN) == 0) {
-					unsigned long now = jiffies;
-
-					if (time_after(now,
-						       last_scanned_shadow[i].time_scan_cached +
-						       (unsigned long)(nl80211_SCAN_RESULT_EXPIRE - (1 * HZ))))
+					if (wilc_wfi_cfg_scan_time_expired(i))
 						scan_refresh = true;
 
 					break;
@@ -651,9 +659,11 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 			   "Association response info elements length = %d\n",
 			   conn_info->resp_ies_len);
 		cfg80211_connect_result(dev, conn_info->bssid,
-					conn_info->req_ies, conn_info->req_ies_len,
-					conn_info->resp_ies, conn_info->resp_ies_len,
-					connect_status, GFP_KERNEL);
+					conn_info->req_ies,
+					conn_info->req_ies_len,
+					conn_info->resp_ies,
+					conn_info->resp_ies_len, connect_status,
+					GFP_KERNEL);
 	} else if (conn_disconn_evt == CONN_DISCONN_EVENT_DISCONN_NOTIF)    {
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		wilc_optaining_ip = false;
@@ -676,13 +686,13 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 			disconn_info->reason = 1;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
-		cfg80211_disconnected(dev, disconn_info->reason, disconn_info->ie,
-				      disconn_info->ie_len,
+		cfg80211_disconnected(dev, disconn_info->reason,
+				      disconn_info->ie, disconn_info->ie_len,
 				      GFP_KERNEL);
 #else
-		cfg80211_disconnected(dev, disconn_info->reason, disconn_info->ie,
-				      disconn_info->ie_len, false,
-				      GFP_KERNEL);
+		cfg80211_disconnected(dev, disconn_info->reason,
+				      disconn_info->ie, disconn_info->ie_len,
+				      false, GFP_KERNEL);
 #endif
 	}
 }
