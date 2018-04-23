@@ -129,7 +129,6 @@ enum {
 #define MAC_CONNECTED		1
 #define MAC_DISCONNECTED	0
 
-#define SCAN_DONE		TRUE
 #define PWR_DEV_SRC_WIFI	0
 #define PWR_DEV_SRC_BT		1
 #define PWR_DEV_SRC_MAX		2
