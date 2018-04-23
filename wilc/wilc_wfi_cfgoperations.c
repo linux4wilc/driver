@@ -1038,7 +1038,8 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 	return ret;
 }
 
-static int disconnect(struct wiphy *wiphy, struct net_device *dev, u16 reason_code)
+static int disconnect(struct wiphy *wiphy, struct net_device *dev,
+		      u16 reason_code)
 {
 	s32 ret = 0;
 	struct wilc_priv *priv;
@@ -1576,7 +1577,8 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 			    ETH_ALEN)) {
 			PRINT_INFO(netdev, CFG80211_DBG,
 				   "Reseting PMKID values\n");
-			memset(&priv->pmkid_list.pmkidlist[i], 0, sizeof(struct host_if_pmkid));
+			memset(&priv->pmkid_list.pmkidlist[i], 0,
+			       sizeof(struct host_if_pmkid));
 			break;
 		}
 	}
@@ -2458,7 +2460,8 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 
 	if (vif->iftype == AP_MODE || vif->iftype == GO_MODE) {
 		memcpy(sta_params.bssid, mac, ETH_ALEN);
-		memcpy(priv->assoc_stainfo.sta_associated_bss[params->aid], mac, ETH_ALEN);
+		memcpy(priv->assoc_stainfo.sta_associated_bss[params->aid], mac,
+		       ETH_ALEN);
 		sta_params.aid = params->aid;
 		sta_params.rates_len = params->supported_rates_len;
 		sta_params.rates = params->supported_rates;
@@ -2862,7 +2865,8 @@ _fail_:
 	return NULL;
 }
 
-struct wireless_dev *wilc_create_wiphy(struct net_device *net, struct device *dev)
+struct wireless_dev *wilc_create_wiphy(struct net_device *net,
+				       struct device *dev)
 {
 	struct wilc_priv *priv;
 	struct wireless_dev *wdev;
