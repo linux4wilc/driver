@@ -325,9 +325,17 @@ static void update_scan_time(void)
 		last_scanned_shadow[i].time_scan = jiffies;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 static void remove_network_from_shadow(struct timer_list *t)
+#else
+static void remove_network_from_shadow(unsigned long arg)
+#endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 	struct wilc_priv* priv = from_timer(priv, t, aging_timer);
+#else
+	struct wilc_priv* priv = (struct wilc_priv*)arg;
+#endif
 	unsigned long now = jiffies;
 	int i, j;
 
@@ -2731,12 +2739,20 @@ int wilc_init_host_int(struct net_device *net)
 	PRINT_INFO(net, INIT_DBG, "Host[%p][%p]\n", net, net->ieee80211_ptr);
 	priv = wdev_priv(net->ieee80211_ptr);
 	if (op_ifcs == 0) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 		timer_setup(&priv->aging_timer, remove_network_from_shadow,
 				   (unsigned long)priv);
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		timer_setup(&priv->during_ip_timer, clear_duringIP, 0);
 	#endif
 		timer_setup(&priv->eap_buff_timer, eap_buff_timeout, 0);
+#else
+		setup_timer(&priv->aging_timer, remove_network_from_shadow, (unsigned long)priv);
+	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+		setup_timer(&priv->during_ip_timer, clear_duringIP, 0);
+	#endif
+		setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
+#endif
 	}
 	op_ifcs++;
 

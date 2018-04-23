@@ -32,7 +32,11 @@
 
 void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state);
 void store_power_save_current_state(struct wilc_vif *vif, bool val);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 void clear_duringIP(struct timer_list *t);
+#else
+void clear_duringIP(unsigned long arg);
+#endif
 
 
 

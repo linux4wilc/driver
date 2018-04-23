@@ -59,6 +59,9 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		wilc_set_power_mgmt(vif, 0, 0);
 
 		/* Start the DuringIPTimer */
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+		priv->during_ip_timer.data = (uint32_t)priv;
+	#endif
 		mod_timer(&priv->during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
 
 		break;
@@ -86,6 +89,9 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		wilc_optaining_ip = true;
 
 		/* Start the DuringIPTimer */
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+		priv->during_ip_timer.data = (uint32_t)priv;
+	#endif
 		mod_timer(&priv->during_ip_timer, (jiffies + msecs_to_jiffies(duringIP_TIME)));
 
 		break;
@@ -117,9 +123,17 @@ void store_power_save_current_state(struct wilc_vif *vif, bool val)
 	vif->pwrsave_current_state = val;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 void clear_duringIP(struct timer_list *t)
+#else
+void clear_duringIP(unsigned long arg)
+#endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 	struct wilc_priv *priv = from_timer(priv, t, during_ip_timer);
+#else
+	struct wilc_priv *priv = (struct wilc_priv *)arg;
+#endif
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	PRINT_ER(vif->ndev, "Unable to Obtain IP\n");
@@ -524,16 +538,22 @@ void free_eap_buff_params(void *vp)
 	}
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 void eap_buff_timeout(struct timer_list *t)
+#else
+void eap_buff_timeout(unsigned long user)
+#endif
 {
     u8 null_bssid[ETH_ALEN] = {0};
     static u8 timeout = 5;
     int status = -1;
-    struct wilc_priv *priv;
-    struct wilc_vif *vif ;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+    struct wilc_priv *priv = from_timer(priv, t, eap_buff_timer);
+#else
+	struct wilc_priv *priv = (struct wilc_priv *)user;
+#endif
+    struct wilc_vif *vif = netdev_priv(priv->dev);
 
-    priv = from_timer(priv, t, eap_buff_timer);
-    vif = netdev_priv(priv->dev);
     if (!(memcmp(priv->au8AssociatedBss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
             mod_timer(&priv->eap_buff_timer,(jiffies + msecs_to_jiffies(10)));
             return;
@@ -1665,7 +1685,10 @@ void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset, u8
 			priv->buffered_eap->pkt_offset = pkt_offset;
 			memcpy(priv->buffered_eap->buff, buff -
 			       pkt_offset, size + pkt_offset);
-           mod_timer(&priv->eap_buff_timer,(jiffies +
+		#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+			priv->eap_buff_timer.data = (unsigned long) priv;
+		#endif
+			mod_timer(&priv->eap_buff_timer,(jiffies +
                                       msecs_to_jiffies(10))) ;
 			return;
 		}
