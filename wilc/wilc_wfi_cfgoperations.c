@@ -1911,6 +1911,62 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 			priv->remain_on_ch_params.listen_session_id);
 }
 
+static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_vif *vif,
+					struct p2p_mgmt_data *mgmt_tx,
+					struct cfg80211_mgmt_tx_params *params,
+					u8 iftype, u32 buf_len)
+{
+	const u8 *buf = params->buf;
+	size_t len = params->len;
+	u32 i;
+	u8 subtype = buf[P2P_PUB_ACTION_SUBTYPE];
+
+	if (subtype == GO_NEG_REQ || subtype == GO_NEG_RSP) {
+		if (p2p_local_random == 1 &&
+		    p2p_recv_random < p2p_local_random) {
+			get_random_bytes(&p2p_local_random, 1);
+			p2p_local_random++;
+		}
+	}
+
+	if (p2p_local_random <= p2p_recv_random || !(subtype == GO_NEG_REQ ||
+						     subtype == GO_NEG_RSP ||
+						     subtype == P2P_INV_REQ ||
+						     subtype == P2P_INV_RSP))
+		return;
+
+	PRINT_INFO(vif->ndev, GENERIC_DBG, 
+		   "LOCAL WILL BE GO LocaRand=%02x RecvRand %02x\n",
+		   p2p_local_random, p2p_recv_random);
+	for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < len; i++) {
+		if (buf[i] == P2PELEM_ATTR_ID &&
+		    !memcmp(p2p_oui, &buf[i + 2], 4)) {
+			if (subtype == P2P_INV_REQ || subtype == P2P_INV_RSP)
+				wilc_wfi_cfg_parse_tx_action(vif,
+							     &mgmt_tx->buff[i + 6],
+							     len - (i + 6),
+							     true,
+							     vif->attr_sysfs.p2p_mode);
+			else
+				wilc_wfi_cfg_parse_tx_action(vif,
+							     &mgmt_tx->buff[i + 6],
+							     len - (i + 6),
+							     false,
+							     vif->attr_sysfs.p2p_mode);
+			break;
+		}
+	}
+
+	if (subtype != P2P_INV_REQ && subtype != P2P_INV_RSP) {
+		int vendor_spec_len = sizeof(p2p_vendor_spec);
+
+		memcpy(&mgmt_tx->buff[len], p2p_vendor_spec,
+		       vendor_spec_len);
+		mgmt_tx->buff[len + vendor_spec_len] = p2p_local_random;
+		mgmt_tx->size = buf_len;
+	}
+}
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
 static int mgmt_tx(struct wiphy *wiphy,
 		   struct wireless_dev *wdev,
@@ -1934,9 +1990,9 @@ static int mgmt_tx(struct wiphy *wiphy,
 	struct p2p_mgmt_data *mgmt_tx;
 	struct wilc_priv *priv;
 	struct host_if_drv *wfi_drv;
-	u32 i;
 	struct wilc_vif *vif;
 	u32 buf_len = len + sizeof(p2p_vendor_spec) + sizeof(p2p_local_random);
+	int ret = 0;
 
 	vif = netdev_priv(wdev->netdev);
 	priv = wiphy_priv(wiphy);
@@ -1946,118 +2002,100 @@ static int mgmt_tx(struct wiphy *wiphy,
 	priv->tx_cookie = *cookie;
 	mgmt = (const struct ieee80211_mgmt *)buf;
 
-	if (ieee80211_is_mgmt(mgmt->frame_control)) {
-		mgmt_tx = kmalloc(sizeof(struct p2p_mgmt_data), GFP_KERNEL);
-		if (!mgmt_tx) {
-			PRINT_ER(vif->ndev,
-				 "Failed to allocate memory for mgmt_tx structure\n");
-			return -EFAULT;
-		}
-		mgmt_tx->buff = kmalloc(buf_len, GFP_KERNEL);
-		if (!mgmt_tx->buff) {
-			PRINT_ER(vif->ndev,
-				 "Failed to allocate memory for mgmt_tx buff\n");
-			kfree(mgmt_tx);
-			return -ENOMEM;
-		}
-
-		memcpy(mgmt_tx->buff, buf, len);
-		mgmt_tx->size = len;
-
-		if (ieee80211_is_probe_resp(mgmt->frame_control)) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "TX: Probe Response\n");
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				    "Setting channel: %d\n", chan->hw_value);
-			wilc_set_mac_chnl_num(vif, chan->hw_value);
-			curr_channel = chan->hw_value;
-		} else if (ieee80211_is_action(mgmt->frame_control))   {
-			PRINT_INFO(vif->ndev, GENERIC_DBG, "ACTION FRAME:%x\n",
-				   (u16)mgmt->frame_control);
-			if (buf[ACTION_CAT_ID] == PUB_ACTION_ATTR_ID) {
-				if (buf[ACTION_SUBTYPE_ID] != PUBLIC_ACT_VENDORSPEC ||
-				    buf[P2P_PUB_ACTION_SUBTYPE] != GO_NEG_CONF)	{
-					PRINT_INFO(vif->ndev, GENERIC_DBG, 
-						   "Setting channel: %d\n",
-						   chan->hw_value);
-					wilc_set_mac_chnl_num(vif,
-							      chan->hw_value);
-					curr_channel = chan->hw_value;
-				}
-				switch (buf[ACTION_SUBTYPE_ID])	{
-				case GAS_INITIAL_REQ:
-					PRINT_INFO(vif->ndev, GENERIC_DBG,
-						   "GAS INITIAL REQ %x\n",
-						   buf[ACTION_SUBTYPE_ID]);
-					break;
-
-				case GAS_INITIAL_RSP:
-					PRINT_INFO(vif->ndev, GENERIC_DBG,
-						   "GAS INITIAL RSP %x\n",
-						   buf[ACTION_SUBTYPE_ID]);
-					break;
-
-				case PUBLIC_ACT_VENDORSPEC:
-				{
-					if (!memcmp(p2p_oui, &buf[ACTION_SUBTYPE_ID + 1], 4)) {
-						if ((buf[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_REQ || buf[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_RSP)) {
-							if (p2p_local_random == 1 && p2p_recv_random < p2p_local_random) {
-								get_random_bytes(&p2p_local_random, 1);
-								p2p_local_random++;
-							}
-						}
-
-						if ((buf[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_REQ || buf[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_RSP ||
-						     buf[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_REQ || buf[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_RSP)) {
-							if (p2p_local_random > p2p_recv_random)	{
-								PRINT_INFO(vif->ndev, GENERIC_DBG, "LOCAL WILL BE GO LocaRand=%02x RecvRand %02x\n", p2p_local_random, p2p_recv_random);
-								for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < len; i++) {
-									if (buf[i] == P2PELEM_ATTR_ID && !(memcmp(p2p_oui, &buf[i + 2], 4))) {
-										if (buf[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_REQ || buf[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_RSP)
-											wilc_wfi_cfg_parse_tx_action(vif, &mgmt_tx->buff[i + 6], len - (i + 6), true, vif->attr_sysfs.p2p_mode);
-										else
-											wilc_wfi_cfg_parse_tx_action(vif, &mgmt_tx->buff[i + 6], len - (i + 6), false, vif->attr_sysfs.p2p_mode);
-										break;
-									}
-								}
-
-								if (buf[P2P_PUB_ACTION_SUBTYPE] != P2P_INV_REQ && buf[P2P_PUB_ACTION_SUBTYPE] != P2P_INV_RSP) {
-									memcpy(&mgmt_tx->buff[len], p2p_vendor_spec, sizeof(p2p_vendor_spec));
-									mgmt_tx->buff[len + sizeof(p2p_vendor_spec)] = p2p_local_random;
-									mgmt_tx->size = buf_len;
-								}
-							} else {
-								PRINT_INFO(vif->ndev, GENERIC_DBG,"PEER WILL BE GO LocaRand=%02x RecvRand %02x\n",p2p_local_random,p2p_recv_random);
-							}
-						}
-
-					} else {
-						PRINT_INFO(vif->ndev, GENERIC_DBG, "Not a P2P public action frame\n");
-					}
-
-					break;
-				}
-
-				default:
-					PRINT_INFO(vif->ndev, GENERIC_DBG, "NOT HANDLED PUBLIC ACTION FRAME TYPE:%x\n", buf[ACTION_SUBTYPE_ID]);
-					break;
-				}
-			}
-
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "TX: ACTION FRAME Type:%x : Chan:%d\n",
-				   buf[ACTION_SUBTYPE_ID], chan->hw_value);
-			wfi_drv->p2p_timeout = (jiffies + msecs_to_jiffies(wait));
-		}
-
-		wilc_wlan_txq_add_mgmt_pkt(wdev->netdev, mgmt_tx,
-					   mgmt_tx->buff, mgmt_tx->size,
-					   wilc_wfi_mgmt_tx_complete);
-	} else {
+	if (!ieee80211_is_mgmt(mgmt->frame_control)) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "This function transmits only management frames\n");
+		goto out;
 	}
-	return 0;
+
+	mgmt_tx = kmalloc(sizeof(struct p2p_mgmt_data), GFP_KERNEL);
+	if (!mgmt_tx) {
+		PRINT_ER(vif->ndev,
+			 "Failed to allocate memory for mgmt_tx structure\n");
+		return -ENOMEM;
+	}
+
+	mgmt_tx->buff = kmalloc(buf_len, GFP_KERNEL);
+	if (!mgmt_tx->buff) {
+		ret = -ENOMEM;
+		PRINT_ER(vif->ndev,
+			 "Failed to allocate memory for mgmt_tx buff\n");
+		kfree(mgmt_tx);
+		goto out;
+	}
+
+	memcpy(mgmt_tx->buff, buf, len);
+	mgmt_tx->size = len;
+
+	if (ieee80211_is_probe_resp(mgmt->frame_control)) {
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "TX: Probe Response\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "Setting channel: %d\n",
+			   chan->hw_value);
+		wilc_set_mac_chnl_num(vif, chan->hw_value);
+		curr_channel = chan->hw_value;
+		goto out_txq_add_pkt;
+	}
+
+	if (!ieee80211_is_action(mgmt->frame_control))
+		goto out_txq_add_pkt;
+
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "ACTION FRAME:%x\n",
+		   (u16)mgmt->frame_control);
+	if (buf[ACTION_CAT_ID] == PUB_ACTION_ATTR_ID) {
+		if (buf[ACTION_SUBTYPE_ID] != PUBLIC_ACT_VENDORSPEC ||
+		    buf[P2P_PUB_ACTION_SUBTYPE] != GO_NEG_CONF) {
+			PRINT_INFO(vif->ndev, GENERIC_DBG, 
+				   "Setting channel: %d\n",
+				   chan->hw_value);
+			wilc_set_mac_chnl_num(vif,
+					      chan->hw_value);
+			curr_channel = chan->hw_value;
+		}
+		switch (buf[ACTION_SUBTYPE_ID]) {
+		case GAS_INITIAL_REQ:
+			PRINT_INFO(vif->ndev, GENERIC_DBG,
+				   "GAS INITIAL REQ %x\n",
+				   buf[ACTION_SUBTYPE_ID]);
+			break;
+
+		case GAS_INITIAL_RSP:
+			PRINT_INFO(vif->ndev, GENERIC_DBG,
+				   "GAS INITIAL RSP %x\n",
+				   buf[ACTION_SUBTYPE_ID]);
+			break;
+
+		case PUBLIC_ACT_VENDORSPEC:
+			if (!memcmp(p2p_oui, &buf[ACTION_SUBTYPE_ID + 1], 4))
+				wilc_wfi_cfg_tx_vendor_spec(vif, mgmt_tx, params,
+							    vif->iftype,
+							    buf_len);
+			else
+				PRINT_INFO(vif->ndev, GENERIC_DBG, "Not a P2P public action frame\n");
+
+			break;
+
+		default:
+			PRINT_INFO(vif->ndev, GENERIC_DBG,
+				   "NOT HANDLED PUBLIC ACTION FRAME TYPE:%x\n",
+				   buf[ACTION_SUBTYPE_ID]);
+			break;
+		}
+	}
+
+	PRINT_INFO(vif->ndev, GENERIC_DBG,
+		   "TX: ACTION FRAME Type:%x : Chan:%d\n",
+		   buf[ACTION_SUBTYPE_ID], chan->hw_value);
+	wfi_drv->p2p_timeout = (jiffies + msecs_to_jiffies(wait));
+
+out_txq_add_pkt:
+
+	wilc_wlan_txq_add_mgmt_pkt(wdev->netdev, mgmt_tx,
+				   mgmt_tx->buff, mgmt_tx->size,
+				   wilc_wfi_mgmt_tx_complete);
+
+out:
+
+	return ret;
 }
 
 static int mgmt_tx_cancel_wait(struct wiphy *wiphy,
