@@ -2648,7 +2648,7 @@ static u32 handle_listen_state_expired(struct wilc_vif *vif,
 		kfree(wid.val);
 		if (result != 0) {
 			PRINT_ER(vif->ndev, "Failed to set remain channel\n");
-			goto _done_;
+			return result;
 		}
 
 		if (hif_drv->remain_on_ch.expired)
@@ -2664,7 +2664,6 @@ static u32 handle_listen_state_expired(struct wilc_vif *vif,
 		result = -EFAULT;
 	}
 
-_done_:
 	return result;
 }
 
