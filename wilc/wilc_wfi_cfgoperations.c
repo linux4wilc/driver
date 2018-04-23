@@ -1686,16 +1686,58 @@ static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 * buf,
 					   op_channel_attr_index);
 }
 
+static void wilc_wfi_cfg_parse_rx_vendor_spec(struct wilc_priv *priv, u8 *buff,
+					      u32 size)
+{
+	int i;
+	u8 subtype;
+	struct wilc_vif *vif = netdev_priv(priv->dev);
+
+	subtype = buff[P2P_PUB_ACTION_SUBTYPE];
+	if ((subtype == GO_NEG_REQ || subtype == GO_NEG_RSP) && !wilc_ie) {
+		for (i = P2P_PUB_ACTION_SUBTYPE; i < size; i++) {
+			if (!memcmp(p2p_vendor_spec, &buff[i], 6)) {
+				p2p_recv_random = buff[i + 6];
+				wilc_ie = true;
+				PRINT_INFO(vif->ndev, GENERIC_DBG,
+					   "WILC Vendor specific IE:%02x\n",
+					   p2p_recv_random);
+				break;
+			}
+		}
+	}
+
+	if (p2p_local_random <= p2p_recv_random) {
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "PEER WILL BE GO LocaRand=%02x RecvRand %02x\n",
+			   p2p_local_random, p2p_recv_random);
+		return;
+	}
+
+	if (subtype == GO_NEG_REQ || subtype == GO_NEG_RSP ||
+	    subtype == P2P_INV_REQ || subtype == P2P_INV_RSP) {
+		for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < size; i++) {
+			if (buff[i] == P2PELEM_ATTR_ID &&
+			    !(memcmp(p2p_oui, &buff[i + 2], 4))) {
+			    	bool p2p_mode = vif->attr_sysfs.p2p_mode;
+				wilc_wfi_cfg_parse_rx_action(vif, &buff[i + 6],
+							     size - (i + 6),
+							     p2p_mode);
+				break;
+			}
+		}
+	}
+}
+
 void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 {
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
 	u32 header, pkt_offset;
 	struct host_if_drv *wfi_drv;
-	u32 i = 0;
 	s32 s32Freq;
-	vif = netdev_priv(dev);
 
+	vif = netdev_priv(dev);
 	priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
 	wfi_drv = (struct host_if_drv *)priv->hif_drv;
 
@@ -1704,109 +1746,75 @@ void WILC_WFI_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 	pkt_offset = GET_PKT_OFFSET(header);
 
 	if (pkt_offset & IS_MANAGMEMENT_CALLBACK) {
-		if (buff[FRAME_TYPE_ID] == IEEE80211_STYPE_PROBE_RESP) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Probe response ACK\n");
-			cfg80211_mgmt_tx_status(priv->wdev, priv->tx_cookie, buff, size, true, GFP_KERNEL);
-			return;
-		} else {
-			if (pkt_offset & IS_MGMT_STATUS_SUCCES) {
-				PRINT_INFO(vif->ndev, GENERIC_DBG, 
-					   "Success Ack - Action frame category: %x Action Subtype: %d Dialog T: %x OR %x\n",
-					   buff[ACTION_CAT_ID],
-					   buff[ACTION_SUBTYPE_ID],
-					   buff[ACTION_SUBTYPE_ID + 1],
-					   buff[P2P_PUB_ACTION_SUBTYPE + 1]);
-				cfg80211_mgmt_tx_status(priv->wdev, priv->tx_cookie, buff, size, true, GFP_KERNEL);
-			} else {
-				PRINT_INFO(vif->ndev, GENERIC_DBG,
-					   "Fail Ack - Action frame category: %x Action Subtype: %d Dialog T: %x OR %x\n",
-					   buff[ACTION_CAT_ID],
-					   buff[ACTION_SUBTYPE_ID],
-					   buff[ACTION_SUBTYPE_ID + 1],
-					   buff[P2P_PUB_ACTION_SUBTYPE + 1]);
-				cfg80211_mgmt_tx_status(priv->wdev, priv->tx_cookie, buff, size, false, GFP_KERNEL);
-			}
-			return;
-		}
-	} else {
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n",
-			   buff[FRAME_TYPE_ID]);
+		bool ack = false;
 
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
-		s32Freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
-	 #else
-		s32Freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
-	 #endif
-		if (ieee80211_is_action(buff[FRAME_TYPE_ID])) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Rx Action Frame Type: %x %x\n",
-				   buff[ACTION_SUBTYPE_ID],
-				   buff[P2P_PUB_ACTION_SUBTYPE]);
-			if (priv->cfg_scanning && time_after_eq(jiffies, (unsigned long)wfi_drv->p2p_timeout)) {
-				PRINT_D(dev, GENERIC_DBG,
-					"Receiving action wrong ch\n");
-				return;
-			}
-			if (buff[ACTION_CAT_ID] == PUB_ACTION_ATTR_ID) {
-				switch (buff[ACTION_SUBTYPE_ID]) {
-				case GAS_INITIAL_REQ:
-					PRINT_INFO(vif->ndev, GENERIC_DBG, 
-						   "GAS INITIAL REQ %x\n",
-						   buff[ACTION_SUBTYPE_ID]);
-					break;
+		if (buff[FRAME_TYPE_ID] == IEEE80211_STYPE_PROBE_RESP ||
+		    pkt_offset & IS_MGMT_STATUS_SUCCES)
+			ack = true;
 
-				case GAS_INITIAL_RSP:
-					PRINT_INFO(vif->ndev, GENERIC_DBG,
-						   "GAS INITIAL RSP %x\n",
-						   buff[ACTION_SUBTYPE_ID]);
-					break;
-
-				case PUBLIC_ACT_VENDORSPEC:
-					if (!memcmp(p2p_oui, &buff[ACTION_SUBTYPE_ID + 1], 4)) {
-						if ((buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_REQ || buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_RSP))	{
-							if (!wilc_ie) {
-								for (i = P2P_PUB_ACTION_SUBTYPE; i < size; i++)	{
-									if (!memcmp(p2p_vendor_spec, &buff[i], 6)) {
-										p2p_recv_random = buff[i + 6];
-										wilc_ie = true;
-										PRINT_INFO(vif->ndev, GENERIC_DBG, "WILC Vendor specific IE:%02x\n", p2p_recv_random);
-										break;
-									}
-								}
-							}
-						}
-						if (p2p_local_random > p2p_recv_random)	{
-							if ((buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_REQ || buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_RSP ||
-							     buff[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_REQ || buff[P2P_PUB_ACTION_SUBTYPE] == P2P_INV_RSP)) {
-								for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < size; i++) {
-									if (buff[i] == P2PELEM_ATTR_ID && !(memcmp(p2p_oui, &buff[i + 2], 4))) {
-										wilc_wfi_cfg_parse_rx_action(vif, &buff[i + 6], size - (i + 6), vif->attr_sysfs.p2p_mode);
-										break;
-									}
-								}
-							}
-						} else {
-							PRINT_INFO(dev, GENERIC_DBG, "PEER WILL BE GO LocaRand=%02x RecvRand %02x\n", p2p_local_random, p2p_recv_random);
-						}
-					}
-
-					if ((buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_REQ || buff[P2P_PUB_ACTION_SUBTYPE] == GO_NEG_RSP) && (wilc_ie))	{
-						PRINT_INFO(vif->ndev, GENERIC_DBG,"Sending P2P to host without extra elemnt\n");
-						cfg80211_rx_mgmt(priv->wdev, s32Freq, 0, buff, size - 7, 0);
-						return;
-					}
-					break;
-
-				default:
-					PRINT_INFO(dev, GENERIC_DBG, "NOT HANDLED PUBLIC ACTION FRAME TYPE:%x\n", buff[ACTION_SUBTYPE_ID]);
-					break;
-				}
-			}
-		}
-
-		cfg80211_rx_mgmt(priv->wdev, s32Freq, 0, buff, size, 0);
+		cfg80211_mgmt_tx_status(priv->wdev, priv->tx_cookie, buff, size,
+					ack, GFP_KERNEL);
+		return;
 	}
+
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n",
+		   buff[FRAME_TYPE_ID]);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
+	s32Freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
+ #else
+	s32Freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
+ #endif
+	if (!ieee80211_is_action(buff[FRAME_TYPE_ID])) {
+		cfg80211_rx_mgmt(priv->wdev, s32Freq, 0, buff, size, 0);
+		return;
+	}
+
+	PRINT_INFO(vif->ndev, GENERIC_DBG,
+		   "Rx Action Frame Type: %x %x\n",
+		   buff[ACTION_SUBTYPE_ID],
+		   buff[P2P_PUB_ACTION_SUBTYPE]);
+	if (priv->cfg_scanning &&
+	    time_after_eq(jiffies, (unsigned long)wfi_drv->p2p_timeout)) {
+		PRINT_D(dev, GENERIC_DBG, "Receiving action wrong ch\n");
+		return;
+	}
+	if (buff[ACTION_CAT_ID] == PUB_ACTION_ATTR_ID) {
+		u8 subtype = buff[P2P_PUB_ACTION_SUBTYPE];
+
+		switch (buff[ACTION_SUBTYPE_ID]) {
+		case GAS_INITIAL_REQ:
+			PRINT_INFO(vif->ndev, GENERIC_DBG, 
+				   "GAS INITIAL REQ %x\n",
+				   buff[ACTION_SUBTYPE_ID]);
+			break;
+
+		case GAS_INITIAL_RSP:
+			PRINT_INFO(vif->ndev, GENERIC_DBG,
+				   "GAS INITIAL RSP %x\n",
+				   buff[ACTION_SUBTYPE_ID]);
+			break;
+
+		case PUBLIC_ACT_VENDORSPEC:
+			if (!memcmp(p2p_oui, &buff[ACTION_SUBTYPE_ID + 1], 4))
+				wilc_wfi_cfg_parse_rx_vendor_spec(priv, buff,
+								  size);
+
+			if ((subtype == GO_NEG_REQ || subtype == GO_NEG_RSP) &&
+			    wilc_ie)
+				size -= 7;
+
+			break;
+
+		default:
+			PRINT_INFO(dev, GENERIC_DBG, 
+				   "NOT HANDLED PUBLIC ACTION FRAME TYPE:%x\n",
+				   buff[ACTION_SUBTYPE_ID]);
+			break;
+		}
+	}
+
+	cfg80211_rx_mgmt(priv->wdev, s32Freq, 0, buff, size, 0);
 }
 
 static void wilc_wfi_mgmt_tx_complete(void *priv, int status)
