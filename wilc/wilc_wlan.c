@@ -1540,12 +1540,12 @@ int wilc_wlan_firmware_download(struct wilc *wilc, const u8 *buffer,
 		if (!ret) {
 			ret = -EIO;
 			PRINT_ER(vif->ndev, "Bus error\n");
-			goto _fail_;
+			goto fail;
 		}
 		PRINT_INFO(vif->ndev, INIT_DBG, "Offset = %d\n", offset);
 	} while (offset < buffer_size);
 
-_fail_:
+fail:
 
 	kfree(dma_buffer);
 
@@ -2058,14 +2058,14 @@ int wilc_wlan_init(struct net_device *dev)
 		if (!wilc->hif_func->hif_init(wilc, false)) {
 			ret = -EIO;
 			release_bus(wilc, RELEASE_ONLY, PWR_DEV_SRC_WIFI);
-			goto _fail_;
+			goto fail;
 		}
 		release_bus(wilc, RELEASE_ONLY, PWR_DEV_SRC_WIFI);
 	}
 
 	if (!wilc_wlan_cfg_init()) {
 		ret = -ENOBUFS;
-		goto _fail_;
+		goto fail;
 	}
 
 	if (!wilc->tx_buffer)
@@ -2074,7 +2074,7 @@ int wilc_wlan_init(struct net_device *dev)
 	if (!wilc->tx_buffer) {
 		ret = -ENOBUFS;
 		PRINT_ER(vif->ndev, "Can't allocate Tx Buffer");
-		goto _fail_;
+		goto fail;
 	}
 
 	if (!wilc->rx_buffer)
@@ -2083,17 +2083,17 @@ int wilc_wlan_init(struct net_device *dev)
 	if (!wilc->rx_buffer) {
 		ret = -ENOBUFS;
 		PRINT_ER(vif->ndev, "Can't allocate Rx Buffer");
-		goto _fail_;
+		goto fail;
 	}
 
 	if (!init_chip(dev)) {
 		ret = -EIO;
-		goto _fail_;
+		goto fail;
 	}
 
 	return 1;
 
-_fail_:
+fail:
 
 	kfree(wilc->rx_buffer);
 	wilc->rx_buffer = NULL;

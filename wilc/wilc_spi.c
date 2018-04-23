@@ -278,17 +278,17 @@ static int spi_data_rsp(struct wilc *wilc, u8 cmd)
     if (wilc_spi_rx(wilc, &rsp[0], len)) {
 		dev_err(&spi->dev, "Failed bus error...\n");
 		result = N_FAIL;
-		goto _fail_;
+		goto fail;
 	}
 
 	if((rsp[len-1] != 0) || (rsp[len-2] != 0xC3)) {
 		dev_err(&spi->dev, "Failed data response read, %x %x %x\n",
 			rsp[0], rsp[1], rsp[2]);
 		result = N_FAIL;
-		goto _fail_;
+		goto fail;
 	}
 
-_fail_:
+fail:
 	return result;
 }
 
@@ -823,16 +823,16 @@ static int spi_internal_write(struct wilc *wilc, u32 adr, u32 dat)
 	int result;
 	u8 retry = SPI_RETRY_COUNT;
 
-_RETRY_:
+retry:
 	dat = cpu_to_le32(dat);
 	result = spi_cmd_complete(wilc, CMD_INTERNAL_WRITE, adr, (u8 *)&dat, 4,
 				  0);
 	if (result != N_OK) {
 		dev_err(&spi->dev, "Failed internal write cmd...\n");
-		goto _FAIL_;
+		goto fail;
 	}
 
-_FAIL_:
+fail:
 	if (result != N_OK) {
 		msleep(1);
 		wilc_spi_reset(wilc);
@@ -840,7 +840,7 @@ _FAIL_:
 		msleep(1);
 		retry--;
 		if(retry)
-			goto _RETRY_;
+			goto retry;
 	}
 	return result;
 }
@@ -851,17 +851,17 @@ static int spi_internal_read(struct wilc *wilc, u32 adr, u32 *data)
 	int result = N_OK;
 	u8 retry = SPI_RETRY_COUNT;
 
-_RETRY_:
+retry:
 	result = spi_cmd_complete(wilc, CMD_INTERNAL_READ, adr, (u8 *)data, 4,
 				  0);
 	if (result != N_OK) {
 		dev_err(&spi->dev, "Failed internal read cmd...\n");
-		goto _FAIL_;
+		goto fail;
 	}
 
 	*data = cpu_to_le32(*data);
 
-_FAIL_:
+fail:
 	if(result != N_OK) {
 		msleep(1);
 		wilc_spi_reset(wilc);
@@ -869,7 +869,7 @@ _FAIL_:
 		msleep(1);
 		retry--;
 		if(retry)
-			goto _RETRY_;
+			goto retry;
 	}
 	return result;
 }
@@ -902,10 +902,10 @@ _RETRY_:
 	result = spi_cmd_complete(wilc, cmd, addr, (u8 *)&data, 4, clockless);
 	if (result != N_OK) {
 		dev_err(&spi->dev, "Failed cmd, write reg (%08x)...\n", addr);
-		goto _FAIL_;
+		goto fail;
 	}
 
-_FAIL_:
+fail:
 	if (result != N_OK) {
 		msleep(1);
 		wilc_spi_reset(wilc);
@@ -932,12 +932,12 @@ static int wilc_spi_write(struct wilc *wilc, u32 addr, u8 *buf, u32 size)
 	if (size <= 4)
 		return 0;
 
-_RETRY_:
+retry:
 	result = spi_cmd_complete(wilc, cmd, addr, NULL, size, 0);
 	if (result != N_OK) {
 		dev_err(&spi->dev,
 			"Failed cmd, write block (%08x)...\n", addr);
-		goto _FAIL_;
+		goto fail;
 	}
 
 	/*
@@ -946,7 +946,7 @@ _RETRY_:
 	result = spi_data_write(wilc, buf, size);
 	if (result != N_OK) {
 		dev_err(&spi->dev, "Failed block data write...\n");
-		goto _FAIL_;
+		goto fail;
 	}
 	/*
 	 * Data RESP
@@ -954,10 +954,10 @@ _RETRY_:
 	result = spi_data_rsp(wilc, cmd);
 	if (result != N_OK) {
 		dev_err(&spi->dev, "Failed block data write...\n");
-		goto _FAIL_;
+		goto fail;
 	}
 
-_FAIL_:
+fail:
 	if (result != N_OK) {
 		msleep(1);
 		wilc_spi_reset(wilc);
@@ -966,7 +966,7 @@ _FAIL_:
 		msleep(1);
 		retry--;
 		if(retry)
-			goto _RETRY_;
+			goto retry;
 	}
 	return result;
 }
@@ -979,7 +979,7 @@ static int wilc_spi_read_reg(struct wilc *wilc, u32 addr, u32 *data)
 	u8 cmd = CMD_SINGLE_READ;
 	u8 clockless = 0;
 
-_RETRY_:
+retry:
 	if (addr <= 0x30) {
 		/* dev_err(&spi->dev, "***** read addr %d\n\n", addr); */
 		/* Clockless register */
@@ -993,12 +993,12 @@ _RETRY_:
 	result = spi_cmd_complete(wilc, cmd, addr, (u8 *)data, 4, clockless);
 	if (result != N_OK) {
 		dev_err(&spi->dev, "Failed cmd, read reg (%08x)...\n", addr);
-		goto _FAIL_;
+		goto fail;
 	}
 
 	*data = cpu_to_le32(*data);
 
-_FAIL_:
+fail:
 	if(result != N_OK) {
 		msleep(1);
 		wilc_spi_reset(wilc);
@@ -1006,7 +1006,7 @@ _FAIL_:
 		msleep(1);
 		retry--;
 		if(retry)
-			goto _RETRY_;
+			goto retry;
 	}
 	return result;
 }
@@ -1021,14 +1021,14 @@ static int wilc_spi_read(struct wilc *wilc, u32 addr, u8 *buf, u32 size)
 	if (size <= 4)
 		return 0;
 
-_RETRY_:
+retry:
 	result = spi_cmd_complete(wilc, cmd, addr, buf, size, 0);
 	if (result != N_OK) {
 		dev_err(&spi->dev, "Failed cmd, read block (%08x)...\n", addr);
-		goto _FAIL_;
+		goto fail;
 	}
 
-_FAIL_:
+fail:
 	if(result != N_OK) {
 		msleep(1);
 		wilc_spi_reset(wilc);
@@ -1037,7 +1037,7 @@ _FAIL_:
 		msleep(1);
 		retry--;
 		if(retry)
-			goto _RETRY_;
+			goto retry;
 	}
 	return result;
 }
@@ -1145,22 +1145,22 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 		chipid = wilc_get_chipid(wilc, true);
 		if(ISWILC3000(chipid)) {
 			wilc->chip = WILC_3000;
-			goto _pass_;
+			goto pass;
 		} else if(ISWILC1000(chipid)) {
 			wilc->chip = WILC_1000;
-			goto _pass_;
+			goto pass;
 		} else {
 			dev_err(&spi->dev, "Unsupported chipid: %x\n", chipid);
-			goto _fail_;
+			goto fail;
 		}
 		dev_dbg(&spi->dev, "chipid %08x\n", chipid);
 	}
 
-_pass_:
+pass:
 	g_spi.is_init = true;
 	return 1;
 
-_fail_:
+fail:
 	return 0;
 }
 

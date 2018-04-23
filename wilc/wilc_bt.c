@@ -275,13 +275,13 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 			ret = wilc->hif_func->hif_read_reg(wilc, WILC_COE_AUTO_PS_ON_NULL_PKT, &reg);
 			if (!ret) {
 				pr_err("[wilc start]: fail read reg %x ...\n", WILC_COE_AUTO_PS_ON_NULL_PKT);
-				goto _fail_;
+				goto fail;
 			}
 			reg &= ~BIT(30);
 			ret = wilc->hif_func->hif_write_reg(wilc, WILC_COE_AUTO_PS_ON_NULL_PKT, reg);
 			if (!ret) {
 				pr_err( "[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_ON_NULL_PKT);
-				goto _fail_;
+				goto fail;
 			}
 
 			/*TicketId1115*/
@@ -289,13 +289,13 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 			ret = wilc->hif_func->hif_read_reg(wilc, WILC_COE_AUTO_PS_OFF_NULL_PKT, &reg);
 			if (!ret) {
 				pr_err("[wilc start]: fail read reg %x ...\n", WILC_COE_AUTO_PS_OFF_NULL_PKT);
-				goto _fail_;
+				goto fail;
 			}
 			reg &= ~BIT(30);
 			ret = wilc->hif_func->hif_write_reg(wilc, WILC_COE_AUTO_PS_OFF_NULL_PKT, reg);
 			if (!ret) {
 				pr_err( "[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_OFF_NULL_PKT);
-				goto _fail_;
+				goto fail;
 			}
 
 			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
@@ -307,13 +307,13 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 		ret = wilc->hif_func->hif_read_reg(wilc, WILC_PWR_SEQ_MISC_CTRL, &reg);
 		if (!ret) {
 			pr_err( "[wilc start]: fail read reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
-			goto _fail_;
+			goto fail;
 		}
 		reg |= BIT(29);
 		ret = wilc->hif_func->hif_write_reg(wilc, WILC_PWR_SEQ_MISC_CTRL, reg);
 		if (!ret) {
 			pr_err( "[wilc start]: fail write reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
-			goto _fail_;
+			goto fail;
 		}
 
 		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
@@ -321,7 +321,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 
 	return 0;
 
-_fail_:
+fail:
 	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 	wilc_bt_power_down(wilc, PWR_DEV_SRC_BT);
 	return ret;
@@ -449,7 +449,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	if (request_firmware(&wilc_bt_firmware, FIRMWARE_WILC3000_BLE, dev) != 0) {
 		pr_err("%s - firmare not available. Skip!\n", FIRMWARE_WILC3000_BLE);
 		ret = -1;
-		goto _fail_1;
+		goto fail_1;
 	}
 
 	buffer = wilc_bt_firmware->data;
@@ -457,7 +457,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	if (buffer_size <= 0) {
 		pr_err("Firmware size = 0!\n");
 		ret = -1;
-		goto _fail_1;
+		goto fail_1;
 	}
 
 	acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_BT);
@@ -466,7 +466,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	if (!ret) {
 		pr_err("[wilc start]: fail write reg 0x4f0000 ...\n");
 		release_bus(wilc,RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
-		goto _fail_1;
+		goto fail_1;
 	}
 
 	/*
@@ -478,7 +478,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	if (!ret) {
 		pr_err("[wilc start]: fail read reg 0x3b0090 ...\n");
 		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
-		goto _fail_1;
+		goto fail_1;
 	}
 
 	reg |= (1 << 0);
@@ -486,7 +486,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	if (!ret) {
 		pr_err("[wilc start]: fail write reg 0x3b0090 ...\n");
 		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
-		goto _fail_1;
+		goto fail_1;
 	}
 
 	wilc->hif_func->hif_read_reg(wilc, 0x3B0400, &reg);
@@ -509,7 +509,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	if (dma_buffer == NULL) {
 		ret = -5;
 		pr_err("Can't allocate buffer for BT firmware download IO error\n");
-		goto _fail_1;
+		goto fail_1;
 	}
 	pr_info("Downloading BT firmware size = %d ...\n", buffer_size);
 
@@ -546,12 +546,12 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	if (!ret) {
 		ret = -5;
 		pr_err("Can't download BT firmware IO error\n");
-		goto _fail_;
+		goto fail;
 	}
 
-_fail_:
+fail:
 	kfree(dma_buffer);
-_fail_1:
+fail_1:
 	pr_debug("Freeing BT FW buffer ...\n");
 	pr_debug("Releasing BT firmware\n");
 	release_firmware(wilc_bt_firmware);
