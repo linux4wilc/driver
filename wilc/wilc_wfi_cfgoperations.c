@@ -1076,6 +1076,58 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev,
 	return ret;
 }
 
+static inline void wilc_wfi_cfg_copy_wep_info(struct wilc_priv *priv,
+					      u8 key_index,
+					      struct key_params *params)
+{
+	priv->wep_key_len[key_index] = params->key_len;
+	memcpy(priv->wep_key[key_index], params->key, params->key_len);
+}
+
+static int wilc_wfi_cfg_allocate_wpa_entry(struct wilc_priv *priv, u8 idx)
+{
+	if (!priv->wilc_gtk[idx]) {
+		priv->wilc_gtk[idx] = kzalloc(sizeof(struct wilc_wfi_key),
+					       GFP_KERNEL);
+		if (!priv->wilc_gtk[idx])
+			return -ENOMEM;
+	}
+
+	if (!priv->wilc_ptk[idx]) {
+		priv->wilc_ptk[idx] = kzalloc(sizeof(struct wilc_wfi_key),
+					       GFP_KERNEL);
+		if (!priv->wilc_ptk[idx])
+			return -ENOMEM;
+	}
+
+	return 0;
+}
+
+static int wilc_wfi_cfg_copy_wpa_info(struct wilc_wfi_key *key_info,
+				      struct key_params *params)
+{
+	kfree(key_info->key);
+
+	key_info->key = kmemdup(params->key, params->key_len, GFP_KERNEL);
+	if (!key_info->key)
+		return -ENOMEM;
+
+	kfree(key_info->seq);
+
+	if (params->seq_len > 0) {
+		key_info->seq = kmemdup(params->seq, params->seq_len,
+					GFP_KERNEL);
+		if (!key_info->seq)
+			return -ENOMEM;
+	}
+
+	key_info->cipher = params->cipher;
+	key_info->key_len = params->key_len;
+	key_info->seq_len = params->seq_len;
+
+	return 0;
+}
+
 static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 		   bool pairwise,
 		   const u8 *mac_addr, struct key_params *params)
@@ -1108,8 +1160,7 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 	case WLAN_CIPHER_SUITE_WEP40:
 	case WLAN_CIPHER_SUITE_WEP104:
 		if (priv->wdev->iftype == NL80211_IFTYPE_AP) {
-			priv->wep_key_len[key_index] = params->key_len;
-			memcpy(priv->wep_key[key_index], params->key, params->key_len);
+			wilc_wfi_cfg_copy_wep_info(priv, key_index, params);
 
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
 				   "Adding AP WEP Default key Idx = %d\n",
@@ -1135,9 +1186,9 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 						mode, auth_type);
 			break;
 		}
-		if (memcmp(params->key, priv->wep_key[key_index], params->key_len)) {
-			priv->wep_key_len[key_index] = params->key_len;
-			memcpy(priv->wep_key[key_index], params->key, params->key_len);
+		if (memcmp(params->key, priv->wep_key[key_index],
+			   params->key_len)) {
+			wilc_wfi_cfg_copy_wep_info(priv, key_index, params);
 
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
 				   "Adding WEP Default key Idx = %d\n",
@@ -1153,17 +1204,9 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 
 	case WLAN_CIPHER_SUITE_TKIP:
 	case WLAN_CIPHER_SUITE_CCMP:
-		if (priv->wdev->iftype == NL80211_IFTYPE_AP || priv->wdev->iftype == NL80211_IFTYPE_P2P_GO) {
-			if (!priv->wilc_gtk[key_index]) {
-				priv->wilc_gtk[key_index] = kmalloc(sizeof(struct wilc_wfi_key), GFP_KERNEL);
-				priv->wilc_gtk[key_index]->key = NULL;
-				priv->wilc_gtk[key_index]->seq = NULL;
-			}
-			if (!priv->wilc_ptk[key_index]) {
-				priv->wilc_ptk[key_index] = kmalloc(sizeof(struct wilc_wfi_key), GFP_KERNEL);
-				priv->wilc_ptk[key_index]->key = NULL;
-				priv->wilc_ptk[key_index]->seq = NULL;
-			}
+		if (priv->wdev->iftype == NL80211_IFTYPE_AP ||
+		    priv->wdev->iftype == NL80211_IFTYPE_P2P_GO) {
+			wilc_wfi_cfg_allocate_wpa_entry(priv, key_index);
 
 			if (!pairwise) {
 				if (params->cipher == WLAN_CIPHER_SUITE_TKIP)
@@ -1178,20 +1221,8 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 					rx_mic = params->key + 16;
 					keylen = params->key_len - 16;
 				}
-				kfree(priv->wilc_gtk[key_index]->key);
-
-				priv->wilc_gtk[key_index]->key = kmalloc(params->key_len, GFP_KERNEL);
-				memcpy(priv->wilc_gtk[key_index]->key, params->key, params->key_len);
-				kfree(priv->wilc_gtk[key_index]->seq);
-
-				if (params->seq_len > 0) {
-					priv->wilc_gtk[key_index]->seq = kmalloc(params->seq_len, GFP_KERNEL);
-					memcpy(priv->wilc_gtk[key_index]->seq, params->seq, params->seq_len);
-				}
-
-				priv->wilc_gtk[key_index]->cipher = params->cipher;
-				priv->wilc_gtk[key_index]->key_len = params->key_len;
-				priv->wilc_gtk[key_index]->seq_len = params->seq_len;
+				wilc_wfi_cfg_copy_wpa_info(priv->wilc_gtk[key_index],
+							   params);
 
 				wilc_add_rx_gtk(vif, params->key, keylen,
 						key_index, params->seq_len,
@@ -1214,19 +1245,8 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 					keylen = params->key_len - 16;
 				}
 
-				kfree(priv->wilc_ptk[key_index]->key);
-				priv->wilc_ptk[key_index]->key = kmalloc(params->key_len, GFP_KERNEL);
-				memcpy(priv->wilc_ptk[key_index]->key, params->key, params->key_len);
-
-				kfree(priv->wilc_ptk[key_index]->seq);
-				if (params->seq_len > 0) {
-					priv->wilc_ptk[key_index]->seq = kmalloc(params->seq_len, GFP_KERNEL);
-					memcpy(priv->wilc_ptk[key_index]->seq, params->seq, params->seq_len);
-				}
-
-				priv->wilc_ptk[key_index]->cipher = params->cipher;
-				priv->wilc_ptk[key_index]->key_len = params->key_len;
-				priv->wilc_ptk[key_index]->seq_len = params->seq_len;
+				wilc_wfi_cfg_copy_wpa_info(priv->wilc_ptk[key_index],
+							   params);
 
 				wilc_add_ptk(vif, params->key, keylen,
 					     mac_addr, rx_mic, tx_mic,
@@ -1235,31 +1255,33 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 			break;
 		}
 
-		mode = 0;
-		if (!pairwise) {
-			if (params->key_len > 16 && params->cipher == WLAN_CIPHER_SUITE_TKIP) {
-				rx_mic = params->key + 24;
-				tx_mic = params->key + 16;
-				keylen = params->key_len - 16;
-			}
+		{
+			mode = 0;
+			if (!pairwise) {
+				if (params->key_len > 16 && params->cipher == WLAN_CIPHER_SUITE_TKIP) {
+					rx_mic = params->key + 24;
+					tx_mic = params->key + 16;
+					keylen = params->key_len - 16;
+				}
 
-			wilc_add_rx_gtk(vif, params->key, keylen,
-					key_index, params->seq_len,
-					params->seq, rx_mic,
-					tx_mic, STATION_MODE,
-					mode);
-		} else {
-			if (params->key_len > 16 && params->cipher == WLAN_CIPHER_SUITE_TKIP) {
-				rx_mic = params->key + 24;
-				tx_mic = params->key + 16;
-				keylen = params->key_len - 16;
-			}
+				wilc_add_rx_gtk(vif, params->key, keylen,
+						key_index, params->seq_len,
+						params->seq, rx_mic,
+						tx_mic, STATION_MODE,
+						mode);
+			} else {
+				if (params->key_len > 16 && params->cipher == WLAN_CIPHER_SUITE_TKIP) {
+					rx_mic = params->key + 24;
+					tx_mic = params->key + 16;
+					keylen = params->key_len - 16;
+				}
 
-			wilc_add_ptk(vif, params->key, keylen,
-				     mac_addr, rx_mic, tx_mic,
-				     STATION_MODE, mode, key_index);
-			PRINT_INFO(vif->ndev, CFG80211_DBG,
-				   "Adding pairwise key\n");
+				wilc_add_ptk(vif, params->key, keylen,
+					     mac_addr, rx_mic, tx_mic,
+					     STATION_MODE, mode, key_index);
+				PRINT_INFO(vif->ndev, CFG80211_DBG,
+					   "Adding pairwise key\n");
+			}
 		}
 		break;
 
