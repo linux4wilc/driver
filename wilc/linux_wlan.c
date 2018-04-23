@@ -1196,46 +1196,46 @@ int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 		if (ret < 0) {
 			PRINT_ER(dev, "Initializing WILC_Wlan FAILED\n");
 			ret = -EIO;
-			goto _fail_locks_;
+			goto fail_locks;
 		}
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "WILC Initialization done\n");
 		if (wl->gpio_irq >= 0 && init_irq(dev)) {
 			ret = -EIO;
-			goto _fail_locks_;
+			goto fail_locks;
 		}
 
 		ret = wlan_initialize_threads(dev);
 		if (ret < 0) {
 			PRINT_ER(dev, "Initializing Threads FAILED\n");
 			ret = -EIO;
-			goto _fail_wilc_wlan_;
+			goto fail_wilc_wlan;
 		}
 
 		if (wl->io_type == HIF_SDIO &&
 		    wl->hif_func->enable_interrupt(wl)) {
 			PRINT_ER(dev, "couldn't initialize IRQ\n");
 			ret = -EIO;
-			goto _fail_irq_init_;
+			goto fail_irq_init;
 		}
 
 		if (wilc_wlan_get_firmware(dev)) {
 			PRINT_ER(dev, "Can't get firmware\n");
 			ret = -EIO;
-			goto _fail_irq_enable_;
+			goto fail_irq_enable;
 		}
 
 		ret = wilc_firmware_download(dev);
 		if (ret < 0) {
 			PRINT_ER(dev, "Failed to download firmware\n");
 			ret = -EIO;
-			goto _fail_irq_enable_;
+			goto fail_irq_enable;
 		}
 
 		ret = linux_wlan_start_firmware(dev);
 		if (ret < 0) {
 			PRINT_ER(dev, "Failed to start firmware\n");
 			ret = -EIO;
-			goto _fail_irq_enable_;
+			goto fail_irq_enable;
 		}
 
 		if (wilc_wlan_cfg_get(vif, 1, WID_FIRMWARE_VERSION, 1, 0)) {
@@ -1253,26 +1253,26 @@ int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 		if (ret < 0) {
 			PRINT_ER(dev, "Failed to configure firmware\n");
 			ret = -EIO;
-			goto _fail_fw_start_;
+			goto fail_fw_start;
 		}
 
 		wl->initialized = true;
 		return 0;
 
-_fail_fw_start_:
+fail_fw_start:
 		wilc_wlan_stop(wl);
 
-_fail_irq_enable_:
+fail_irq_enable:
 		if (wl->io_type == HIF_SDIO)
 			wl->hif_func->disable_interrupt(wl);
-_fail_irq_init_:
+fail_irq_init:
 		if (wl->dev_irq_num)
 			deinit_irq(dev);
 
 		wlan_deinitialize_threads(dev);
-_fail_wilc_wlan_:
+fail_wilc_wlan:
 		wilc_wlan_cleanup(dev);
-_fail_locks_:
+fail_locks:
 		wlan_deinit_locks(dev);
 		PRINT_ER(dev, "WLAN initialization FAILED\n");
 	} else {
