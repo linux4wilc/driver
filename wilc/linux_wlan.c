@@ -1439,7 +1439,7 @@ static void linux_wlan_tx_complete(void *priv, int status)
 	kfree(pv_data);
 }
 
-int wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
+netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 {
 	struct wilc_vif *vif;
 	struct tx_complete_data *tx_data = NULL;
@@ -1456,7 +1456,7 @@ int wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 		   "Sending packet just received from TCP/IP\n");
 	if (skb->dev != ndev) {
 		PRINT_ER(ndev, "Packet not destined to this device\n");
-		return 0;
+		return NETDEV_TX_OK;
 	}
 
 	tx_data = kmalloc(sizeof(*tx_data), GFP_ATOMIC);
@@ -1464,7 +1464,7 @@ int wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 		PRINT_ER(ndev, "Failed to alloc memory for tx_data struct\n");
 		dev_kfree_skb(skb);
 		netif_wake_queue(ndev);
-		return 0;
+		return NETDEV_TX_OK;
 	}
 
 	tx_data->buff = skb->data;
@@ -1500,7 +1500,7 @@ int wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 		netif_stop_queue(wilc->vif[1]->ndev);
 	}
 
-	return 0;
+	return NETDEV_TX_OK;
 }
 
 static int wilc_mac_close(struct net_device *ndev)
