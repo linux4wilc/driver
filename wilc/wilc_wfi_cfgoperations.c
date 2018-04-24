@@ -569,7 +569,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 {
 	struct wilc_priv *priv;
 	struct net_device *dev;
-	struct host_if_drv *pstrWFIDrv;
+	struct host_if_drv *wfi_drv;
 	u8 null_bssid[ETH_ALEN] = {0};
 	struct wilc *wl;
 	struct wilc_vif *vif;
@@ -580,7 +580,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 	dev = priv->dev;
 	vif = netdev_priv(dev);
 	wl = vif->wilc;
-	pstrWFIDrv = (struct host_if_drv *)priv->hif_drv;
+	wfi_drv = (struct host_if_drv *)priv->hif_drv;
 
 	if (conn_disconn_evt == CONN_DISCONN_EVENT_CONN_RESP) {
 		u16 u16ConnectStatus;
@@ -595,7 +595,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 					    STATION_MODE);
 			eth_zero_addr(wilc_connected_ssid);
 
-			if (!pstrWFIDrv->p2p_connect)
+			if (!wfi_drv->p2p_connect)
 				wlan_channel = INVALID_CHANNEL;
 
 			PRINT_ER(dev, "Unspecified failure\n");
@@ -647,11 +647,11 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		wilc_wlan_set_bssid(priv->dev, null_bssid, STATION_MODE);
 		eth_zero_addr(wilc_connected_ssid);
 
-		if (!pstrWFIDrv->p2p_connect)
+		if (!wfi_drv->p2p_connect)
 			wlan_channel = INVALID_CHANNEL;
-		if (pstrWFIDrv->IFC_UP && dev == wl->vif[1]->ndev)
+		if (wfi_drv->IFC_UP && dev == wl->vif[1]->ndev)
 			disconn_info->reason = 3;
-		else if (!pstrWFIDrv->IFC_UP && dev == wl->vif[1]->ndev)
+		else if (!wfi_drv->IFC_UP && dev == wl->vif[1]->ndev)
 			disconn_info->reason = 1;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
