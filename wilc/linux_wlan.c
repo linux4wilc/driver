@@ -167,7 +167,6 @@ void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
 static void linux_wlan_tx_complete(void *priv, int status);
 static int  mac_init_fn(struct net_device *ndev);
 static struct net_device_stats *mac_stats(struct net_device *dev);
-static int  mac_ioctl(struct net_device *ndev, struct ifreq *req, int cmd);
 static int wilc_mac_open(struct net_device *ndev);
 static int wilc_mac_close(struct net_device *ndev);
 static void wilc_set_multicast_list(struct net_device *dev);
@@ -179,7 +178,6 @@ static const struct net_device_ops wilc_netdev_ops = {
 	.ndo_open = wilc_mac_open,
 	.ndo_stop = wilc_mac_close,
 	.ndo_start_xmit = wilc_mac_xmit,
-	.ndo_do_ioctl = mac_ioctl,
 	.ndo_get_stats = mac_stats,
 	.ndo_set_rx_mode  = wilc_set_multicast_list,
 
@@ -1566,76 +1564,6 @@ static int wilc_mac_close(struct net_device *ndev)
 	vif->mac_opened = 0;
 
 	return 0;
-}
-
-static int mac_ioctl(struct net_device *ndev, struct ifreq *req, int cmd)
-{
-	u8 *buff = NULL;
-	s8 rssi;
-	u32 size = 0;
-	struct wilc_vif *vif;
-	s32 ret = 0;
-	struct wilc *wilc;
-
-	vif = netdev_priv(ndev);
-	wilc = vif->wilc;
-
-	if (!wilc->initialized)
-		return 0;
-
-	switch (cmd) {
-	case SIOCSIWPRIV:
-	{
-		struct iwreq *wrq = (struct iwreq *)req;
-
-		size = wrq->u.data.length;
-
-		if (size && wrq->u.data.pointer) {
-			buff = memdup_user(wrq->u.data.pointer,
-					   wrq->u.data.length);
-			if (IS_ERR(buff))
-				return PTR_ERR(buff);
-
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "IOCTRL priv: %s", buff);
-
-			if (strncasecmp(buff, "RSSI", size) == 0) {
-				ret = wilc_get_rssi(vif, &rssi);
-				if (ret)
-					PRINT_ER(ndev, "Failed to enq get rssi");
-
-				PRINT_INFO(vif->ndev, GENERIC_DBG, 
-					   "RSSI :%d\n", rssi);
-
-				rssi += 5;
-
-				snprintf(buff, size, "rssi %d", rssi);
-
-				if (copy_to_user(wrq->u.data.pointer,
-				    buff, size)) {
-					PRINT_ER(ndev, "failed to copy\n");
-					ret = -EFAULT;
-					goto done;
-				}
-			}
-		}
-	}
-	break;
-
-	default:
-	{
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Command - %d - has been received\n", cmd);
-		ret = -EOPNOTSUPP;
-		goto done;
-	}
-	}
-
-done:
-
-	kfree(buff);
-
-	return ret;
 }
 
 void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
