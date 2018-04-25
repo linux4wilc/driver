@@ -983,13 +983,13 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 			reg = val & (BIT(MAX_NUM_INT) - 1);
 
 		/* select VMM table 0 */
-		if ((val & SEL_VMM_TBL0) == SEL_VMM_TBL0)
+		if (val & SEL_VMM_TBL0)
 			reg |= BIT(5);
 		/* select VMM table 1 */
-		if ((val & SEL_VMM_TBL1) == SEL_VMM_TBL1)
+		if (val & SEL_VMM_TBL1)
 			reg |= BIT(6);
 		/* enable VMM */
-		if ((val & EN_VMM) == EN_VMM)
+		if (val & EN_VMM)
 			reg |= BIT(7);
 		if (reg) {
 			struct sdio_cmd52 cmd;
@@ -1030,13 +1030,13 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 			}
 		}
 		/* select VMM table 0 */
-		if ((val & SEL_VMM_TBL0) == SEL_VMM_TBL0)
+		if (val & SEL_VMM_TBL0)
 			reg |= BIT(0);
 		/* select VMM table 1 */
-		if ((val & SEL_VMM_TBL1) == SEL_VMM_TBL1)
+		if (val & SEL_VMM_TBL1)
 			reg |= BIT(1);
 		/* enable VMM */
-		if ((val & EN_VMM) == EN_VMM)
+		if (val & EN_VMM)
 			reg |= BIT(2);
 
 		if (reg) {
