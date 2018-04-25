@@ -264,7 +264,7 @@ static int wilc_wlan_cfg_set_bin(u8 *frame, u32 offset, u16 id, u8 *b, u32 size)
 	buf[2] = (u8)size;
 	buf[3] = (u8)(size >> 8);
 
-	if (b && size != 0) {
+	if ((b) && size != 0) {
 		memcpy(&buf[4], b, size);
 		for (i = 0; i < size; i++)
 			checksum += buf[i + 4];
@@ -281,7 +281,8 @@ static int wilc_wlan_cfg_set_bin(u8 *frame, u32 offset, u16 id, u8 *b, u32 size)
  *
  ********************************************/
 
-static void wilc_wlan_parse_response_frame(struct wilc *wilc, u8 *info, int size)
+static void wilc_wlan_parse_response_frame(struct wilc *wilc, u8 *info,
+					   int size)
 {
 	u32 wid, len = 0, i = 0;
 	struct wilc_vif *vif = wilc->vif[0];
@@ -291,7 +292,8 @@ static void wilc_wlan_parse_response_frame(struct wilc *wilc, u8 *info, int size
 		wid = info[0] | (info[1] << 8);
 		wid = cpu_to_le32(wid);
 
-		PRINT_D(vif->ndev, GENERIC_DBG,"Processing response for %d\n", wid);
+		PRINT_D(vif->ndev, GENERIC_DBG,"Processing response for %d\n",
+			wid);
 		switch ((wid >> 12) & 0x7) {
 		case WID_CHAR:
 			do {
@@ -350,8 +352,12 @@ static void wilc_wlan_parse_response_frame(struct wilc *wilc, u8 *info, int size
 					if (wid == WID_SITE_SURVEY_RESULTS) {
 						static int toggle;
 
-						PRINT_D(vif->ndev, GENERIC_DBG,"Site survey results received %d\n", size);
-						PRINT_D(vif->ndev, GENERIC_DBG,"Site survey results value %d toggle%d\n", size, toggle);
+						PRINT_D(vif->ndev, GENERIC_DBG,
+							"Site survey results received %d\n",
+							size);
+						PRINT_D(vif->ndev, GENERIC_DBG,
+							"Site survey results value %d toggle%d\n",
+							size, toggle);
 						i += toggle;
 						toggle ^= 1;
 					}
@@ -368,28 +374,34 @@ static void wilc_wlan_parse_response_frame(struct wilc *wilc, u8 *info, int size
 				if (g_cfg_bin[i].id == WID_NIL)
 					break;
 
-				if (g_cfg_bin[i].id == wid)
-				{
-					uint16_t length      = ((info[3] << 8) | info[2]);
-					uint8_t  checksum    = 0;
-					uint16_t i           = 0;
+				if (g_cfg_bin[i].id == wid) {
+					uint16_t length = (info[3] << 8) |
+							  info[2];
+					uint8_t  checksum = 0;
+					uint16_t i = 0;
 
-					/* Compute the Checksum of received data field */
+					/*
+					 * Compute the Checksum of received 
+					 * data field
+					 */
 					for(i = 0;i < length;i++)
-					{
 						checksum += info[4 + i];
-					}
-					/*  Verify the checksum of recieved BIN DATA */
-					if (checksum == info[4 + length])
-					{
+					/* 
+					 * Verify the checksum of recieved BIN 
+					 * DATA
+					 */
+					if (checksum == info[4 + length]) {
 						memcpy(g_cfg_bin[i].bin, &info[2], length + 2);
-						len = 2 + length + 1;   /* value length + data length + checksum */
+						/*
+						 * value length + data length +
+						 * checksum 
+						 */
+						len = 2 + length + 1;   
 						break;
-					}
-					else
-					{
-						PRINT_ER(vif->ndev, "Parsing WID_BIN_DATA - Checksum Failed!" );
-							return;
+					} else {
+						PRINT_ER(vif->ndev,
+							 "Checksum Failed!");
+						return;
 					}
 				}
 				i++;
@@ -428,7 +440,8 @@ static int wilc_wlan_parse_info_frame(struct wilc *wilc, u8 *info, int size)
  *
  ********************************************/
 
-int wilc_wlan_cfg_set_wid(struct wilc_vif *vif, u8 *frame, u32 offset, u16 id, u8 *buf, int size)
+int wilc_wlan_cfg_set_wid(struct wilc_vif *vif, u8 *frame, u32 offset, u16 id,
+			  u8 *buf, int size)
 {
 	u8 type = (id >> 12) & 0xf;
 	int ret = 0;
@@ -458,7 +471,6 @@ int wilc_wlan_cfg_set_wid(struct wilc_vif *vif, u8 *frame, u32 offset, u16 id, u
 	case CFG_BIN_CMD:
 		ret = wilc_wlan_cfg_set_bin(frame, offset, id, buf, size);
 		break;
-
 	default:
 		PRINT_ER(vif->ndev, "illegal id\n");
 	}
@@ -482,7 +494,7 @@ int wilc_wlan_cfg_get_wid(u8 *frame, u32 offset, u16 id)
 }
 
 int wilc_wlan_cfg_get_wid_value(struct wilc_vif *vif, u16 wid, u8 *buffer,
-				    u32 buffer_size)
+				u32 buffer_size)
 {
 	u32 type = (wid >> 12) & 0xf;
 	int i, ret = 0;
@@ -532,6 +544,7 @@ int wilc_wlan_cfg_get_wid_value(struct wilc_vif *vif, u16 wid, u8 *buffer,
 	} else if (type == CFG_STR_CMD) {
 		do {
 			u32 id = g_cfg_str[i].id;
+
 			if (id == WID_NIL)
 				break;
 
@@ -544,13 +557,13 @@ int wilc_wlan_cfg_get_wid_value(struct wilc_vif *vif, u16 wid, u8 *buffer,
 						static int toggle;
 
 						PRINT_D(vif->ndev, GENERIC_DBG,
-							 "Site survey results%d\n",
-							 size);
+							"Site survey results%d\n",
+							size);
 						i += toggle;
 						toggle ^= 1;
 					}
 					memcpy(buffer,  &g_cfg_str[i].str[2],
-					        size);
+					       size);
 					ret = size;
 				}
 				break;
@@ -626,7 +639,8 @@ int wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 		break;
 
 	default:
-		PRINT_D(wilc->vif[0]->ndev, RX_DBG,"Receive unknown message type %d-%d-%d-%d-%d-%d-%d-%d\n",
+		PRINT_D(wilc->vif[0]->ndev, RX_DBG,
+			"Receive unknown message %d-%d-%d-%d-%d-%d-%d-%d\n",
 			 frame[0], frame[1], frame[2], frame[3], frame[4],
 			 frame[5], frame[6], frame[7]);
 		rsp->type = 0;

@@ -3,9 +3,10 @@
 #define WILC_WLAN_H
 
 #include <linux/types.h>
+#include <linux/version.h>
 
-#define ISWILC1000(id)			(((id) & 0xfffff000) == 0x100000 ? 1 : 0)
-#define ISWILC3000(id)			(((id) & 0xfffff000) == 0x300000 ? 1 : 0)
+#define ISWILC1000(id)			((id & 0xfffff000) == 0x100000 ? 1 : 0)
+#define ISWILC3000(id)			((id & 0xfffff000) == 0x300000 ? 1 : 0)
 
 /********************************************
  *
@@ -45,7 +46,7 @@
  *
  ********************************************/
 #define WILC_PERIPH_REG_BASE		0x1000
-#define WILC_CHIPID				WILC_PERIPH_REG_BASE
+#define WILC_CHIPID			WILC_PERIPH_REG_BASE
 #define WILC_GLB_RESET_0		(WILC_PERIPH_REG_BASE + 0x400)
 #define WILC_PIN_MUX_0			(WILC_PERIPH_REG_BASE + 0x408)
 #define WILC_HOST_TX_CTRL		(WILC_PERIPH_REG_BASE + 0x6c)
@@ -192,11 +193,11 @@
 #define CLR_INT3		BIT(3)
 #define CLR_INT4		BIT(4)
 #define CLR_INT5		BIT(5)
-#define SEL_VMM_TBL0	BIT(6)
-#define SEL_VMM_TBL1	BIT(7)
+#define SEL_VMM_TBL0		BIT(6)
+#define SEL_VMM_TBL1		BIT(7)
 #define EN_VMM			BIT(8)
 
-#define DATA_INT_EXT	INT_0
+#define DATA_INT_EXT		INT_0
 #define ALL_INT_EXT		(DATA_INT_EXT)
 #define NUM_INT_EXT		1
 
@@ -206,6 +207,11 @@
 #define ENABLE_TX_VMM		(SEL_VMM_TBL0 | EN_VMM)
 /*time for expiring the completion of cfg packets*/
 #define CFG_PKTS_TIMEOUT	2000
+/********************************************
+ *
+ *      Debug Type
+ *
+ ********************************************/
 
 /********************************************
  *
@@ -312,7 +318,8 @@ int wilc_wlan_cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 		      u32 buffer_size, int commit, u32 drv_handler);
 int wilc_wlan_cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 		      u32 drv_handler);
-int wilc_wlan_cfg_get_val(struct wilc_vif *vif, u16 wid, u8 *buffer, u32 buffer_size);
+int wilc_wlan_cfg_get_val(struct wilc_vif *vif, u16 wid, u8 *buffer,
+			  u32 buffer_size);
 int wilc_wlan_txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
 			       u32 buffer_size, wilc_tx_complete_func_t func);
 

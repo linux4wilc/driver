@@ -23,13 +23,7 @@
 #define HIF_SDIO		(0)
 #define HIF_SPI			BIT(0)
 #define HIF_SDIO_GPIO_IRQ	BIT(2)
-#define WILC_TX_ERR_NO_BUF		(-2)
 
-/********************************************
- *
- *      Firmware Defines
- *
- ********************************************/
 #define	FIRMWARE_WILC1000_WIFi		"mchp/wilc1000_wifi_firmware.bin"
 #define	FIRMWARE_WILC3000_WIFI		"mchp/wilc3000_wifi_firmware.bin"
 #define	FIRMWARE_WILC3000_BLE		"mchp/wilc3000_ble_firmware.bin"
@@ -76,6 +70,8 @@ struct tx_complete_data {
 
 typedef void (*wilc_tx_complete_func_t)(void *, int);
 
+#define WILC_TX_ERR_NO_BUF	(-2)
+
 /********************************************
  *
  *      Wlan Configuration ID
@@ -85,7 +81,7 @@ typedef void (*wilc_tx_complete_func_t)(void *, int);
 #define MAX_SSID_LEN            33
 #define MAX_RATES_SUPPORTED     12
 
-enum  {
+enum {
 	SUPP_RATES_IE		= 1,
 	EXT_SUPP_RATES_IE	= 50,
 	HT_CAPABILITY_IE	= 45,
@@ -101,7 +97,7 @@ enum bss_types {
 	AP,
 };
 
-enum  {
+enum {
 	RATE_AUTO		= 0,
 	RATE_1MB		= 1,
 	RATE_2MB		= 2,
@@ -117,7 +113,7 @@ enum  {
 	RATE_54MB		= 54
 };
 
-enum  {
+enum {
 	B_ONLY_MODE		= 0,    /* 1, 2 M, otherwise 5, 11 M */
 	G_ONLY_MODE,			/* 6,12,24 otherwise 9,18,36,48,54 */
 	G_MIXED_11B_1_MODE,		/* 1,2,5.5,11 otherwise all on */
@@ -152,7 +148,7 @@ enum {
 };
 
 enum bus_acquire {
-	ACQUIRE_ONLY		= 0,
+	ACQUIRE_ONLY            = 0,
 	ACQUIRE_AND_WAKEUP	= 1,
 };
 
@@ -352,7 +348,6 @@ enum {
 	 *  -----------------------------------------------------------
 	 */
 	WID_STATUS			= 0x0005,
-
 	WID_BT_COEX_MODE		= 0x0006,
 
 	/*
@@ -550,7 +545,6 @@ enum {
 	 *  -----------------------------------------------------------
 	 */
 	WID_JOIN_REQ			= 0x0020,
-
 
 	WID_LINKSPEED			= 0x0026,
 
@@ -769,8 +763,8 @@ enum {
 	WID_DEL_BEACON			= 0x00CA,
 
 	WID_LOGTerminal_Switch		= 0x00CD,
-	WID_TX_POWER						= 0x00CE,
-	WID_WOWLAN_TRIGGER			=0X00CF,
+	WID_TX_POWER			= 0x00CE,
+	WID_WOWLAN_TRIGGER		= 0X00CF,
 	/*  EMAC Short WID list */
 	/*  RTS Threshold */
 	/*
@@ -909,13 +903,11 @@ enum {
 
 	WID_SETUP_MULTICAST_FILTER	= 0x408b,
 
-	WID_ANTENNA_SELECTION              = 0x408c,
+	WID_ANTENNA_SELECTION		= 0x408c,
 	/* Miscellaneous WIDs */
 	WID_ALL				= 0x7FFE,
 	WID_MAX				= 0xFFFF
 };
-
-#include <linux/version.h>
 
 struct wilc;
 
