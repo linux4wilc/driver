@@ -234,10 +234,6 @@ s32 wilc_parse_network_info(struct wilc_vif *vif, u8 *msg_buffer,
 {
 	struct network_info *network_info = NULL;
 	u8 msg_type = 0;
-	u8 msg_id = 0;
-	u16 msg_len = 0;
-
-	u16 wid_id = (u16)WID_NIL;
 	u16 wid_len  = 0;
 	u8 *wid_val = NULL;
 	u8 *msa = NULL;
@@ -254,9 +250,6 @@ s32 wilc_parse_network_info(struct wilc_vif *vif, u8 *msg_buffer,
 	if ('N' != msg_type)
 		return -EFAULT;
 
-	msg_id = msg_buffer[1];
-	msg_len = MAKE_WORD16(msg_buffer[2], msg_buffer[3]);
-	wid_id = MAKE_WORD16(msg_buffer[4], msg_buffer[5]);
 	wid_len = MAKE_WORD16(msg_buffer[6], msg_buffer[7]);
 	wid_val = &msg_buffer[8];
 
