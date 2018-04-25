@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-2.0
-
 /*!
  *  @file	linux_mon.c
  *  @brief	File Operations OS wrapper functionality
@@ -28,6 +27,15 @@ static struct net_device *wilc_wfi_mon; /* global monitor netdev */
 
 static u8 srcadd[6];
 static u8 bssid[6];
+/**
+ *  @brief      WILC_WFI_monitor_rx
+ *  @details
+ *  @param[in]
+ *  @return     int : Return 0 on Success
+ *  @author	mdaftedar
+ *  @date	12 JUL 2012
+ *  @version	1.0
+ */
 
 #define IEEE80211_RADIOTAP_F_TX_RTS	0x0004  /* used rts/cts handshake */
 #define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001  /* failed due to excessive*/
@@ -43,12 +51,14 @@ void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 	struct wilc_wfi_radiotap_hdr *hdr;
 	struct wilc_wfi_radiotap_cb_hdr *cb_hdr;
 
-	PRINT_D(vif->ndev, HOSTAPD_DBG,"In monitor interface receive function\n");
+	PRINT_D(vif->ndev, HOSTAPD_DBG,
+		"In monitor interface receive function\n");
 	if (!wilc_wfi_mon)
 		return;
 
 	if (!netif_running(wilc_wfi_mon)) {
-		PRINT_D(vif->ndev, HOSTAPD_DBG,"Monitor interface already RUNNING\n");
+		PRINT_D(vif->ndev, HOSTAPD_DBG,
+			"Monitor interface already RUNNING\n");
 		return;
 	}
 
@@ -56,7 +66,7 @@ void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 	memcpy(&header, (buff - HOST_HDR_OFFSET), HOST_HDR_OFFSET);
 	/*
 	 * The packet offset field contain info about what type of management
-	 * frame we are dealing with and ack status
+	 * the frame we are dealing with and ack status
 	 */
 	pkt_offset = GET_PKT_OFFSET(header);
 
@@ -65,11 +75,13 @@ void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 
 		skb = dev_alloc_skb(size + sizeof(struct wilc_wfi_radiotap_cb_hdr));
 		if (!skb) {
-			PRINT_D(vif->ndev, HOSTAPD_DBG,"Monitor if : No memory to allocate skb");
+			PRINT_D(vif->ndev, HOSTAPD_DBG,
+				"Monitor if : No memory to allocate skb");
 			return;
 		}
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
 		skb_put_data(skb, buff, size);
+
 		cb_hdr = skb_push(skb, sizeof(*cb_hdr));
 	#else
 		memcpy(skb_put(skb, size), buff, size);
@@ -98,7 +110,8 @@ void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		skb = dev_alloc_skb(size + sizeof(struct wilc_wfi_radiotap_hdr));
 
 		if (!skb) {
-			PRINT_D(vif->ndev, HOSTAPD_DBG,"Monitor if : No memory to allocate skb");
+			PRINT_D(vif->ndev, HOSTAPD_DBG,
+				"Monitor if : No memory to allocate skb");
 			return;
 		}
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
@@ -106,15 +119,18 @@ void WILC_WFI_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		hdr = skb_push(skb, sizeof(*hdr));
 	#else
 		memcpy(skb_put(skb, size), buff, size);
-		hdr = (struct wilc_wfi_radiotap_hdr *)skb_push(skb, sizeof(*hdr));
+		hdr = (struct wilc_wfi_radiotap_hdr *)skb_push(skb, 
+							       sizeof(*hdr));
 	#endif	
 		memset(hdr, 0, sizeof(struct wilc_wfi_radiotap_hdr));
 		hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
 		hdr->hdr.it_len = cpu_to_le16(sizeof(struct wilc_wfi_radiotap_hdr));
-		PRINT_D(vif->ndev, HOSTAPD_DBG,"Radiotap len %d\n", hdr->hdr.it_len);
+		PRINT_D(vif->ndev, HOSTAPD_DBG,
+			"Radiotap len %d\n", hdr->hdr.it_len);
 		hdr->hdr.it_present = cpu_to_le32
-				(1 << IEEE80211_RADIOTAP_RATE);
-		PRINT_D(vif->ndev, HOSTAPD_DBG,"Presentflags %d\n", hdr->hdr.it_present);
+				(1 << IEEE80211_RADIOTAP_RATE); /* | */
+		PRINT_D(vif->ndev, HOSTAPD_DBG,"Presentflags %d\n",
+			hdr->hdr.it_present);
 		hdr->rate = 5; /* txrate->bitrate / 5; */
 	}
 
@@ -140,9 +156,13 @@ static void mgmt_tx_complete(void *priv, int status)
 
 	if (status == 1) {
 		if (buf[0] == 0x10 || buf[0] == 0xb0)
-			PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG, "Packet sent successfully - Size = %d - Address = %p.\n", pv_data->size, pv_data->buff);
+		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG, 
+			   "Packet sent Size = %d Add = %p.\n",
+			   pv_data->size, pv_data->buff);
 	} else {
-		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,"Couldn't send packet - Size = %d - Address = %p.\n",pv_data->size,pv_data->buff);
+		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
+			   "Couldn't send packet Size = %d Add = %p.\n",
+			   pv_data->size,pv_data->buff);
 	}
 	/*
 	 * in case of fully hosting mode, the freeing will be done
@@ -165,7 +185,8 @@ static int mon_mgmt_tx(struct net_device *dev, const u8 *buf, size_t len)
 	netif_stop_queue(dev);
 	mgmt_tx = kmalloc(sizeof(*mgmt_tx), GFP_ATOMIC);
 	if (!mgmt_tx) {
-		PRINT_ER(dev, "Failed to allocate memory for mgmt_tx structure\n");
+		PRINT_ER(dev,
+			 "Failed to allocate memory for mgmt_tx structure\n");
 		return -ENOMEM;
 	}
 
@@ -185,7 +206,7 @@ static int mon_mgmt_tx(struct net_device *dev, const u8 *buf, size_t len)
 	return 0;
 }
 
-/*
+/**
  *  @brief      WILC_WFI_mon_xmit
  *  @details
  *  @param[in]
@@ -220,7 +241,8 @@ static netdev_tx_t WILC_WFI_mon_xmit(struct sk_buff *skb,
 
 	PRINT_D(dev, HOSTAPD_DBG,"Skipping the radiotap header\n");
 	PRINT_D(dev, HOSTAPD_DBG,"SKB netdevice name = %s\n", skb->dev->name);
-	PRINT_D(dev, HOSTAPD_DBG,"MONITOR real dev name = %s\n", mon_priv->real_ndev->name);
+	PRINT_D(dev, HOSTAPD_DBG,"MONITOR real dev name = %s\n",
+		mon_priv->real_ndev->name);
 	/* Identify if Ethernet or MAC header (data or mgmt) */
 	memcpy(srcadd, &skb->data[10], 6);
 	memcpy(bssid, &skb->data[16], 6);
@@ -243,7 +265,7 @@ static const struct net_device_ops wilc_wfi_netdev_ops = {
 
 };
 
-/*
+/**
  *  @brief      WILC_WFI_init_mon_interface
  *  @details
  *  @param[in]
@@ -274,7 +296,7 @@ struct net_device *WILC_WFI_init_mon_interface(const char *name,
 
 	ret = register_netdevice(wilc_wfi_mon);
 	if (ret) {
-		PRINT_ER(real_dev, "register_netdevice failed %d\n", ret);
+		PRINT_ER(real_dev, "register_netdevice failed \n");
 		return NULL;
 	}
 	priv = netdev_priv(wilc_wfi_mon);
@@ -288,7 +310,7 @@ struct net_device *WILC_WFI_init_mon_interface(const char *name,
 	return wilc_wfi_mon;
 }
 
-/*
+/**
  *  @brief      WILC_WFI_deinit_mon_interface
  *  @details
  *  @param[in]
@@ -302,8 +324,9 @@ int WILC_WFI_deinit_mon_interface(void)
 	bool rollback_lock = false;
 
 	if (wilc_wfi_mon) {
-		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG, "In Deinit monitor interface\n");
-		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG, "RTNL is being locked\n");
+		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
+			   "In Deinit monitor interface\n");
+		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG, "Locking RTNL\n");
 		if (rtnl_is_locked()) {
 			rtnl_unlock();
 			rollback_lock = true;

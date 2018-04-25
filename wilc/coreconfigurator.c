@@ -230,12 +230,13 @@ static u8 get_current_channel_802_11n(u8 *pu8msa, u16 rx_len)
 }
 
 s32 wilc_parse_network_info(struct wilc_vif *vif, u8 *msg_buffer,
-								struct network_info **ret_network_info)
+			    struct network_info **ret_network_info)
 {
 	struct network_info *network_info = NULL;
 	u8 msg_type = 0;
 	u8 msg_id = 0;
 	u16 msg_len = 0;
+
 	u16 wid_id = (u16)WID_NIL;
 	u16 wid_len  = 0;
 	u8 *wid_val = NULL;
@@ -270,7 +271,7 @@ s32 wilc_parse_network_info(struct wilc_vif *vif, u8 *msg_buffer,
 	rx_len = wid_len - 1;
 	network_info->cap_info = get_cap_info(msa);
 	network_info->tsf_lo = get_beacon_timestamp_lo(msa);
-	PRINT_INFO(vif->ndev, CORECONFIG_DBG,"TSF :%x\n",network_info->tsf_lo );
+	PRINT_INFO(vif->ndev, CORECONFIG_DBG,"TSF :%x\n",network_info->tsf_lo);
 
 	tsf_lo = get_beacon_timestamp_lo(msa);
 	tsf_hi = get_beacon_timestamp_hi(msa);
