@@ -603,7 +603,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Connection response received = %d\n",
 			   mac_status);
-		if (mac_status == MAC_DISCONNECTED &&
+		if (mac_status == MAC_STATUS_DISCONNECTED &&
 		    conn_info->status == SUCCESSFUL_STATUSCODE) {
 			connect_status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			wilc_wlan_set_bssid(priv->dev, null_bssid,
@@ -660,7 +660,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		wilc_optaining_ip = false;
 #endif
 		PRINT_ER(vif->ndev,
-			 "Received MAC_DISCONNECTED from firmware with reason %d on dev [%p]\n",
+			 "Received MAC_STATUS_DISCONNECTED from firmware with reason %d on dev [%p]\n",
 			 disconn_info->reason, priv->dev);
 		p2p_local_random = 0x01;
 		p2p_recv_random = 0x00;

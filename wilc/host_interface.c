@@ -1267,7 +1267,7 @@ error:
 
 			conn_attr->result(CONN_DISCONN_EVENT_CONN_RESP,
 							       &conn_info,
-							       MAC_DISCONNECTED,
+							       MAC_STATUS_DISCONNECTED,
 							       NULL,
 							       conn_attr->arg);
 			hif_drv->hif_state = HOST_IF_IDLE;
@@ -1325,7 +1325,7 @@ static s32 handle_connect_timeout(struct wilc_vif *vif)
 
 		hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_CONN_RESP,
 						  &info,
-						  MAC_DISCONNECTED,
+						  MAC_STATUS_DISCONNECTED,
 						  NULL,
 						  hif_drv->usr_conn_req.arg);
 
@@ -1460,7 +1460,7 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 
 	memset(&conn_info, 0, sizeof(struct connect_info));
 
-	if (mac_status == MAC_CONNECTED) {
+	if (mac_status == MAC_STATUS_CONNECTED) {
 		u32 rcvd_assoc_resp_info_len;
 
 		memset(rcv_assoc_resp, 0, MAX_ASSOC_RESP_FRAME_SIZE);
@@ -1502,20 +1502,20 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 		}
 	}
 
-	if (mac_status == MAC_CONNECTED &&
+	if (mac_status == MAC_STATUS_CONNECTED &&
 	    conn_info.status != SUCCESSFUL_STATUSCODE) {
 		PRINT_ER(vif->ndev,
-			 "Received MAC status is MAC_CONNECTED while the received status code in Asoc Resp is not SUCCESSFUL_STATUSCODE\n");
+			 "Received MAC status is MAC_STATUS_CONNECTED while the received status code in Asoc Resp is not SUCCESSFUL_STATUSCODE\n");
 		eth_zero_addr(wilc_connected_ssid);
-	} else if (mac_status == MAC_DISCONNECTED)    {
-		PRINT_ER(vif->ndev, "Received MAC status is MAC_DISCONNECTED\n");
+	} else if (mac_status == MAC_STATUS_DISCONNECTED)    {
+		PRINT_ER(vif->ndev, "Received MAC status is MAC_STATUS_DISCONNECTED\n");
 		eth_zero_addr(wilc_connected_ssid);
 	}
 
 	if (hif_drv->usr_conn_req.bssid) {
 		memcpy(conn_info.bssid, hif_drv->usr_conn_req.bssid, 6);
 
-		if (mac_status == MAC_CONNECTED &&
+		if (mac_status == MAC_STATUS_CONNECTED &&
 		    conn_info.status == SUCCESSFUL_STATUSCODE) {
 			memcpy(hif_drv->assoc_bssid,
 			       hif_drv->usr_conn_req.bssid, ETH_ALEN);
@@ -1535,7 +1535,7 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 					  &conn_info, mac_status, NULL,
 					  hif_drv->usr_conn_req.arg);
 
-	if (mac_status == MAC_CONNECTED &&
+	if (mac_status == MAC_STATUS_CONNECTED &&
 	    conn_info.status == SUCCESSFUL_STATUSCODE) {
 
 		PRINT_INFO(vif->ndev, HOSTINF_DBG,
@@ -1566,7 +1566,7 @@ static inline void host_int_handle_disconnect(struct wilc_vif *vif)
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,
-		   "Received MAC_DISCONNECTED from the FW\n");
+		   "Received MAC_STATUS_DISCONNECTED from the FW\n");
 	memset(&disconn_info, 0, sizeof(struct disconnect_info));
 
 	if (hif_drv->usr_scan_req.scan_result) {
@@ -1663,13 +1663,13 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 				   mac_status, mac_status_reason_code,
 				   mac_status_additional_info);
 			host_int_parse_assoc_resp_info(vif, mac_status);
-		} else if ((mac_status == MAC_DISCONNECTED) &&
+		} else if ((mac_status == MAC_STATUS_DISCONNECTED) &&
 			   (hif_drv->hif_state == HOST_IF_CONNECTED)) {
 			host_int_handle_disconnect(vif);
-		} else if ((mac_status == MAC_DISCONNECTED) &&
+		} else if ((mac_status == MAC_STATUS_DISCONNECTED) &&
 			   (hif_drv->usr_scan_req.scan_result)) {
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, 
-				   "Received MAC_DISCONNECTED from the FW while scanning\n");
+				   "Received MAC_STATUS_DISCONNECTED from the FW while scanning\n");
 			PRINT_WRN(vif->ndev, HOSTINF_DBG,
 				  "\n\n<< Abort the running Scan >>\n\n");
 			del_timer(&hif_drv->scan_timer);
@@ -2038,7 +2038,7 @@ static void handle_disconnect(struct wilc_vif *vif)
 			}
 			conn_req->conn_result(CONN_DISCONN_EVENT_CONN_RESP,
 					      &strConnectInfo,
-					      MAC_DISCONNECTED, NULL,
+					      MAC_STATUS_DISCONNECTED, NULL,
 					      conn_req->arg);
 
 			if (strConnectInfo.req_ies != NULL) {
