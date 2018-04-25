@@ -274,7 +274,8 @@ s32 wilc_parse_network_info(struct wilc_vif *vif, u8 *msg_buffer,
 	get_ssid(msa, network_info->ssid, &network_info->ssid_len);
 	get_BSSID(msa, network_info->bssid);
 
-	network_info->ch = get_current_channel_802_11n(msa, rx_len + FCS_LEN);
+	network_info->ch = get_current_channel_802_11n(msa, rx_len
+						       + FCS_LEN);
 
 	index = MAC_HDR_LEN + TIME_STAMP_LEN;
 
