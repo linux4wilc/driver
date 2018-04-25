@@ -280,8 +280,6 @@ static int debug_thread(void *arg)
 						hif_drv->usr_conn_req.ies = NULL;
 
 						hif_drv->hif_state = HOST_IF_IDLE;
-						scan_while_connected = false;
-
 					}
 					recovery_on = 0;
 				}

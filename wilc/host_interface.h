@@ -57,8 +57,6 @@
 #define DRV_HANDLER_SIZE			5
 #define DRV_HANDLER_MASK			0x000000FF
 
-extern bool scan_while_connected;
-
 struct rf_info {
 	u8 link_speed;
 	s8 rssi;
