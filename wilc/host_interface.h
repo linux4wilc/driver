@@ -191,8 +191,8 @@ typedef void (*wilc_connect_result)(enum conn_event,
 typedef void (*wilc_remain_on_chan_expired)(void *, u32);
 typedef void (*wilc_remain_on_chan_ready)(void *);
 
-typedef void (*wilc_frmw_to_linux)(struct wilc *, u8 *, unsigned int,
-				   unsigned int, u8);
+typedef void (*wilc_frmw_to_linux_t)(struct wilc *, u8 *, unsigned int,
+				     unsigned int, u8);
 typedef void (*free_eap_buf_param)(void *);
 
 struct rcvd_net_info {
@@ -312,7 +312,7 @@ struct add_sta_param {
 struct wilc_vif;
 
 signed int wilc_send_buffered_eap(struct wilc_vif *vif,
-				  wilc_frmw_to_linux frmw_to_linux,
+				  wilc_frmw_to_linux_t frmw_to_linux,
 				  free_eap_buf_param eap_buf_param,
 				  u8 *buff, unsigned int size,
 				  unsigned int pkt_offset,

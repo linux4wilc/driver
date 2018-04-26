@@ -114,7 +114,7 @@ struct key_attr {
 };
 
 struct send_buffered_eap {
-	wilc_frmw_to_linux frmw_to_linux;
+	wilc_frmw_to_linux_t frmw_to_linux;
 	free_eap_buf_param eap_buf_param;
 	u8 *buff;
 	unsigned int size;
@@ -126,7 +126,7 @@ extern void filter_shadow_scan(void* pUserVoid, u8 *ch_freq_list,
 							   u8 ch_list_len);
 
 signed int wilc_send_buffered_eap(struct wilc_vif *vif,
-				  wilc_frmw_to_linux frmw_to_linux,
+				  wilc_frmw_to_linux_t frmw_to_linux,
 				  free_eap_buf_param eap_buf_param,
 				  u8 *buff, unsigned int size,
 				  unsigned int pkt_offset,
@@ -3050,7 +3050,7 @@ static void timer_connect_cb(unsigned long arg)
 }
 
 signed int wilc_send_buffered_eap(struct wilc_vif *vif,
-				  wilc_frmw_to_linux frmw_to_linux,
+				  wilc_frmw_to_linux_t frmw_to_linux,
 				  free_eap_buf_param eap_buf_param,
 				  u8 *buff, unsigned int size,
 				  unsigned int pkt_offset,

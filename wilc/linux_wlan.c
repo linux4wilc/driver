@@ -162,8 +162,8 @@ static struct notifier_block g_dev_notifier = {
 static int wlan_deinit_locks(struct net_device *dev);
 static void wlan_deinitialize_threads(struct net_device *dev);
 
-void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset, u8
-		   status);
+void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
+			u8 status);
 static void linux_wlan_tx_complete(void *priv, int status);
 static int  mac_init_fn(struct net_device *ndev);
 static struct net_device_stats *mac_stats(struct net_device *dev);
@@ -578,7 +578,7 @@ void eap_buff_timeout(unsigned long user)
     timeout = 5;
 
     status = wilc_send_buffered_eap(vif,
-                                    frmw_to_linux,
+                                    wilc_frmw_to_linux,
                                     free_eap_buff_params,
                                     priv->buffered_eap->buff,
                                     priv->buffered_eap->size,
@@ -1646,8 +1646,8 @@ done:
 	return ret;
 }
 
-void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
-		   u8 status)
+void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
+			u8 status)
 {
 	unsigned int frame_len = 0;
 	int stats;

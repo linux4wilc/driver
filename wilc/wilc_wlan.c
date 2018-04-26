@@ -8,8 +8,8 @@
 
 #define WAKUP_TRAILS_TIMEOUT		(10000)
 
-extern void frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size,
-			  u32 pkt_offset, u8 status);
+extern void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size,
+				u32 pkt_offset, u8 status);
 
 void acquire_bus(struct wilc *wilc, enum bus_acquire acquire, int source)
 {
@@ -1323,7 +1323,7 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 		} else {
 			if (!is_cfg_packet) {
 				if (pkt_len > 0) {
-					frmw_to_linux(wilc, buff_ptr,
+					wilc_frmw_to_linux(wilc, buff_ptr,
 							   pkt_len,
 							   pkt_offset,
 							   PKT_STATUS_NEW);

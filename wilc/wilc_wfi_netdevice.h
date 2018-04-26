@@ -257,11 +257,12 @@ struct WILC_WFI_mon_priv {
 
 int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif);
 
-//void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset);
+void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
+			u8 status);
 void wilc_mac_indicate(struct wilc *wilc, int flag);
 void wilc_netdev_cleanup(struct wilc *wilc);
 int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
-				     const struct wilc_hif_func *ops);
+		     const struct wilc_hif_func *ops);
 void wilc_wlan_deinitialize(struct net_device *dev);
 void wilc_wfi_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size);
 int wilc_wlan_get_firmware(struct net_device *dev);
