@@ -3066,7 +3066,7 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 	msg.body.send_buff_eap.pkt_offset = pkt_offset;
 	msg.body.send_buff_eap.buff = kmalloc(size + pkt_offset,
 						  GFP_ATOMIC);
-	memcpy(msg.body.send_buff_eap.buff, buff, size);
+	memcpy(msg.body.send_buff_eap.buff, buff, size + pkt_offset);
 	msg.body.send_buff_eap.user_arg = user_arg;
 
 	result = wilc_enqueue_cmd(&msg);
