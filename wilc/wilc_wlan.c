@@ -1618,21 +1618,6 @@ int wilc_wlan_stop(struct wilc *wilc)
 
 	acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_WIFI);
 
-	ret = wilc->hif_func->hif_read_reg(wilc, WILC_GLB_RESET_0, &reg);
-	if (!ret) {
-		PRINT_ER(vif->ndev, "Error while reading reg\n");
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
-		return ret;
-	}
-	/* Stop forcing Wifi and force BT */
-	reg &= ~BIT(11);
-	reg |= BIT(9) | BIT(0);
-	ret = wilc->hif_func->hif_write_reg(wilc, WILC_COEXIST_CTL, reg);
-	if (!ret) {
-		PRINT_ER(vif->ndev, "Error while writing reg\n");
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
-		return ret;
-	}
 	/* Clear Wifi mode*/
 	ret = wilc->hif_func->hif_read_reg(wilc, WILC_GLOBAL_MODE_CONTROL, &reg);
 	if (!ret) {
@@ -1640,7 +1625,7 @@ int wilc_wlan_stop(struct wilc *wilc)
 		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
 		return ret;
 	}
-	/* Stop forcing Wifi and force BT */
+	
 	reg &= ~BIT(0);
 	ret = wilc->hif_func->hif_write_reg(wilc, WILC_GLOBAL_MODE_CONTROL, reg);
 	if (!ret) {
@@ -1649,7 +1634,8 @@ int wilc_wlan_stop(struct wilc *wilc)
 		return ret;
 	}
 
-	/* Inform the power sequencer to ignore WIFI sleep signal on making chip sleep decision */
+	/* Configure the power sequencer to ignore WIFI sleep signal on making chip
+		sleep decision */
 	ret = wilc->hif_func->hif_read_reg(wilc, WILC_PWR_SEQ_MISC_CTRL, &reg);
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while reading reg\n");
