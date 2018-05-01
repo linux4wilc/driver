@@ -1918,13 +1918,22 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 			priv->remain_on_ch_params.listen_session_id);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
 static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_vif *vif,
 					struct p2p_mgmt_data *mgmt_tx,
 					struct cfg80211_mgmt_tx_params *params,
 					u8 iftype, u32 buf_len)
+#else
+static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_vif *vif,
+					struct p2p_mgmt_data *mgmt_tx,
+					const u8 *buf, size_t len,
+					u8 iftype, u32 buf_len)
+#endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
 	const u8 *buf = params->buf;
 	size_t len = params->len;
+#endif
 	u32 i;
 	u8 subtype = buf[P2P_PUB_ACTION_SUBTYPE];
 
@@ -2073,9 +2082,16 @@ static int mgmt_tx(struct wiphy *wiphy,
 
 		case PUBLIC_ACT_VENDORSPEC:
 			if (!memcmp(p2p_oui, &buf[ACTION_SUBTYPE_ID + 1], 4))
-				wilc_wfi_cfg_tx_vendor_spec(vif, mgmt_tx, params,
+			#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
+				wilc_wfi_cfg_tx_vendor_spec(vif, mgmt_tx,
+							    params,
 							    vif->iftype,
 							    buf_len);
+			#else
+				wilc_wfi_cfg_tx_vendor_spec(vif, mgmt_tx, buf,
+							    len, vif->iftype,
+							    buf_len);
+			#endif
 			else
 				PRINT_INFO(vif->ndev, GENERIC_DBG, "Not a P2P public action frame\n");
 
