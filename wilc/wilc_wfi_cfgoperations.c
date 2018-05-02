@@ -321,21 +321,22 @@ void remove_network_from_shadow(unsigned long arg)
 	int i, j;
 
 	for (i = 0; i < last_scanned_cnt; i++) {
-		if (time_after(now, last_scanned_shadow[i].time_scan +
-			       (unsigned long)(SCAN_RESULT_EXPIRE))) {
-			PRINT_INFO(vif->ndev, CFG80211_DBG,
-				   "Network expired in ScanShadow: %s\n",
-				   last_scanned_shadow[i].ssid);
-			kfree(last_scanned_shadow[i].ies);
-			last_scanned_shadow[i].ies = NULL;
+		if (!time_after(now, last_scanned_shadow[i].time_scan +
+			       (unsigned long)(SCAN_RESULT_EXPIRE))) 
+			continue;
+	
+		PRINT_INFO(vif->ndev, CFG80211_DBG,
+			   "Network expired in ScanShadow: %s\n",
+			   last_scanned_shadow[i].ssid);
+		kfree(last_scanned_shadow[i].ies);
+		last_scanned_shadow[i].ies = NULL;
 
-			kfree(last_scanned_shadow[i].join_params);
+		kfree(last_scanned_shadow[i].join_params);
 
-			for (j = i; (j < last_scanned_cnt - 1); j++)
-				last_scanned_shadow[j] = last_scanned_shadow[j + 1];
+		for (j = i; (j < last_scanned_cnt - 1); j++)
+			last_scanned_shadow[j] = last_scanned_shadow[j + 1];
 
-			last_scanned_cnt--;
-		}
+		last_scanned_cnt--;
 	}
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Number of cached networks: %d\n",
