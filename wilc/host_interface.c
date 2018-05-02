@@ -300,7 +300,6 @@ static u8 rcv_assoc_resp[MAX_ASSOC_RESP_FRAME_SIZE];
 
 static s8 rssi;
 static u32 inactive_time;
-static u8 del_beacon;
 static u32 clients_count;
 
 extern int recovery_on;
@@ -2282,14 +2281,12 @@ static void handle_del_beacon(struct wilc_vif *vif)
 	s32 result = 0;
 	struct wid wid;
 	u8 *cur_byte;
+	u8 del_beacon = 0;
 
 	wid.id = (u16)WID_DEL_BEACON;
 	wid.type = WID_CHAR;
 	wid.size = sizeof(char);
 	wid.val = &del_beacon;
-
-	if (!wid.val)
-		return;
 
 	cur_byte = wid.val;
 
