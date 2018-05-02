@@ -227,7 +227,7 @@ struct wilc {
 	struct wilc_vif *aging_timer_vif;
 };
 
-struct WILC_WFI_mon_priv {
+struct wilc_wfi_mon_priv {
 	struct net_device *real_ndev;
 };
 
