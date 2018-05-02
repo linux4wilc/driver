@@ -189,7 +189,7 @@ static netdev_tx_t WILC_WFI_mon_xmit(struct sk_buff *skb,
 				     struct net_device *dev)
 {
 	u32 rtap_len, ret = 0;
-	struct WILC_WFI_mon_priv  *mon_priv;
+	struct wilc_wfi_mon_priv *mon_priv;
 
 	if (!wilc_wfi_mon)
 		return -EFAULT;
@@ -238,13 +238,13 @@ static const struct net_device_ops wilc_wfi_netdev_ops = {
 struct net_device *WILC_WFI_init_mon_interface(const char *name,
 					       struct net_device *real_dev)
 {
-	struct WILC_WFI_mon_priv *priv;
+	struct wilc_wfi_mon_priv *priv;
 
 	/*If monitor interface is already initialized, return it*/
 	if (wilc_wfi_mon)
 		return wilc_wfi_mon;
 
-	wilc_wfi_mon = alloc_etherdev(sizeof(struct WILC_WFI_mon_priv));
+	wilc_wfi_mon = alloc_etherdev(sizeof(struct wilc_wfi_mon_priv));
 	if (!wilc_wfi_mon) {
 		PRINT_ER(real_dev, "failed to allocate memory\n");
 		return NULL;
