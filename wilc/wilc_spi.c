@@ -31,8 +31,6 @@ struct wilc_spi {
 static struct wilc_spi g_spi;
 static const struct wilc_hif_func wilc_hif_spi;
 
-static int wilc_spi_read(struct wilc *wilc, u32, u8 *, u32);
-static int wilc_spi_write(struct wilc *wilc, u32, u8 *, u32);
 static int wilc_spi_rx(struct wilc *wilc, u8 *rb, u32 rlen);
 static int wilc_spi_reset(struct wilc *wilc);
 
