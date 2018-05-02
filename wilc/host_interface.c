@@ -61,6 +61,8 @@
 #define TCP_ACK_FILTER_LINK_SPEED_THRESH	54
 #define DEFAULT_LINK_SPEED			72
 
+#define REAL_JOIN_REQ 				0
+
 /* Generic success will return 0 */
 #define WILC_SUCCESS 		0	/* Generic success */
 
@@ -303,10 +305,6 @@ static u32 inactive_time;
 static u32 clients_count;
 
 extern int recovery_on;
-
-#define REAL_JOIN_REQ 0
-#define FLUSHED_JOIN_REQ 1
-#define FLUSHED_BYTE_POS 79
 
 static void *host_int_parse_join_bss_param(struct network_info *info);
 static void host_if_work(struct work_struct *work);
