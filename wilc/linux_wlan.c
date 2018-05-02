@@ -1,39 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0
-#include "wilc_wfi_cfgoperations.h"
-#include "wilc_wlan_if.h"
-#include "wilc_wlan.h"
-
-#include <linux/slab.h>
-#include <linux/sched.h>
-#include <linux/delay.h>
-#include <linux/workqueue.h>
-#include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/gpio.h>
-
 #include <linux/kthread.h>
 #include <linux/firmware.h>
-
 #include <linux/init.h>
 #include <linux/netdevice.h>
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 #include <linux/inetdevice.h>
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
-#include <linux/etherdevice.h>
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/skbuff.h>
-#include <linux/mutex.h>
-#include <linux/completion.h>
-
-#include <linux/mmc/host.h>
-#include <linux/mmc/sdio_func.h>
-#include <linux/pm_runtime.h>
-
-#include <linux/of_gpio.h>
-#include <linux/version.h>
 
 #include "linux_wlan.h"
+#include "wilc_wfi_cfgoperations.h"
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 bool g_ignore_PS_state = false;
