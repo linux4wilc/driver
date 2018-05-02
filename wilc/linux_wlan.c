@@ -14,7 +14,7 @@
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 bool g_ignore_PS_state = false;
-#define duringIP_TIME		15000
+#define DURING_IP_TIME_OUT		15000
 
 void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 {
@@ -70,7 +70,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
 		priv->during_ip_timer.data = (uint32_t)priv;
 	#endif
-		mod_timer(&priv->during_ip_timer, (jiffies + msecs_to_jiffies(duringIP_TIME)));
+		mod_timer(&priv->during_ip_timer, (jiffies + msecs_to_jiffies(DURING_IP_TIME_OUT)));
 
 		break;
 

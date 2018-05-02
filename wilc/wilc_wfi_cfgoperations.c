@@ -165,7 +165,6 @@ static struct ieee80211_supported_band WILC_WFI_band_2ghz = {
 };
 
 #define AGING_TIME	(9 * 1000)
-#define during_ip_time	15000
 
 void clear_shadow_scan(struct wilc_vif *vif)
 {
