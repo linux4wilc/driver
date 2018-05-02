@@ -2,11 +2,6 @@
 #ifndef WILC_WFI_NETDEVICE
 #define WILC_WFI_NETDEVICE
 
-#define WILC_MAX_NUM_PMKIDS  16
-#define PMKID_LEN  16
-#define PMKID_FOUND 1
- #define NUM_STA_ASSOCIATED 8
-
 #include <linux/tcp.h>
 #include <linux/ieee80211.h>
 #include <net/cfg80211.h>
@@ -16,12 +11,19 @@
 #include "host_interface.h"
 #include "wilc_wlan.h"
 
-#define FLOW_CONTROL_LOWER_THRESHOLD	128
-#define FLOW_CONTROL_UPPER_THRESHOLD	256
+#define FLOW_CONTROL_LOWER_THRESHOLD		128
+#define FLOW_CONTROL_UPPER_THRESHOLD		256
 
-#define ANT_SWTCH_INVALID_GPIO_CTRL 	0
-#define ANT_SWTCH_SNGL_GPIO_CTRL 	1
-#define ANT_SWTCH_DUAL_GPIO_CTRL	2
+#define WILC_MAX_NUM_PMKIDS			16
+#define PMKID_LEN				16
+#define PMKID_FOUND				1
+ #define NUM_STA_ASSOCIATED			8
+
+#define NUM_REG_FRAME 				2
+
+#define ANT_SWTCH_INVALID_GPIO_CTRL 		0
+#define ANT_SWTCH_SNGL_GPIO_CTRL 		1
+#define ANT_SWTCH_DUAL_GPIO_CTRL		2
 
 struct wilc_wfi_stats {
 	unsigned long rx_packets;
@@ -30,10 +32,7 @@ struct wilc_wfi_stats {
 	unsigned long tx_bytes;
 	u64 rx_time;
 	u64 tx_time;
-
 };
-
-#define NUM_REG_FRAME 2
 
 struct wilc_wfi_key {
 	u8 *key;
