@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 #include "wilc_wfi_cfgoperations.h"
-#include "host_interface.h"
 #include "linux_wlan.h"
-#include <linux/errno.h>
-#include <linux/kernel.h>
-#include <linux/version.h>
-#include <net/cfg80211.h>
 
 #define ENCRYPT_ENABLED		BIT(0)
 #define WEP			BIT(1)
