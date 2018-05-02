@@ -1434,10 +1434,9 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 		sinfo->inactive_time = 1000 * inactive_time;
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Inactive time %d\n",
 			   sinfo->inactive_time);
-	}
-
-	if (vif->iftype == STATION_MODE) {
+	} else if (vif->iftype == STATION_MODE) {
 		struct rf_info stats;
+
 		if (!wilc->initialized) {
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
 				   "driver not initialized\n");
