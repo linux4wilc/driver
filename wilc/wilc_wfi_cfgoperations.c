@@ -157,7 +157,7 @@ static u8 p2p_recv_random;
 static u8 p2p_vendor_spec[] = {0xdd, 0x05, 0x00, 0x08, 0x40, 0x03};
 static bool wilc_ie;
 
-static struct ieee80211_supported_band WILC_WFI_band_2ghz = {
+static struct ieee80211_supported_band wilc_band_2ghz = {
 	.channels = ieee80211_2ghz_channels,
 	.n_channels = ARRAY_SIZE(ieee80211_2ghz_channels),
 	.bitrates = ieee80211_bitrates,
@@ -2867,16 +2867,16 @@ static struct wireless_dev *wilc_wfi_cfg_alloc(struct net_device *net)
 		goto _fail_mem_;
 	}
 
-	WILC_WFI_band_2ghz.ht_cap.ht_supported = 1;
-	WILC_WFI_band_2ghz.ht_cap.cap |= (1 << IEEE80211_HT_CAP_RX_STBC_SHIFT);
-	WILC_WFI_band_2ghz.ht_cap.mcs.rx_mask[0] = 0xff;
-	WILC_WFI_band_2ghz.ht_cap.ampdu_factor = IEEE80211_HT_MAX_AMPDU_8K;
-	WILC_WFI_band_2ghz.ht_cap.ampdu_density = IEEE80211_HT_MPDU_DENSITY_NONE;
+	wilc_band_2ghz.ht_cap.ht_supported = 1;
+	wilc_band_2ghz.ht_cap.cap |= (1 << IEEE80211_HT_CAP_RX_STBC_SHIFT);
+	wilc_band_2ghz.ht_cap.mcs.rx_mask[0] = 0xff;
+	wilc_band_2ghz.ht_cap.ampdu_factor = IEEE80211_HT_MAX_AMPDU_8K;
+	wilc_band_2ghz.ht_cap.ampdu_density = IEEE80211_HT_MPDU_DENSITY_NONE;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
-	wdev->wiphy->bands[NL80211_BAND_2GHZ] = &WILC_WFI_band_2ghz;
+	wdev->wiphy->bands[NL80211_BAND_2GHZ] = &wilc_band_2ghz;
 #else
-	wdev->wiphy->bands[IEEE80211_BAND_2GHZ] = &WILC_WFI_band_2ghz;
+	wdev->wiphy->bands[IEEE80211_BAND_2GHZ] = &wilc_band_2ghz;
 #endif
 	return wdev;
 
