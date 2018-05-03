@@ -737,8 +737,8 @@ static inline int wilc_wfi_cfg_alloc_fill_ssid(struct wilc_vif *vif,
 	int i;
 	int slot_id = 0;
 
-	ntwk->net_info = kcalloc(request->n_ssids,
-				 sizeof(struct hidden_network), GFP_KERNEL);
+	ntwk->net_info = kcalloc(request->n_ssids, sizeof(*ntwk->net_info),
+				 GFP_KERNEL);
 	if (!ntwk->net_info)
 		goto out;
 
