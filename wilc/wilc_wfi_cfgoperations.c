@@ -1316,21 +1316,15 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 		}
 	}
 
-	if (key_index >= 0 && key_index <= 3) {
-		if (priv->wep_key_len[key_index]) {
-			memset(priv->wep_key[key_index], 0,
-			       priv->wep_key_len[key_index]);
-			priv->wep_key_len[key_index] = 0;
-			PRINT_INFO(vif->ndev, CFG80211_DBG,
-				   "Removing WEP key with index = %d\n",
-				   key_index);
-			ret = wilc_remove_wep_key(vif, key_index);
-		}
-	} else {
+	if (key_index >= 0 && key_index <= 3 && priv->wep_key_len[key_index]) {
+		memset(priv->wep_key[key_index], 0,
+		       priv->wep_key_len[key_index]);
+		priv->wep_key_len[key_index] = 0;
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Removing all installed keys\n");
-		ret = wilc_remove_key(vif, mac_addr);
-	}
+			   "Removing WEP key with index = %d\n",
+			   key_index);
+		ret = wilc_remove_wep_key(vif, key_index);
+	} 
 
 	return ret;
 }
