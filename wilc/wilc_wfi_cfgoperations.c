@@ -1148,13 +1148,11 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 	const u8 *tx_mic = NULL;
 	u8 mode = NO_ENCRYPT;
 	u8 op_mode;
-	struct wilc *wl;
 	struct wilc_vif *vif;
 	int i;
 
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(netdev);
-	wl = vif->wilc;
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Adding key with cipher suite = %x\n", params->cipher);
@@ -2395,11 +2393,9 @@ static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 		    struct cfg80211_ap_settings *settings)
 {
 	struct cfg80211_beacon_data *beacon = &settings->beacon;
-	struct wilc_priv *priv;
 	s32 ret = 0;
 	struct wilc_vif *vif;
 
-	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(dev);
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG,"Starting ap\n");
 
@@ -2591,7 +2587,6 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 #endif
 {
 	s32 ret = 0;
-	struct wilc_priv *priv;
 	struct add_sta_param sta_params = { {0} };
 	struct wilc_vif *vif;
 
@@ -2600,7 +2595,6 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 	if (!wiphy)
 		return -EFAULT;
 
-	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(dev);
 
 	if (vif->iftype == AP_MODE || vif->iftype == GO_MODE) {
