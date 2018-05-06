@@ -1605,10 +1605,6 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 {
 	s32 result = 0;
 	u8 msg_type = 0;
-	u8 msg_id = 0;
-	u16 msg_len = 0;
-	u16 wid_id = (u16)WID_NIL;
-	u8 wid_len  = 0;
 	u8 mac_status;
 	u8 mac_status_reason_code;
 	u8 mac_status_additional_info;
@@ -1648,10 +1644,6 @@ static s32 handle_rcvd_gnrl_async_info(struct wilc_vif *vif,
 			return -EFAULT;
 		}
 
-		msg_id = rcvd_info->buffer[1];
-		msg_len = MAKE_WORD16(rcvd_info->buffer[2], rcvd_info->buffer[3]);
-		wid_id = MAKE_WORD16(rcvd_info->buffer[4], rcvd_info->buffer[5]);
-		wid_len = rcvd_info->buffer[6];
 		mac_status  = rcvd_info->buffer[7];
 		mac_status_reason_code = rcvd_info->buffer[8];
 		mac_status_additional_info = rcvd_info->buffer[9];
