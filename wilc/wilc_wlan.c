@@ -1716,10 +1716,10 @@ int wilc_wlan_stop(struct wilc *wilc)
 		       BIT(20) | BIT(26) | BIT(29) | BIT(30) | BIT(31));
 	}
 
-	wilc->hif_func->hif_write_reg(wilc, WILC_GLB_RESET_0, reg);
-	reg = (u32)~BIT(10);
+	wilc->hif_func->hif_read_reg(wilc, WILC_FW_HOST_COMM, &reg);
+	reg = BIT(0);
 
-	ret = wilc->hif_func->hif_write_reg(wilc, WILC_GLB_RESET_0, reg);
+	ret = wilc->hif_func->hif_write_reg(wilc, WILC_FW_HOST_COMM, reg);
 
 	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
 
