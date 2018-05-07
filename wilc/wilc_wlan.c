@@ -1730,8 +1730,6 @@ void wilc_wlan_cleanup(struct net_device *dev)
 {
 	struct txq_entry_t *tqe;
 	struct rxq_entry_t *rqe;
-	u32 reg = 0;
-	int ret;
 	u8 ac;
 	struct wilc_vif *vif;
 	struct wilc *wilc;
@@ -1762,22 +1760,6 @@ void wilc_wlan_cleanup(struct net_device *dev)
 	wilc->rx_buffer = NULL;
 	kfree(wilc->tx_buffer);
 	wilc->tx_buffer = NULL;
-
-	acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_WIFI);
-
-	ret = wilc->hif_func->hif_read_reg(wilc, WILC_GP_REG_0, &reg);
-	if (!ret) {
-		PRINT_ER(vif->ndev, "Error while reading reg\n");
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
-	}
-	PRINT_ER(vif->ndev, "Writing ABORT reg\n");
-	ret = wilc->hif_func->hif_write_reg(wilc, WILC_GP_REG_0,
-					(reg | ABORT_INT));
-	if (!ret) {
-		PRINT_ER(vif->ndev, "Error while writing reg\n");
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
-	}
-	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
 }
 
 static int wilc_wlan_cfg_commit(struct wilc_vif *vif, int type,
