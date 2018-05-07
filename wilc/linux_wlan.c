@@ -1247,7 +1247,7 @@ fail_locks:
 		wlan_deinit_locks(dev);
 		PRINT_ER(dev, "WLAN initialization FAILED\n");
 	} else {
-		PRINT_D(vif->ndev, INIT_DBG, "wilc already initialized\n");
+		PRINT_WRN(vif->ndev, INIT_DBG, "wilc already initialized\n");
 	}
 	return ret;
 }

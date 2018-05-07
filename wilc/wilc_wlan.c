@@ -728,6 +728,7 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 			u32 wakeup_reg, wakeup_bit;
 			u32 to_host_from_fw_reg, to_host_from_fw_bit;
 			u32 from_host_to_fw_reg, from_host_to_fw_bit;
+			u32 trials =100;
 			
 			if(wilc->io_type == HIF_SDIO ||
 				wilc->io_type == HIF_SDIO_GPIO_IRQ) {
@@ -746,11 +747,14 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 				to_host_from_fw_bit = BIT(0);
 			}
 
-			while(1){
+			while(trials--){
 				ret = wilc->hif_func->hif_read_reg(wilc, to_host_from_fw_reg,&reg);
 				if(!ret) goto _fail_;
-				if((reg & to_host_from_fw_bit) == 0) break;
+				if((reg & to_host_from_fw_bit) == 0)
+					break;	
 			}
+			if(!trials)
+				pr_warn("FW not responding\n");
 
 			/* Clear bit 1 */
 			ret = wilc->hif_func->hif_read_reg(wilc, wakeup_reg, &reg);
