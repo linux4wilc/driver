@@ -2302,7 +2302,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	PRINT_INFO(vif->ndev, GENERIC_DBG,
 		   "Changing virtual interface, enable scan\n");
-	handle_pwrsave_during_obtainingIP(NULL, IP_STATE_DEFAULT);
+	handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 #endif
 
 	switch (type) {
