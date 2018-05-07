@@ -40,6 +40,7 @@
 #define HOST_IF_MSG_REGISTER_FRAME              21
 #define HOST_IF_MSG_LISTEN_TIMER_FIRED          22
 #define HOST_IF_MSG_SET_WFIDRV_HANDLER          24
+#define HOST_IF_MSG_SET_MAC_ADDRESS             25
 #define HOST_IF_MSG_GET_MAC_ADDRESS             26
 #define HOST_IF_MSG_SET_OPERATION_MODE          27
 #define HOST_IF_MSG_GET_STATISTICS              31
@@ -232,7 +233,7 @@ union message_body {
 	struct drv_handler drv;
 	struct set_multicast multicast_info;
 	struct op_mode mode;
-	struct get_mac_addr get_mac_info;
+	struct dev_mac_addr dev_mac_info;
 	struct ba_session_info session_info;
 	struct remain_ch remain_on_ch;
 	struct reg_frame reg_frame;
@@ -468,7 +469,7 @@ static void handle_set_operation_mode(struct wilc_vif *vif,
 }
 
 static void handle_get_mac_address(struct wilc_vif *vif,
-				   struct get_mac_addr *get_mac_addr)
+				   struct dev_mac_addr *get_mac_addr)
 {
 	int ret = 0;
 	struct wid wid;
@@ -483,6 +484,25 @@ static void handle_get_mac_address(struct wilc_vif *vif,
 
 	if (ret)
 		PRINT_ER(vif->ndev, "Failed to get mac address\n");
+	complete(&hif_wait_response);
+}
+
+static void handle_set_mac_address(struct wilc_vif *vif,
+				   struct dev_mac_addr *set_mac_addr)
+{
+	int ret;
+	struct wid wid;
+
+	wid.id = (u16)WID_MAC_ADDR;
+	wid.type = WID_STR;
+	wid.val = set_mac_addr->mac_addr;
+	wid.size = ETH_ALEN;
+
+	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
+				   wilc_get_vif_idx(vif));
+
+	if (ret)
+		PRINT_ER(vif->ndev, "Failed to set mac address\n");
 	complete(&hif_wait_response);
 }
 
@@ -2161,23 +2181,6 @@ static s32 handle_get_statistics(struct wilc_vif *vif,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
-static inline void ether_addr_copy(u8 *dst, const u8 *src)
-{
-#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
-	*(u32 *)dst = *(const u32 *)src;
-	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
-#else
-	u16 *a = (u16 *)dst;
-	const u16 *b = (const u16 *)src;
-
-	a[0] = b[0];
-	a[1] = b[1];
-	a[2] = b[2];
-#endif
-}
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0) */
-
 static s32 handle_get_inactive_time(struct wilc_vif *vif,
 				    struct sta_inactive_t *hif_sta_inactive)
 {
@@ -2941,9 +2944,12 @@ static void host_if_work(struct work_struct *work)
 		handle_set_operation_mode(msg->vif, &msg->body.mode);
 		break;
 
+	case HOST_IF_MSG_SET_MAC_ADDRESS:
+		handle_set_mac_address(msg->vif, &msg->body.dev_mac_info);
+		break;
+
 	case HOST_IF_MSG_GET_MAC_ADDRESS:
-		handle_get_mac_address(msg->vif,
-				       &msg->body.get_mac_info);
+		handle_get_mac_address(msg->vif, &msg->body.dev_mac_info);
 		break;
 
 	case HOST_IF_MSG_REMAIN_ON_CHAN:
@@ -3387,7 +3393,28 @@ int wilc_get_mac_address(struct wilc_vif *vif, u8 *mac_addr)
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
 	msg.id = HOST_IF_MSG_GET_MAC_ADDRESS;
-	msg.body.get_mac_info.mac_addr = mac_addr;
+	msg.body.dev_mac_info.mac_addr = mac_addr;
+	msg.vif = vif;
+
+	result = wilc_enqueue_cmd(&msg);
+	if (result) {
+		PRINT_ER(vif->ndev, "Failed to send get mac address\n");
+		return -EFAULT;
+	}
+
+	wait_for_completion(&hif_wait_response);
+	return result;
+}
+
+int wilc_set_mac_address(struct wilc_vif *vif, u8 *mac_addr)
+{
+	int result;
+	struct host_if_msg msg;
+
+	memset(&msg, 0, sizeof(struct host_if_msg));
+
+	msg.id = HOST_IF_MSG_SET_MAC_ADDRESS;
+	msg.body.dev_mac_info.mac_addr = mac_addr;
 	msg.vif = vif;
 
 	result = wilc_enqueue_cmd(&msg);

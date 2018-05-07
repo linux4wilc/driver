@@ -39,9 +39,33 @@ void clear_duringIP(struct timer_list *t);
 void clear_duringIP(unsigned long arg);
 #endif
 
-
-
 struct net_device* wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc);
 struct host_if_drv * wilc_get_drv_handler_by_ifc(struct wilc *wilc, uint8_t ifc);
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
+static inline void ether_addr_copy(u8 *dst, const u8 *src)
+{
+#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
+	*(u32 *)dst = *(const u32 *)src;
+	*(u16 *)(dst + 4) = *(const u16 *)(src + 4);
+#else
+	u16 *a = (u16 *)dst;
+	const u16 *b = (const u16 *)src;
+
+	a[0] = b[0];
+	a[1] = b[1];
+	a[2] = b[2];
+#endif
+}
+
+static inline bool ether_addr_equal_unaligned(const u8 *addr1, const u8 *addr2)
+{
+#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
+	return ether_addr_equal(addr1, addr2);
+#else
+	return memcmp(addr1, addr2, ETH_ALEN) == 0;
+#endif
+}
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0) */
 
 #endif /* WILC_LINUX_WLAN_H */

@@ -551,17 +551,6 @@ void eap_buff_timeout(unsigned long user)
 		PRINT_ER(vif->ndev, "Failed so send buffered eap\n");
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
-static inline bool ether_addr_equal_unaligned(const u8 *addr1, const u8 *addr2)
-{
-#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
-	return ether_addr_equal(addr1, addr2);
-#else
-	return memcmp(addr1, addr2, ETH_ALEN) == 0;
-#endif
-}
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0) */
-
 static struct net_device *get_if_handler(struct wilc *wilc, u8 *mac_header)
 {
 	u8 *bssid, *bssid1;
@@ -1350,6 +1339,25 @@ static struct net_device_stats *mac_stats(struct net_device *dev)
 	return &vif->netstats;
 }
 
+static int wilc_set_mac_addr(struct net_device *dev, void *p)
+{
+	int result;
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct sockaddr *addr = (struct sockaddr *)p;
+
+	/* configure new MAC address */
+	if (!is_valid_ether_addr(addr->sa_data)) {
+		PRINT_INFO(vif->ndev, INIT_DBG,"Invalid MAC address \n");
+		return -EINVAL;
+	}
+	
+	result = wilc_set_mac_address(vif,(u8 *)addr->sa_data);
+	ether_addr_copy(vif->bssid, addr->sa_data);
+	ether_addr_copy(vif->ndev->dev_addr, vif->bssid);
+
+	return result;
+}
+	
 static void wilc_set_multicast_list(struct net_device *dev)
 {
 	struct netdev_hw_addr *ha;
@@ -1698,6 +1706,7 @@ static const struct net_device_ops wilc_netdev_ops = {
 	.ndo_init = mac_init_fn,
 	.ndo_open = wilc_mac_open,
 	.ndo_stop = wilc_mac_close,
+	.ndo_set_mac_address = wilc_set_mac_addr,
 	.ndo_start_xmit = wilc_mac_xmit,
 	.ndo_get_stats = mac_stats,
 	.ndo_set_rx_mode  = wilc_set_multicast_list,
