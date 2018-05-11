@@ -2548,6 +2548,7 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 	s32 ret = 0;
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
+	struct sta_info *info;
 
 	if (!wiphy)
 		return -EFAULT;
@@ -2555,25 +2556,28 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(dev);
 
-	if (vif->iftype == AP_MODE || vif->iftype == GO_MODE) {
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Deleting station\n");
-		if (!mac) {
-			PRINT_INFO(vif->ndev, CFG80211_DBG,
-				   "All associated stations\n");
-			ret = wilc_del_allstation(vif,
-				     priv->assoc_stainfo.sta_associated_bss);
-		} else {
-			PRINT_INFO(vif->ndev, CFG80211_DBG,
-				   "With mac address: %x%x%x%x%x%x\n",
-				   mac[0], mac[1], mac[2], mac[3], mac[4],
-				   mac[5]);
-		}
+	if (!(vif->iftype == AP_MODE || vif->iftype == GO_MODE))
+		return ret;
+	
+	PRINT_INFO(vif->ndev, CFG80211_DBG, "Deleting station\n");
 
-		ret = wilc_del_station(vif, mac);
+	info = &priv->assoc_stainfo;
 
-		if (ret)
-			PRINT_ER(dev, "Host delete station fail\n");
+	if (!mac) {
+		PRINT_INFO(vif->ndev, CFG80211_DBG,
+			   "All associated stations\n");
+		ret = wilc_del_allstation(vif, info->sta_associated_bss);
+	} else {
+		PRINT_INFO(vif->ndev, CFG80211_DBG,
+			   "With mac address: %x%x%x%x%x%x\n",
+			   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	}
+
+	ret = wilc_del_station(vif, mac);
+
+	if (ret)
+		PRINT_ER(dev, "Host delete station fail\n");
+
 	return ret;
 }
 
