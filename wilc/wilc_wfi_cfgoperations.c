@@ -1854,25 +1854,24 @@ static void wilc_wfi_remain_on_channel_ready(void *priv_data)
 
 static void wilc_wfi_remain_on_channel_expired(void *data, u32 session_id)
 {
-	struct wilc_priv *priv;
+	struct wilc_priv *priv = data;
+	struct wilc_wfi_p2p_listen_params *params = &priv->remain_on_ch_params;
 
-	priv = data;
-
-	if (session_id == priv->remain_on_ch_params.listen_session_id) {
-		PRINT_INFO(priv->dev, GENERIC_DBG,
-			   "Remain on channel expired\n");
-		priv->p2p_listen_state = false;
-
-		cfg80211_remain_on_channel_expired(priv->wdev,
-						   priv->remain_on_ch_params.listen_cookie,
-						   priv->remain_on_ch_params.listen_ch,
-						   GFP_KERNEL);
-	} else {
+	if (session_id != params->listen_session_id) {
 		PRINT_INFO(priv->dev, GENERIC_DBG,
 			   "Received ID 0x%x Expected ID 0x%x (No match)\n",
 			   session_id,
 			   priv->remain_on_ch_params.listen_session_id);
+		return;
 	}
+
+
+	PRINT_INFO(priv->dev, GENERIC_DBG,
+		   "Remain on channel expired\n");
+	priv->p2p_listen_state = false;
+
+	cfg80211_remain_on_channel_expired(priv->wdev, params->listen_cookie,
+					   params->listen_ch, GFP_KERNEL);
 }
 
 static int remain_on_channel(struct wiphy *wiphy,
