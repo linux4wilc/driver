@@ -5,7 +5,8 @@
 
 #define NO_ENCRYPT		0
 
-struct wireless_dev *wilc_create_wiphy(struct net_device *net, struct device *dev);
+struct wireless_dev *wilc_create_wiphy(struct net_device *net,
+				       struct device *dev);
 void wilc_free_wiphy(struct net_device *net);
 int wilc_deinit_host_int(struct net_device *net);
 int wilc_init_host_int(struct net_device *net);
