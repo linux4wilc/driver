@@ -51,7 +51,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 	if (pkt_offset & IS_MANAGMEMENT_CALLBACK) {
 		/* hostapd callback mgmt frame */
 
-		skb = dev_alloc_skb(size + sizeof(struct wilc_wfi_radiotap_cb_hdr));
+		skb = dev_alloc_skb(size + sizeof(*cb_hdr));
 		if (!skb) {
 			PRINT_D(vif->ndev, HOSTAPD_DBG,
 				"Monitor if : No memory to allocate skb");
@@ -65,11 +65,11 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		memcpy(skb_put(skb, size), buff, size);
 		cb_hdr = (struct wilc_wfi_radiotap_cb_hdr *)skb_push(skb, sizeof(*cb_hdr));
 	#endif
-		memset(cb_hdr, 0, sizeof(struct wilc_wfi_radiotap_cb_hdr));
+		memset(cb_hdr, 0, sizeof(*cb_hdr));
 
 		cb_hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
 
-		cb_hdr->hdr.it_len = cpu_to_le16(sizeof(struct wilc_wfi_radiotap_cb_hdr));
+		cb_hdr->hdr.it_len = cpu_to_le16(sizeof(*cb_hdr));
 
 		cb_hdr->hdr.it_present = cpu_to_le32(
 				(1 << IEEE80211_RADIOTAP_RATE) |
@@ -85,7 +85,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		}
 
 	} else {
-		skb = dev_alloc_skb(size + sizeof(struct wilc_wfi_radiotap_hdr));
+		skb = dev_alloc_skb(size + sizeof(*hdr));
 
 		if (!skb) {
 			PRINT_D(vif->ndev, HOSTAPD_DBG,
@@ -100,9 +100,9 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		hdr = (struct wilc_wfi_radiotap_hdr *)skb_push(skb, 
 							       sizeof(*hdr));
 	#endif	
-		memset(hdr, 0, sizeof(struct wilc_wfi_radiotap_hdr));
+		memset(hdr, 0, sizeof(*hdr));
 		hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
-		hdr->hdr.it_len = cpu_to_le16(sizeof(struct wilc_wfi_radiotap_hdr));
+		hdr->hdr.it_len = cpu_to_le16(sizeof(*hdr));
 		PRINT_D(vif->ndev, HOSTAPD_DBG,
 			"Radiotap len %d\n", hdr->hdr.it_len);
 		hdr->hdr.it_present = cpu_to_le32
