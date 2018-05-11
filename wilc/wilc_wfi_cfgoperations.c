@@ -1400,7 +1400,9 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 			   "Getting station parameters\n");
 		for (i = 0; i < NUM_STA_ASSOCIATED; i++) {
-			if (!(memcmp(mac, priv->assoc_stainfo.sta_associated_bss[i], ETH_ALEN))) {
+			if (!(memcmp(mac,
+				     priv->assoc_stainfo.sta_associated_bss[i],
+				     ETH_ALEN))) {
 				associatedsta = i;
 				break;
 			}
