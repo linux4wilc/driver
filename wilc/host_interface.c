@@ -1564,6 +1564,7 @@ static inline void host_int_handle_disconnect(struct wilc_vif *vif)
 {
 	struct disconnect_info disconn_info;
 	struct host_if_drv *hif_drv = vif->hif_drv;
+	wilc_connect_result conn_result = hif_drv->usr_conn_req.conn_result;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,
 		   "Received MAC_STATUS_DISCONNECTED from the FW\n");
@@ -1580,14 +1581,13 @@ static inline void host_int_handle_disconnect(struct wilc_vif *vif)
 	disconn_info.ie = NULL;
 	disconn_info.ie_len = 0;
 
-	if (hif_drv->usr_conn_req.conn_result) {
+	if (conn_result) {
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 #endif
 
-		hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
-						  NULL, 0, &disconn_info,
-						  hif_drv->usr_conn_req.arg);
+		conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
+			    NULL, 0, &disconn_info, hif_drv->usr_conn_req.arg);
 	} else {
 		PRINT_ER(vif->ndev, "Connect result NULL\n");
 	}
