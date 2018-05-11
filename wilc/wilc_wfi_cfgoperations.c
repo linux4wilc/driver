@@ -2843,7 +2843,7 @@ static struct wireless_dev *wilc_wfi_cfg_alloc(struct net_device *net)
 	struct wireless_dev *wdev;
 
 	PRINT_INFO(net, CFG80211_DBG, "Allocating wireless device\n");
-	wdev = kzalloc(sizeof(struct wireless_dev), GFP_KERNEL);
+	wdev = kzalloc(sizeof(*wdev), GFP_KERNEL);
 	if (!wdev) {
 		PRINT_ER(net, "Cannot allocate wireless device\n");
 		goto _fail_;
