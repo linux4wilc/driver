@@ -2027,7 +2027,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 		goto out;
 	}
 
-	mgmt_tx = kmalloc(sizeof(struct p2p_mgmt_data), GFP_KERNEL);
+	mgmt_tx = kmalloc(sizeof(*mgmt_tx), GFP_KERNEL);
 	if (!mgmt_tx) {
 		PRINT_ER(vif->ndev,
 			 "Failed to allocate memory for mgmt_tx structure\n");
