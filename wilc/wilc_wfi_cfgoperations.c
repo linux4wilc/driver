@@ -2943,12 +2943,12 @@ int wilc_init_host_int(struct net_device *net)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	timer_setup(&priv->during_ip_timer, clear_duringIP, 0);
+	timer_setup(&priv->during_ip_timer, clear_during_ip, 0);
 	#endif
 	timer_setup(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #else
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	setup_timer(&priv->during_ip_timer, clear_duringIP, 0);
+	setup_timer(&priv->during_ip_timer, clear_during_ip, 0);
 	#endif
 	setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #endif
