@@ -1960,18 +1960,15 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_vif *vif,
 	for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < len; i++) {
 		if (buf[i] == P2PELEM_ATTR_ID &&
 		    !memcmp(p2p_oui, &buf[i + 2], 4)) {
+			bool oper_ch = false;
+			u8 *tx_buff = &mgmt_tx->buff[i + 6];
+
 			if (subtype == P2P_INV_REQ || subtype == P2P_INV_RSP)
-				wilc_wfi_cfg_parse_tx_action(vif,
-							     &mgmt_tx->buff[i + 6],
-							     len - (i + 6),
-							     true,
-							     vif->attr_sysfs.p2p_mode);
-			else
-				wilc_wfi_cfg_parse_tx_action(vif,
-							     &mgmt_tx->buff[i + 6],
-							     len - (i + 6),
-							     false,
-							     vif->attr_sysfs.p2p_mode);
+				oper_ch = true;
+			
+			wilc_wfi_cfg_parse_tx_action(vif, tx_buff,
+						     len - (i + 6), oper_ch,
+						     vif->attr_sysfs.p2p_mode);
 			break;
 		}
 	}
