@@ -460,21 +460,17 @@ static void deinit_irq(struct net_device *dev)
 	}
 }
 
-void wilc_mac_indicate(struct wilc *wilc, int flag)
+void wilc_mac_indicate(struct wilc *wilc)
 {
 	int status;
 
-	if (flag == WILC_MAC_INDICATE_STATUS) {
-		wilc_wlan_cfg_get_val(wilc->vif[0], WID_STATUS,
-				      (unsigned char *)&status, 4);
-		if (wilc->mac_status == MAC_STATUS_INIT) {
-			wilc->mac_status = status;
-			complete(&wilc->sync_event);
-		} else {
-			wilc->mac_status = status;
-		}
-	} else if (flag == WILC_MAC_INDICATE_SCAN) {
-		PRINT_INFO(wilc->vif[0]->ndev, GENERIC_DBG, "Scanning ...\n");
+	wilc_wlan_cfg_get_val(wilc->vif[0], WID_STATUS,
+			      (unsigned char *)&status, 4);
+	if (wilc->mac_status == MAC_STATUS_INIT) {
+		wilc->mac_status = status;
+		complete(&wilc->sync_event);
+	} else {
+		wilc->mac_status = status;
 	}
 }
 
