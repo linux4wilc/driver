@@ -21,6 +21,8 @@ static u8 bssid[6];
 #define IEEE80211_RADIOTAP_F_TX_RTS	0x0004  /* used rts/cts handshake */
 #define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001  /* failed due to excessive*/
 #define GET_PKT_OFFSET(a) (((a) >> 22) & 0x1ff)
+#define TX_RADIOTAP_PRESENT ((1 << IEEE80211_RADIOTAP_RATE) |  \
+			     (1 << IEEE80211_RADIOTAP_TX_FLAGS))
 
 void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 {
@@ -71,9 +73,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 
 		cb_hdr->hdr.it_len = cpu_to_le16(sizeof(*cb_hdr));
 
-		cb_hdr->hdr.it_present = cpu_to_le32(
-				(1 << IEEE80211_RADIOTAP_RATE) |
-				(1 << IEEE80211_RADIOTAP_TX_FLAGS));
+		cb_hdr->hdr.it_present = cpu_to_le32(TX_RADIOTAP_PRESENT);
 
 		cb_hdr->rate = 5; /* txrate->bitrate / 5; */
 
