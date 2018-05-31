@@ -901,8 +901,8 @@ void chip_wakeup_wilc3000(struct wilc *wilc, int source)
 		wilc->hif_func->hif_read_reg(wilc, clk_status_register, &clk_status_reg_val);
 
 		/*
-		 * in case of clocks off, wait 2ms, and check it again.
-		 * if still off, wait for another 2ms, for a total wait of 6ms.
+		 * in case of clocks off, wait 1ms, and check it again.
+		 * if still off, wait for another 1ms, for a total wait of 3ms.
 		 * If still off, redo the wake up sequence
 		 */
 		while (((clk_status_reg_val & clk_status_bit) == 0) &&
@@ -918,16 +918,17 @@ void chip_wakeup_wilc3000(struct wilc *wilc, int source)
 			wilc->hif_func->hif_read_reg(wilc, clk_status_register,
 						      &clk_status_reg_val);
 
-			if ((clk_status_reg_val & clk_status_bit) == 0)
-				pr_err("clocks still OFF. Wake up failed\n");
 		}
 		/* in case of failure, Reset the wakeup bit to introduce a new edge on the next loop */
-		if ((clk_status_reg_val & clk_status_bit) == 0)
+		if ((clk_status_reg_val & clk_status_bit) == 0) {
+			dev_warn(wilc->dev, "clocks still OFF. Retrying\n");
 			wilc->hif_func->hif_write_reg(wilc, wakeup_register,
 						      wakeup_reg_val & (~wakeup_bit));
+		}
 	} while (((clk_status_reg_val & clk_status_bit) == 0)
 		 && (wake_seq_trials-- > 0));
-
+	if(!wake_seq_trials)
+		dev_err(wilc->dev, "clocks still OFF. Wake up failed\n");
 	wilc->keep_awake[source] = true;
 }
 
