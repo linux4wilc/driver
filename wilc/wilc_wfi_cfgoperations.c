@@ -174,13 +174,12 @@ static struct ieee80211_supported_band WILC_WFI_band_2ghz = {
 
 void clear_shadow_scan(struct wilc_vif *vif)
 {
-	struct wilc_priv *priv = wiphy_priv(vif->ndev->ieee80211_ptr->wiphy);
 	int i;
 
 	if (op_ifcs == 0)
 		return;
 
-	del_timer_sync(&priv->aging_timer);
+	del_timer_sync(&vif->wilc->aging_timer);
 	PRINT_D(vif->ndev, CORECONFIG_DBG, "destroy aging timer\n");
 
 	for (i = 0; i < last_scanned_cnt; i++) {
@@ -307,23 +306,24 @@ static void update_scan_time(void)
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-static void remove_network_from_shadow(struct timer_list *t)
+void remove_network_from_shadow(struct timer_list *t)
 #else
-static void remove_network_from_shadow(unsigned long arg)
+void remove_network_from_shadow(unsigned long arg)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-	struct wilc_priv* priv = from_timer(priv, t, aging_timer);
+	struct wilc* wilc = from_timer(wilc, t, aging_timer);
 #else
-	struct wilc_priv* priv = (struct wilc_priv*)arg;
+	struct wilc* wilc = (struct wilc*)arg;
 #endif
+	struct wilc_vif* vif = wilc->aging_timer_vif;
 	unsigned long now = jiffies;
 	int i, j;
 
 	for (i = 0; i < last_scanned_cnt; i++) {
 		if (time_after(now, last_scanned_shadow[i].time_scan +
 			       (unsigned long)(SCAN_RESULT_EXPIRE))) {
-			PRINT_INFO(priv->dev, CFG80211_DBG,
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
 				   "Network expired in ScanShadow: %s\n",
 				   last_scanned_shadow[i].ssid);
 			kfree(last_scanned_shadow[i].ies);
@@ -338,25 +338,42 @@ static void remove_network_from_shadow(unsigned long arg)
 		}
 	}
 
-	PRINT_INFO(priv->dev, CFG80211_DBG, "Number of cached networks: %d\n",
+	PRINT_INFO(vif->ndev, CFG80211_DBG, "Number of cached networks: %d\n",
 		   last_scanned_cnt);
 
-	if (last_scanned_cnt != 0)
-		mod_timer(&priv->aging_timer,
+	if (last_scanned_cnt != 0) {
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+		wilc->aging_timer.data = (unsigned long) wilc;
+	#endif
+		wilc->aging_timer_vif = vif;
+		mod_timer(&wilc->aging_timer,
 			  jiffies + msecs_to_jiffies(AGING_TIME));
-	else 
-		PRINT_INFO(priv->dev, CFG80211_DBG,
+	}
+	else {
+		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "No need to restart Aging timer\n");
+	}
 }
 
 static int is_network_in_shadow(struct network_info *nw_info, struct wilc_priv *priv)
 {
+	struct wilc* wilc;
+	struct wilc_vif* vif;
+	struct net_device *dev;
 	int state = -1;
 	int i;
 
+	dev = priv->dev;
+	vif = netdev_priv(dev);
+	wilc = vif->wilc;
+
 	if (last_scanned_cnt == 0) {
 		PRINT_INFO(priv->dev, CFG80211_DBG, "Starting Aging timer\n");
-		mod_timer(&priv->aging_timer,
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+		wilc->aging_timer.data = (unsigned long) wilc;
+	#endif
+		wilc->aging_timer_vif = vif;
+		mod_timer(&wilc->aging_timer,
 			  jiffies + msecs_to_jiffies(AGING_TIME));
 		state = -1;
 	} else {
@@ -1764,7 +1781,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 		return;
 	}
 
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n",
+	PRINT_D(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n",
 		   buff[FRAME_TYPE_ID]);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
@@ -1777,13 +1794,13 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 		return;
 	}
 
-	PRINT_INFO(vif->ndev, GENERIC_DBG,
+	PRINT_D(vif->ndev, GENERIC_DBG,
 		   "Rx Action Frame Type: %x %x\n",
 		   buff[ACTION_SUBTYPE_ID],
 		   buff[P2P_PUB_ACTION_SUBTYPE]);
 	if (priv->cfg_scanning &&
 	    time_after_eq(jiffies, (unsigned long)wfi_drv->p2p_timeout)) {
-		PRINT_D(dev, GENERIC_DBG, "Receiving action wrong ch\n");
+		PRINT_WRN(dev, GENERIC_DBG, "Receiving action wrong ch\n");
 		return;
 	}
 	if (buff[ACTION_CAT_ID] == PUB_ACTION_ATTR_ID) {
@@ -1791,13 +1808,13 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 
 		switch (buff[ACTION_SUBTYPE_ID]) {
 		case GAS_INITIAL_REQ:
-			PRINT_INFO(vif->ndev, GENERIC_DBG, 
+			PRINT_D(vif->ndev, GENERIC_DBG, 
 				   "GAS INITIAL REQ %x\n",
 				   buff[ACTION_SUBTYPE_ID]);
 			break;
 
 		case GAS_INITIAL_RSP:
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
+			PRINT_D(vif->ndev, GENERIC_DBG,
 				   "GAS INITIAL RSP %x\n",
 				   buff[ACTION_SUBTYPE_ID]);
 			break;
@@ -1814,7 +1831,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 			break;
 
 		default:
-			PRINT_INFO(dev, GENERIC_DBG, 
+			PRINT_WRN(dev, GENERIC_DBG, 
 				   "NOT HANDLED PUBLIC ACTION FRAME TYPE:%x\n",
 				   buff[ACTION_SUBTYPE_ID]);
 			break;
@@ -2947,23 +2964,18 @@ int wilc_init_host_int(struct net_device *net)
 
 	PRINT_INFO(net, INIT_DBG, "Host[%p][%p]\n", net, net->ieee80211_ptr);
 	priv = wdev_priv(net->ieee80211_ptr);
-	if (op_ifcs == 0) {
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-		timer_setup(&priv->aging_timer, remove_network_from_shadow,
-			    (unsigned long)priv);
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		timer_setup(&priv->during_ip_timer, clear_duringIP, 0);
+	timer_setup(&priv->during_ip_timer, clear_duringIP, 0);
 	#endif
-		timer_setup(&priv->eap_buff_timer, eap_buff_timeout, 0);
+	timer_setup(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #else
-		setup_timer(&priv->aging_timer, remove_network_from_shadow,
-			    (unsigned long)priv);
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		setup_timer(&priv->during_ip_timer, clear_duringIP, 0);
+	setup_timer(&priv->during_ip_timer, clear_duringIP, 0);
 	#endif
-		setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
+	setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #endif
-	}
 	op_ifcs++;
 
 	priv->auto_rate_adjusted = false;
@@ -2998,11 +3010,9 @@ int wilc_deinit_host_int(struct net_device *net)
 
 	clear_shadow_scan(vif);
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	if (op_ifcs == 0){
-		del_timer_sync(&priv->during_ip_timer);
-		del_timer_sync(&priv->eap_buff_timer);
-	}
+	del_timer_sync(&priv->during_ip_timer);
 #endif
+	del_timer_sync(&priv->eap_buff_timer);
 
 	if (ret)
 		PRINT_ER(net, "Error while deinitializing host interface\n");
