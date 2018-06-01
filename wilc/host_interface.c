@@ -4350,7 +4350,7 @@ int wilc_setup_multicast_filter(struct wilc_vif *vif, bool enabled,
 static void host_int_fill_join_bss_param(struct join_bss_param *param, u8 *ies,
 					 u16 *out_index, u8 *pcipher_tc,
 					 u8 *auth_total_cnt, u32 tsf_lo,
-					 u8* rates_no)
+					 u8 *rates_no)
 {
 	u8 ext_rates_no;
 	u16 offset;
