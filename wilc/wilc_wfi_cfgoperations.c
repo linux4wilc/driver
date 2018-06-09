@@ -889,8 +889,8 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 				PRINT_D(vif->ndev, CFG80211_DBG,
 					"BSSID is not passed from the user\n");
 				if (sel_bssi_idx == UINT_MAX ||
-				    last_scanned_shadow[i].rssi >
-				    last_scanned_shadow[sel_bssi_idx].rssi)
+				    get_rssi_avg(&last_scanned_shadow[i]) >
+				    get_rssi_avg(&last_scanned_shadow[sel_bssi_idx]))
 					sel_bssi_idx = i;
 			} else {
 				if (memcmp(last_scanned_shadow[i].bssid,
