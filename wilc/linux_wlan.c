@@ -718,7 +718,7 @@ static int linux_wlan_start_firmware(struct net_device *dev)
 	PRINT_INFO(vif->ndev, INIT_DBG, "Waiting for FW to get ready ...\n");
 
 	if (!wait_for_completion_timeout(&wilc->sync_event,
-					 msecs_to_jiffies(1000))) {
+					 msecs_to_jiffies(1500))) {
 		PRINT_INFO(vif->ndev, INIT_DBG, "Firmware start timed out\n");
 		return -ETIME;
 	}
