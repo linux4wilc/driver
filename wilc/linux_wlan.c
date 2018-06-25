@@ -5,6 +5,10 @@
 #include <linux/firmware.h>
 #include <linux/init.h>
 #include <linux/netdevice.h>
+#include <linux/etherdevice.h>
+#include <linux/interrupt.h>
+#include <net/ip.h>
+#include <linux/module.h>
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 #include <linux/inetdevice.h>
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */

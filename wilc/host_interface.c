@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
+#include <linux/etherdevice.h>
+
 #include "wilc_wfi_netdevice.h"
 #include "linux_wlan.h"
 

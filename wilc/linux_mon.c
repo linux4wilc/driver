@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
+#include <linux/etherdevice.h>
+
 #include "wilc_wfi_cfgoperations.h"
 
 struct wilc_wfi_radiotap_hdr {
