@@ -7,7 +7,9 @@
 
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/host.h>
+#include <linux/mmc/card.h>
 #include <linux/of_gpio.h>
+#include <linux/module.h>
 
 #include "wilc_wfi_netdevice.h"
 

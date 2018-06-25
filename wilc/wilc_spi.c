@@ -7,6 +7,7 @@
 
 #include <linux/spi/spi.h>
 #include <linux/of_gpio.h>
+#include <linux/module.h>
 
 #include "wilc_wfi_netdevice.h"
 
