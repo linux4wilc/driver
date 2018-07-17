@@ -271,8 +271,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 	vif = netdev_priv(dev);
 	if (memcmp(dev_iface->ifa_label, IFC_0, 5) &&
 	    memcmp(dev_iface->ifa_label, IFC_1, 4)) {
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Interface is neither WLAN0 nor P2P0\n");
+		pr_info("Interface is neither WLAN0 nor P2P0\n");
 		return NOTIFY_DONE;
 	}
 
