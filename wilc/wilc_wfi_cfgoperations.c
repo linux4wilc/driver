@@ -86,7 +86,6 @@ static const struct wiphy_wowlan_support wowlan_support = {
 
 static struct network_info last_scanned_shadow[MAX_NUM_SCANNED_NETWORKS_SHADOW];
 static u32 last_scanned_cnt;
-static u8 op_ifcs;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
 #define CHAN2G(_channel, _freq, _flags) {	 \
@@ -168,15 +167,9 @@ static struct ieee80211_supported_band wilc_band_2ghz = {
 
 #define AGING_TIME	(9 * 1000)
 
-void clear_shadow_scan(struct wilc_vif *vif)
+void clear_shadow_scan(void)
 {
 	int i;
-
-	if (op_ifcs == 0)
-		return;
-
-	del_timer_sync(&vif->wilc->aging_timer);
-	PRINT_D(vif->ndev, CORECONFIG_DBG, "destroy aging timer\n");
 
 	for (i = 0; i < last_scanned_cnt; i++) {
 		if (last_scanned_shadow[i].ies) {
@@ -2963,7 +2956,6 @@ int wilc_init_host_int(struct net_device *net)
 	#endif
 	setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #endif
-	op_ifcs++;
 
 	priv->auto_rate_adjusted = false;
 
@@ -2990,12 +2982,9 @@ int wilc_deinit_host_int(struct net_device *net)
 
 	priv->p2p_listen_state = false;
 
-	op_ifcs--;
-
 	mutex_destroy(&priv->scan_req_lock);
 	ret = wilc_deinit(vif);
 
-	clear_shadow_scan(vif);
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	del_timer_sync(&priv->during_ip_timer);
 #endif

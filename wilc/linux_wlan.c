@@ -1021,6 +1021,11 @@ static void wilc_wlan_deinitialize(struct net_device *dev)
 			return;
 		}
 
+		del_timer_sync(&vif->wilc->aging_timer);
+		PRINT_D(vif->ndev, INIT_DBG, "destroy aging timer\n");
+
+		clear_shadow_scan();
+
 		PRINT_INFO(vif->ndev, INIT_DBG, "Disabling IRQ\n");
 		if (wl->io_type == HIF_SPI ||
 			wl->io_type == HIF_SDIO_GPIO_IRQ) {
