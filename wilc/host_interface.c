@@ -4556,12 +4556,13 @@ bool is_valid_gpio(struct wilc_vif *vif, u8 gpio)
 {
 	switch(vif->wilc->chip) {
 	case WILC_1000:
-		if(gpio == 0 || gpio == 1 || gpio == 4 || gpio == 6)
+		if(gpio == 0 || gpio == 1 || gpio == 3 || gpio == 4 ||
+		   gpio == 6)
 			return true;
 		else
 			return false;
 	case WILC_3000:
-		if(gpio == 0 || gpio == 3 || gpio == 4 ||
+		if(gpio == 0 || gpio == 3 || gpio == 4 || gpio == 6 ||
 			(gpio >= 17 && gpio <= 20))
 			return true;
 		else
