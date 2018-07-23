@@ -416,18 +416,19 @@ static void handle_set_operation_mode(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct op_mode *hif_op_mode = &msg->body.mode;
 	int ret = 0;
 	struct wid wid;
 
 	wid.id = (u16)WID_SET_OPERATION_MODE;
 	wid.type = WID_INT;
-	wid.val = (s8 *)&msg->body.mode.mode;
+	wid.val = (s8 *)&hif_op_mode->mode;
 	wid.size = sizeof(u32);
 
 	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				   wilc_get_vif_idx(vif));
 
-	if (msg->body.mode.mode == IDLE_MODE)
+	if (hif_op_mode->mode == IDLE_MODE)
 		complete(&hif_driver_comp);
 
 	if (ret)
@@ -2795,12 +2796,13 @@ static void handle_set_tx_pwr(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	u8 tx_pwr = msg->body.tx_power.tx_pwr;
 	int ret;
 	struct wid wid;
 
 	wid.id = (u16)WID_TX_POWER;
 	wid.type = WID_CHAR;
-	wid.val = &msg->body.tx_power.tx_pwr;
+	wid.val = &tx_pwr;
 	wid.size = sizeof(char);
 
 	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
@@ -2815,12 +2817,13 @@ static void handle_get_tx_pwr(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	u8 *tx_pwr = &msg->body.tx_power.tx_pwr;
 	int ret = 0;
 	struct wid wid;
 
 	wid.id = (u16)WID_TX_POWER;
 	wid.type = WID_CHAR;
-	wid.val = &msg->body.tx_power.tx_pwr;
+	wid.val = (s8 *)tx_pwr;
 	wid.size = sizeof(char);
 
 	ret = wilc_send_config_pkt(vif, GET_CFG, &wid, 1,
@@ -3059,7 +3062,7 @@ int wilc_add_wep_key_bss_sta(struct wilc_vif *vif, const u8 *key, u8 len,
 	msg->body.key_info.attr.wep.key = kmemdup(key, len, GFP_KERNEL);
 	if (!msg->body.key_info.attr.wep.key) {
 		result = -ENOMEM;
-		goto out_error;
+		goto free_msg;
 	}
 
 	msg->body.key_info.attr.wep.key_len = len;
@@ -3068,15 +3071,17 @@ int wilc_add_wep_key_bss_sta(struct wilc_vif *vif, const u8 *key, u8 len,
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "STA - WEP Key\n");
-		goto out_error;
+		goto free_key;
 	}
 		
 	wait_for_completion(&msg->work_comp);
 	kfree(msg);
 	return 0;
 
-out_error:
+free_key:
 	kfree(msg->body.key_info.attr.wep.key);
+
+free_msg:
 	kfree(msg);
 	return result;
 }
@@ -3102,7 +3107,7 @@ int wilc_add_wep_key_bss_ap(struct wilc_vif *vif, const u8 *key, u8 len,
 	msg->body.key_info.attr.wep.key = kmemdup(key, len, GFP_KERNEL);
 	if (!msg->body.key_info.attr.wep.key) {
 		result = -ENOMEM;
-		goto out_error;
+		goto free_msg;
 	}
 
 	msg->body.key_info.attr.wep.key_len = len;
@@ -3113,15 +3118,17 @@ int wilc_add_wep_key_bss_ap(struct wilc_vif *vif, const u8 *key, u8 len,
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "AP - WEP Key\n");
-		goto out_error;
+		goto free_key;
 	}
 
 	wait_for_completion(&msg->work_comp);
 	kfree(msg);
 	return 0;
 
-out_error:
+free_key:
 	kfree(msg->body.key_info.attr.wep.key);
+
+free_msg:
 	kfree(msg);
 	return result;
 }
@@ -3161,7 +3168,7 @@ int wilc_add_ptk(struct wilc_vif *vif, const u8 *ptk, u8 ptk_key_len,
 	msg->body.key_info.attr.wpa.key = kmemdup(ptk, ptk_key_len, GFP_KERNEL);
 	if (!msg->body.key_info.attr.wpa.key) {
 		result = -ENOMEM;
-		goto out_error;
+		goto free_msg;
 	}
 
 	if (rx_mic)
@@ -3179,15 +3186,17 @@ int wilc_add_ptk(struct wilc_vif *vif, const u8 *ptk, u8 ptk_key_len,
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "PTK Key\n");
-		goto out_error;
+		goto free_key;
 	}
 
 	wait_for_completion(&msg->work_comp);
 	kfree(msg);
 	return 0;
 
-out_error:
+free_key:
 	kfree(msg->body.key_info.attr.wpa.key);
+
+free_msg:
 	kfree(msg);
 	return result;
 }
@@ -3223,7 +3232,7 @@ int wilc_add_rx_gtk(struct wilc_vif *vif, const u8 *rx_gtk, u8 gtk_key_len,
 							  GFP_KERNEL);
 		if (!msg->body.key_info.attr.wpa.seq) {
 			result = -ENOMEM;
-			goto out_error;
+			goto free_msg;
 		}
 	}
 
@@ -3239,7 +3248,7 @@ int wilc_add_rx_gtk(struct wilc_vif *vif, const u8 *rx_gtk, u8 gtk_key_len,
 	msg->body.key_info.attr.wpa.key = kmemdup(rx_gtk, key_len, GFP_KERNEL);
 	if (!msg->body.key_info.attr.wpa.key) {
 		result = -ENOMEM;
-		goto out_error;
+		goto free_seq;
 	}
 
 	if (rx_mic)
@@ -3257,16 +3266,20 @@ int wilc_add_rx_gtk(struct wilc_vif *vif, const u8 *rx_gtk, u8 gtk_key_len,
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "RX GTK\n");
-		goto out_error;
+		goto free_key;
 	}
 
 	wait_for_completion(&msg->work_comp);
 	kfree(msg);
 	return 0;
 
-out_error:
-	kfree(msg->body.key_info.attr.wpa.seq);
+free_key:
 	kfree(msg->body.key_info.attr.wpa.key);
+
+free_seq:
+	kfree(msg->body.key_info.attr.wpa.seq);
+
+free_msg:
 	kfree(msg);
 	return result;
 }
@@ -3380,7 +3393,7 @@ int wilc_set_join_req(struct wilc_vif *vif, u8 *bssid, const u8 *ssid,
 		msg->body.con_info.bssid = kmemdup(bssid, 6, GFP_KERNEL);
 		if (!msg->body.con_info.bssid) {
 			result = -ENOMEM;
-			goto out_error;
+			goto free_msg;
 		}
 	}
 
@@ -3389,7 +3402,7 @@ int wilc_set_join_req(struct wilc_vif *vif, u8 *bssid, const u8 *ssid,
 		msg->body.con_info.ssid = kmemdup(ssid, ssid_len, GFP_KERNEL);
 		if (!msg->body.con_info.ssid) {
 			result = -ENOMEM;
-			goto out_error;
+			goto free_bssid;
 		}
 	}
 
@@ -3398,7 +3411,7 @@ int wilc_set_join_req(struct wilc_vif *vif, u8 *bssid, const u8 *ssid,
 		msg->body.con_info.ies = kmemdup(ies, ies_len, GFP_KERNEL);
 		if (!msg->body.con_info.ies) {
 			result = -ENOMEM;
-			goto out_error;
+			goto free_ssid;
 		}
 	}
 	if (hif_drv->hif_state < HOST_IF_CONNECTING)
@@ -3409,7 +3422,7 @@ int wilc_set_join_req(struct wilc_vif *vif, u8 *bssid, const u8 *ssid,
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "send message: Set join request\n");
-		goto out_error;
+		goto free_ies;
 	}
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
 	hif_drv->connect_timer.data = (unsigned long)hif_drv;
@@ -3420,10 +3433,16 @@ int wilc_set_join_req(struct wilc_vif *vif, u8 *bssid, const u8 *ssid,
 
 	return 0;
 
-out_error:
-	kfree(msg->body.con_info.bssid);
-	kfree(msg->body.con_info.ssid);
+free_ies:
 	kfree(msg->body.con_info.ies);
+
+free_ssid:
+	kfree(msg->body.con_info.ssid);
+
+free_bssid:
+	kfree(msg->body.con_info.bssid);
+
+free_msg:
 	kfree(msg);
 	return result;
 }
@@ -3667,20 +3686,20 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 					  GFP_KERNEL);
 	if (!scan_info->ch_freq_list) {
 		result = -ENOMEM;
-		goto out_error;
+		goto free_msg;
 	}
 
 	scan_info->ies_len = ies_len;
 	scan_info->ies = kmemdup(ies, ies_len, GFP_KERNEL);
 	if (!scan_info->ies) {
 		result = -ENOMEM;
-		goto out_error;
+		goto free_freq_list;
 	}
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "Error in sending message queue\n");
-		goto out_error;
+		goto free_ies;
 	}
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, ">> Starting the SCAN timer\n");
@@ -3693,9 +3712,13 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 
 	return 0;
 
-out_error:
-	kfree(scan_info->ch_freq_list);
+free_ies:
 	kfree(scan_info->ies);
+
+free_freq_list:
+	kfree(scan_info->ch_freq_list);
+
+free_msg:
 	kfree(msg);
 	return result;
 }
@@ -4208,21 +4231,17 @@ int wilc_add_station(struct wilc_vif *vif, struct add_sta_param *sta_param)
 					      add_sta_info->rates_len,
 					      GFP_KERNEL);
 		if (!add_sta_info->rates) {
-			result = -ENOMEM;
-			goto out_free;
+			kfree(msg);
+			return -ENOMEM;
 		}
 	}
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
-		goto out_free;
+		kfree(add_sta_info->rates);
+		kfree(msg);
 	}
-	return 0;
-
-out_free:
-	kfree(add_sta_info->rates);
-	kfree(msg);
 	return result;
 }
 
@@ -4324,22 +4343,18 @@ int wilc_edit_station(struct wilc_vif *vif,
 					      add_sta_info->rates_len,
 					      GFP_KERNEL);
 		if (!add_sta_info->rates) {
-			result = -ENOMEM;
-			goto out_error;
+			kfree(msg);
+			return -ENOMEM;
 		}
 	}
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
-		goto out_error;
+		kfree(add_sta_info->rates);
+		kfree(msg);
 	}
 
-	return 0;
-
-out_error:
-	kfree(add_sta_info->rates);
-	kfree(msg);
 	return result;
 }
 
