@@ -1758,8 +1758,6 @@ static void handle_key(struct work_struct *work)
 			memcpy(&key_buf[2], hif_key->attr.wep.key,
 			       hif_key->attr.wep.key_len);
 
-			kfree(hif_key->attr.wep.key);
-
 			wid_list[2].id = (u16)WID_WEP_KEY_VALUE;
 			wid_list[2].type = WID_STR;
 			wid_list[2].size = hif_key->attr.wep.key_len + 2;
@@ -1783,7 +1781,6 @@ static void handle_key(struct work_struct *work)
 			memcpy(key_buf + 1, &hif_key->attr.wep.key_len, 1);
 			memcpy(key_buf + 2, hif_key->attr.wep.key,
 			       hif_key->attr.wep.key_len);
-			kfree(hif_key->attr.wep.key);
 
 			wid.id = (u16)WID_ADD_WEP_KEY;
 			wid.type = WID_STR;
@@ -1943,7 +1940,6 @@ out_wpa_rx_gtk:
 
 out_wpa_ptk:
 		complete(&msg->work_comp);
-		kfree(hif_key->attr.wpa.key);
 		break;
 
 	case PMKSA:
@@ -3061,8 +3057,8 @@ int wilc_add_wep_key_bss_sta(struct wilc_vif *vif, const u8 *key, u8 len,
 	msg->body.key_info.action = ADDKEY;
 	msg->body.key_info.attr.wep.key = kmemdup(key, len, GFP_KERNEL);
 	if (!msg->body.key_info.attr.wep.key) {
-		result = -ENOMEM;
-		goto free_msg;
+		kfree(msg);
+		return -ENOMEM;
 	}
 
 	msg->body.key_info.attr.wep.key_len = len;
@@ -3075,13 +3071,10 @@ int wilc_add_wep_key_bss_sta(struct wilc_vif *vif, const u8 *key, u8 len,
 	}
 		
 	wait_for_completion(&msg->work_comp);
-	kfree(msg);
-	return 0;
 
 free_key:
+	/*free key only here when work is completed or error in posting work*/
 	kfree(msg->body.key_info.attr.wep.key);
-
-free_msg:
 	kfree(msg);
 	return result;
 }
@@ -3106,8 +3099,8 @@ int wilc_add_wep_key_bss_ap(struct wilc_vif *vif, const u8 *key, u8 len,
 	msg->body.key_info.action = ADDKEY_AP;
 	msg->body.key_info.attr.wep.key = kmemdup(key, len, GFP_KERNEL);
 	if (!msg->body.key_info.attr.wep.key) {
-		result = -ENOMEM;
-		goto free_msg;
+		kfree(msg);
+		return -ENOMEM;
 	}
 
 	msg->body.key_info.attr.wep.key_len = len;
@@ -3122,13 +3115,9 @@ int wilc_add_wep_key_bss_ap(struct wilc_vif *vif, const u8 *key, u8 len,
 	}
 
 	wait_for_completion(&msg->work_comp);
-	kfree(msg);
-	return 0;
 
 free_key:
 	kfree(msg->body.key_info.attr.wep.key);
-
-free_msg:
 	kfree(msg);
 	return result;
 }
@@ -3167,8 +3156,8 @@ int wilc_add_ptk(struct wilc_vif *vif, const u8 *ptk, u8 ptk_key_len,
 
 	msg->body.key_info.attr.wpa.key = kmemdup(ptk, ptk_key_len, GFP_KERNEL);
 	if (!msg->body.key_info.attr.wpa.key) {
-		result = -ENOMEM;
-		goto free_msg;
+		kfree(msg);
+		return -ENOMEM;
 	}
 
 	if (rx_mic)
@@ -3190,13 +3179,9 @@ int wilc_add_ptk(struct wilc_vif *vif, const u8 *ptk, u8 ptk_key_len,
 	}
 
 	wait_for_completion(&msg->work_comp);
-	kfree(msg);
-	return 0;
 
 free_key:
 	kfree(msg->body.key_info.attr.wpa.key);
-
-free_msg:
 	kfree(msg);
 	return result;
 }
