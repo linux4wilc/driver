@@ -4,6 +4,11 @@
 
 #define WAKUP_TRAILS_TIMEOUT		(10000)
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,12,21)
+#define list_next_entry(pos, member) \
+	list_entry((pos)->member.next, typeof(*(pos)), member)
+#endif
+
 extern void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size,
 				u32 pkt_offset, u8 status);
 
