@@ -2202,6 +2202,7 @@ static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 {
 	struct wilc_priv *priv;
 	struct wilc_vif *vif;
+	int ret = 0;
 
 	if (idx != 0)
 		return -ENOENT;
@@ -2211,13 +2212,16 @@ static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Dumping station information\n");
 
+	ret = wilc_get_rssi(vif, &sinfo->signal);
+
+	if(ret)
+		return ret;
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
 	sinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL);
 #else
 	sinfo->filled |= STATION_INFO_SIGNAL;
 #endif
-
-	wilc_get_rssi(vif, &sinfo->signal);
 
 	return 0;
 }

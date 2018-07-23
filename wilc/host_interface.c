@@ -50,6 +50,8 @@
 
 #define REAL_JOIN_REQ 				0
 
+#define INVALID_RSSI				100
+
 /* Generic success will return 0 */
 #define WILC_SUCCESS 		0	/* Generic success */
 
@@ -2084,6 +2086,7 @@ static void handle_get_rssi(struct wilc_vif *vif)
 				      wilc_get_vif_idx(vif));
 	if (result) {
 		PRINT_ER(vif->ndev, "Failed to get RSSI value\n");
+		rssi = INVALID_RSSI;
 		result = -EFAULT;
 	}
 
@@ -3605,6 +3608,9 @@ int wilc_get_rssi(struct wilc_vif *vif, s8 *rssi_level)
 		PRINT_ER(vif->ndev, "RSS pointer value is null\n");
 		return -EFAULT;
 	}
+
+	if(rssi == INVALID_RSSI)
+		return -EFAULT;
 
 	*rssi_level = rssi;
 
