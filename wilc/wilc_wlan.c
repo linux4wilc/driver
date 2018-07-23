@@ -638,17 +638,7 @@ static int wilc_wlan_rxq_add(struct wilc *wilc, struct rxq_entry_t *rqe)
 		return 0;
 
 	mutex_lock(&wilc->rxq_cs);
-	if (!wilc->rxq_head) {
-		PRINT_INFO(vif->ndev, RX_DBG,"Add to Queue head\n");
-		rqe->next = NULL;
-		wilc->rxq_head = rqe;
-		wilc->rxq_tail = rqe;
-	} else {
-		PRINT_INFO(vif->ndev, RX_DBG,"Add to Queue tail\n");
-		wilc->rxq_tail->next = rqe;
-		rqe->next = NULL;
-		wilc->rxq_tail = rqe;
-	}
+	list_add_tail(&rqe->list, &wilc->rxq_head.list);
 	wilc->rxq_entries += 1;
 	PRINT_INFO(vif->ndev, RX_DBG,"Number of queue entries: %d\n",
 		   wilc->rxq_entries);
@@ -659,21 +649,22 @@ static int wilc_wlan_rxq_add(struct wilc *wilc, struct rxq_entry_t *rqe)
 static struct rxq_entry_t *wilc_wlan_rxq_remove(struct wilc *wilc)
 {
 	struct wilc_vif *vif = wilc->vif[0];
+	struct rxq_entry_t *rqe = NULL;
 	
 	PRINT_INFO(vif->ndev, RX_DBG,"Getting rxQ element\n");
-	if (wilc->rxq_head) {
-		struct rxq_entry_t *rqe;
 
-		mutex_lock(&wilc->rxq_cs);
-		rqe = wilc->rxq_head;
-		wilc->rxq_head = wilc->rxq_head->next;
+	mutex_lock(&wilc->rxq_cs);
+	if (!list_empty(&wilc->rxq_head.list)) {
+		rqe = list_first_entry(&wilc->rxq_head.list, struct rxq_entry_t,
+				       list);
+		list_del(&rqe->list);
 		wilc->rxq_entries -= 1;
-		PRINT_INFO(vif->ndev, RX_DBG,"RXQ entries decreased\n");
-		mutex_unlock(&wilc->rxq_cs);
-		return rqe;
+	} else {
+		PRINT_INFO(vif->ndev, RX_DBG,"Nothing to get from Q\n");
 	}
-	PRINT_INFO(vif->ndev, RX_DBG,"Nothing to get from Q\n");
-	return NULL;
+	mutex_unlock(&wilc->rxq_cs);
+
+	return rqe;
 }
 
 void chip_allow_sleep(struct wilc *wilc, int source)

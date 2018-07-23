@@ -251,7 +251,7 @@ struct txq_handle {
 };
 
 struct rxq_entry_t {
-	struct rxq_entry_t *next;
+	struct list_head list;
 	u8 *buffer;
 	int buffer_size;
 };
