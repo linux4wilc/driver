@@ -1735,6 +1735,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		INIT_LIST_HEAD(&wl->txq[i].txq_head.list);
 
 	INIT_LIST_HEAD(&wl->rxq_head.list);
+
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	register_inetaddr_notifier(&g_dev_notifier);
 #endif
