@@ -205,7 +205,7 @@ struct host_if_msg {
 	union message_body body;
 	struct wilc_vif *vif;
 	struct work_struct work;
-	void (*work_fun)(struct work_struct *ws);
+	void (*fn)(struct work_struct *ws);
 };
 
 struct join_bss_param {
@@ -275,7 +275,7 @@ static int wilc_enqueue_cmd(struct host_if_msg *msg)
 	if (!new_msg)
 		return -ENOMEM;
 
-	INIT_WORK(&new_msg->work, msg->work_fun);
+	INIT_WORK(&new_msg->work, msg->fn);
 
 	if(!hif_workqueue)
 		return -EFAULT;
@@ -361,11 +361,11 @@ static void handle_set_wfi_drv_handler(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct drv_handler *hif_drv_handler = &msg->body.drv;
 	int ret = 0;
 	struct wid wid;
 	u8 *currbyte, *buffer;
 	struct host_if_drv *hif_drv = NULL;
-	struct drv_handler *hif_drv_handler = &msg->body.drv;
 
 	if (!vif->hif_drv)
 		goto out;
@@ -397,11 +397,9 @@ static void handle_set_wfi_drv_handler(struct work_struct *work)
 
 	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				   hif_drv->driver_handler_id);
-
-	complete(&hif_driver_comp);
-
 	if (ret)
 		PRINT_ER(vif->ndev, "Failed to set driver handler\n");
+	complete(&hif_driver_comp);
 	kfree(buffer);
 
 out:
@@ -1002,7 +1000,9 @@ static void handle_connect(struct work_struct *work)
 	}
 
 	if (hif_drv->usr_scan_req.scan_result) {
-		wilc_enqueue_cmd(msg);
+		result = wilc_enqueue_cmd(msg);
+		if (result)
+			goto error;
 		usleep_range(2 * 1000, 2 * 1000);
 		kfree(msg);
 		complete(&hif_thread_comp);
@@ -1379,13 +1379,13 @@ static void handle_rcvd_ntwrk_info(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct rcvd_net_info *rcvd_info = &msg->body.net_info;
 	u32 i;
 	bool found;
 	struct network_info *info = NULL;
 	void *params = NULL;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct user_scan_req *scan_req = &hif_drv->usr_scan_req;
-	struct rcvd_net_info *rcvd_info = &msg->body.net_info;
 
 	found = true;
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Handling received network info\n");
@@ -1600,12 +1600,12 @@ static void handle_rcvd_gnrl_async_info(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct rcvd_async_info *rcvd_info = &msg->body.async_info;
 	u8 msg_type = 0;
 	u8 mac_status;
 	u8 mac_status_reason_code;
 	u8 mac_status_additional_info;
 	struct host_if_drv *hif_drv = vif->hif_drv;
-	struct rcvd_async_info *rcvd_info = &msg->body.async_info;
 
 	if (!rcvd_info->buffer) {
 		netdev_err(vif->ndev, "Received buffer is NULL\n");
@@ -1717,12 +1717,12 @@ static void handle_key(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct key_attr *hif_key = &msg->body.key_info;
 	int result = 0;
 	struct wid wid;
 	struct wid wid_list[5];
 	u8 *key_buf;
 	struct host_if_drv *hif_drv = vif->hif_drv;
-	struct key_attr *hif_key = &msg->body.key_info;
 
 	switch (hif_key->type) {
 	case WEP:
@@ -2180,10 +2180,10 @@ static void handle_get_inactive_time(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct sta_inactive_t *hif_sta_inactive = &msg->body.mac_info;
 	s32 result = 0;
 	struct wid wid;
 	struct host_if_drv *hif_drv = vif->hif_drv;
-	struct sta_inactive_t *hif_sta_inactive = &msg->body.mac_info;
 
 	wid.id = (u16)WID_SET_STA_MAC_INACTIVE_TIME;
 	wid.type = WID_STR;
@@ -2226,10 +2226,10 @@ static void handle_add_beacon(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct beacon_attr *param = &msg->body.beacon_info;
 	s32 result = 0;
 	struct wid wid;
 	u8 *cur_byte;
-	struct beacon_attr *param = &msg->body.beacon_info;
 
 	wid.id = (u16)WID_ADD_BEACON;
 	wid.type = WID_BIN;
@@ -2339,10 +2339,10 @@ static void handle_add_station(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct add_sta_param *param = &msg->body.add_sta_info;
 	s32 result = 0;
 	struct wid wid;
 	u8 *cur_byte;
-	struct add_sta_param *param = &msg->body.add_sta_info;
 
 	wid.id = (u16)WID_ADD_STA;
 	wid.type = WID_BIN;
@@ -2371,12 +2371,12 @@ static void handle_del_all_sta(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct del_all_sta *param = &msg->body.del_all_sta_info;
 	s32 result = 0;
 	struct wid wid;
 	u8 *curr_byte;
 	u8 i;
 	u8 zero_buff[6] = {0};
-	struct del_all_sta *param = &msg->body.del_all_sta_info;
 
 	wid.id = (u16)WID_DEL_ALL_STA;
 	wid.type = WID_STR;
@@ -2417,9 +2417,9 @@ static void handle_del_station(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct del_sta *param = &msg->body.del_sta_info;
 	s32 result = 0;
 	struct wid wid;
-	struct del_sta *param = &msg->body.del_sta_info;
 
 	wid.id = (u16)WID_REMOVE_STA;
 	wid.type = WID_BIN;
@@ -2448,10 +2448,10 @@ static void handle_edit_station(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct add_sta_param *param = &msg->body.edit_sta_info;
 	s32 result = 0;
 	struct wid wid;
 	u8 *cur_byte;
-	struct add_sta_param *param = &msg->body.edit_sta_info;
 
 	wid.id = (u16)WID_EDIT_STA;
 	wid.type = WID_BIN;
@@ -2590,10 +2590,10 @@ static void handle_register_frame(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct reg_frame *hif_reg_frame = &msg->body.reg_frame;
 	s32 result = 0;
 	struct wid wid;
 	u8 *cur_byte;
-	struct reg_frame *hif_reg_frame = &msg->body.reg_frame;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling frame register Flag : %d FrameType: %d\n",
 					hif_reg_frame->reg,
@@ -2627,12 +2627,12 @@ static void handle_listen_state_expired(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct remain_ch *hif_remain_ch = &msg->body.remain_on_ch;
 	u8 remain_on_chan_flag;
 	struct wid wid;
 	s32 result = 0;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	u8 null_bssid[6] = {0};
-	struct remain_ch *hif_remain_ch = &msg->body.remain_on_ch;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "CANCEL REMAIN ON CHAN\n");
 
@@ -2695,7 +2695,7 @@ static void listen_timer_cb(unsigned long arg)
 	del_timer(&vif->hif_drv->remain_on_ch_timer);
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_listen_state_expired;
+	msg.fn = handle_listen_state_expired;
 	msg.vif = vif;
 	msg.body.remain_on_ch.id = vif->hif_drv->remain_on_ch.id;
 
@@ -2740,10 +2740,10 @@ static void handle_set_mcast_filter(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
+	struct set_multicast *hif_set_mc = &msg->body.multicast_info;
 	s32 result = 0;
 	struct wid wid;
 	u8 *cur_byte;
-	struct set_multicast *hif_set_mc = &msg->body.multicast_info;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setup Multicast Filter\n");
 
@@ -2930,7 +2930,7 @@ static void timer_scan_cb(unsigned long arg)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 	msg.vif = vif;
-	msg.work_fun = &handle_scan_timer;
+	msg.fn = handle_scan_timer;
 
 	wilc_enqueue_cmd(&msg);
 }
@@ -2951,7 +2951,7 @@ static void timer_connect_cb(unsigned long arg)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 	msg.vif = vif;
-	msg.work_fun = &handle_connect_timeout;
+	msg.fn = handle_connect_timeout;
 
 	wilc_enqueue_cmd(&msg);
 }
@@ -2970,7 +2970,7 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 		return -EFAULT;
 	}
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_send_buffered_eap;
+	msg.fn = handle_send_buffered_eap;
 	msg.vif = vif;
 	msg.body.send_buff_eap.frmw_to_linux = frmw_to_linux;
 	msg.body.send_buff_eap.eap_buf_param = eap_buf_param;
@@ -3001,7 +3001,7 @@ int wilc_remove_wep_key(struct wilc_vif *vif, u8 index)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_key;
+	msg.fn = handle_key;
 	msg.body.key_info.type = WEP;
 	msg.body.key_info.action = REMOVEKEY;
 	msg.vif = vif;
@@ -3030,7 +3030,7 @@ int wilc_set_wep_default_keyid(struct wilc_vif *vif, u8 index)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_key;
+	msg.fn = handle_key;
 	msg.body.key_info.type = WEP;
 	msg.body.key_info.action = DEFAULTKEY;
 	msg.vif = vif;
@@ -3059,7 +3059,7 @@ int wilc_add_wep_key_bss_sta(struct wilc_vif *vif, const u8 *key, u8 len,
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_key;
+	msg.fn = handle_key;
 	msg.body.key_info.type = WEP;
 	msg.body.key_info.action = ADDKEY;
 	msg.vif = vif;
@@ -3095,7 +3095,7 @@ int wilc_add_wep_key_bss_ap(struct wilc_vif *vif, const u8 *key, u8 len,
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_key;
+	msg.fn = handle_key;
 	msg.body.key_info.type = WEP;
 	msg.body.key_info.action = ADDKEY_AP;
 	msg.vif = vif;
@@ -3141,7 +3141,7 @@ int wilc_add_ptk(struct wilc_vif *vif, const u8 *ptk, u8 ptk_key_len,
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_key;
+	msg.fn = handle_key;
 	msg.body.key_info.type = WPA_PTK;
 	if (mode == AP_MODE) {
 		msg.body.key_info.action = ADDKEY_AP;
@@ -3208,7 +3208,7 @@ int wilc_add_rx_gtk(struct wilc_vif *vif, const u8 *rx_gtk, u8 gtk_key_len,
 			return -ENOMEM;
 	}
 
-	msg.work_fun = &handle_key;
+	msg.fn = handle_key;
 	msg.body.key_info.type = WPA_RX_GTK;
 	msg.vif = vif;
 
@@ -3260,7 +3260,7 @@ int wilc_set_pmkid_info(struct wilc_vif *vif,
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_key;
+	msg.fn = handle_key;
 	msg.body.key_info.type = PMKSA;
 	msg.body.key_info.action = ADDKEY;
 	msg.vif = vif;
@@ -3286,7 +3286,7 @@ int wilc_get_mac_address(struct wilc_vif *vif, u8 *mac_addr)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_get_mac_address;
+	msg.fn = handle_get_mac_address;
 	msg.body.dev_mac_info.mac_addr = mac_addr;
 	msg.vif = vif;
 
@@ -3307,7 +3307,7 @@ int wilc_set_mac_address(struct wilc_vif *vif, u8 *mac_addr)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_set_mac_address;
+	msg.fn = handle_set_mac_address;
 	msg.body.dev_mac_info.mac_addr = mac_addr;
 	msg.vif = vif;
 
@@ -3343,7 +3343,7 @@ int wilc_set_join_req(struct wilc_vif *vif, u8 *bssid, const u8 *ssid,
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_connect;
+	msg.fn = handle_connect;
 
 	msg.body.con_info.security = security;
 	msg.body.con_info.auth_type = auth_type;
@@ -3405,7 +3405,7 @@ int wilc_disconnect(struct wilc_vif *vif, u16 reason_code)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_disconnect;
+	msg.fn = handle_disconnect;
 	msg.vif = vif;
 
 	result = wilc_enqueue_cmd(&msg);
@@ -3448,7 +3448,7 @@ int wilc_set_mac_chnl_num(struct wilc_vif *vif, u8 channel)
 	struct host_if_msg msg;
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_set_channel;
+	msg.fn = &handle_set_channel;
 	msg.body.channel_info.set_ch = channel;
 	msg.vif = vif;
 
@@ -3468,7 +3468,7 @@ int wilc_set_wfi_drv_handler(struct wilc_vif *vif, int index, u8 mode,
 	struct host_if_msg msg;
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_set_wfi_drv_handler;
+	msg.fn = handle_set_wfi_drv_handler;
 	msg.body.drv.handler = index;
 	msg.body.drv.mode = mode;
 	msg.body.drv.ifc_id = ifc_id;
@@ -3489,7 +3489,7 @@ int wilc_set_operation_mode(struct wilc_vif *vif, u32 mode)
 	struct host_if_msg msg;
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_set_operation_mode;
+	msg.fn = handle_set_operation_mode;
 	msg.body.mode.mode = mode;
 	msg.vif = vif;
 
@@ -3517,7 +3517,7 @@ s32 wilc_get_inactive_time(struct wilc_vif *vif, const u8 *mac,
 	memset(&msg, 0, sizeof(struct host_if_msg));
 	memcpy(msg.body.mac_info.mac, mac, ETH_ALEN);
 
-	msg.work_fun = &handle_get_inactive_time;
+	msg.fn = handle_get_inactive_time;
 	msg.vif = vif;
 
 	result = wilc_enqueue_cmd(&msg);
@@ -3538,7 +3538,7 @@ int wilc_get_rssi(struct wilc_vif *vif, s8 *rssi_level)
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_get_rssi;
+	msg.fn = handle_get_rssi;
 	msg.vif = vif;
 
 	result = wilc_enqueue_cmd(&msg);
@@ -3569,7 +3569,7 @@ int wilc_get_statistics(struct wilc_vif *vif, struct rf_info *stats)
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, " wilc_get_statistics \n");
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_get_statistics;
+	msg.fn = handle_get_statistics;
 	msg.body.data = (char *)stats;
 	msg.vif = vif;
 
@@ -3601,7 +3601,7 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_scan;
+	msg.fn = handle_scan;
 
 	if (hidden_network) {
 		scan_info->hidden_network.net_info = hidden_network->net_info;
@@ -3657,7 +3657,7 @@ int wilc_hif_set_cfg(struct wilc_vif *vif,
 	}
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_cfg_param;
+	msg.fn = handle_cfg_param;
 	msg.body.cfg_info = *cfg_param;
 	msg.vif = vif;
 
@@ -3817,7 +3817,7 @@ int wilc_deinit(struct wilc_vif *vif)
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
 	if (clients_count == 1) {
-		msg.work_fun = &handle_hif_exit_work;
+		msg.fn = handle_hif_exit_work;
 		msg.vif = vif;
 
 		result = wilc_enqueue_cmd(&msg);
@@ -3862,7 +3862,7 @@ void wilc_network_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_rcvd_ntwrk_info;
+	msg.fn = handle_rcvd_ntwrk_info;
 	msg.vif = vif;
 
 	msg.body.net_info.len = length;
@@ -3914,7 +3914,7 @@ void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_rcvd_gnrl_async_info;
+	msg.fn = handle_rcvd_gnrl_async_info;
 	msg.vif = vif;
 
 	msg.body.async_info.len = length;
@@ -3959,7 +3959,7 @@ void wilc_scan_complete_received(struct wilc *wilc, u8 *buffer, u32 length)
 	if (hif_drv->usr_scan_req.scan_result) {
 		memset(&msg, 0, sizeof(struct host_if_msg));
 
-		msg.work_fun = &handle_scan_complete;
+		msg.fn = handle_scan_complete;
 		msg.vif = vif;
 
 		result = wilc_enqueue_cmd(&msg);
@@ -3979,7 +3979,7 @@ int wilc_remain_on_channel(struct wilc_vif *vif, u32 session_id,
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_remain_on_chan_work;
+	msg.fn = handle_remain_on_chan_work;
 	msg.body.remain_on_ch.ch = chan;
 	msg.body.remain_on_ch.expired = expired;
 	msg.body.remain_on_ch.ready = ready;
@@ -4009,7 +4009,7 @@ int wilc_listen_state_expired(struct wilc_vif *vif, u32 session_id)
 	del_timer(&hif_drv->remain_on_ch_timer);
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_listen_state_expired;
+	msg.fn = handle_listen_state_expired;
 	msg.vif = vif;
 	msg.body.remain_on_ch.id = session_id;
 
@@ -4027,7 +4027,7 @@ int wilc_frame_register(struct wilc_vif *vif, u16 frame_type, bool reg)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_register_frame;
+	msg.fn = handle_register_frame;
 	switch (frame_type) {
 	case ACTION:
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "ACTION\n");
@@ -4064,7 +4064,7 @@ int wilc_add_beacon(struct wilc_vif *vif, u32 interval, u32 dtim_period,
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting adding beacon message queue params\n");
-	msg.work_fun = &handle_add_beacon;
+	msg.fn = handle_add_beacon;
 	msg.vif = vif;
 	beacon_info->interval = interval;
 	beacon_info->dtim_period = dtim_period;
@@ -4105,7 +4105,7 @@ int wilc_del_beacon(struct wilc_vif *vif)
 	int result = 0;
 	struct host_if_msg msg;
 
-	msg.work_fun = &handle_del_beacon;
+	msg.fn = handle_del_beacon;
 	msg.vif = vif;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,
 		   "Setting deleting beacon message queue params\n");
@@ -4126,7 +4126,7 @@ int wilc_add_station(struct wilc_vif *vif, struct add_sta_param *sta_param)
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting adding station message queue params\n");
-	msg.work_fun = &handle_add_station;
+	msg.fn = handle_add_station;
 	msg.vif = vif;
 
 	memcpy(add_sta_info, sta_param, sizeof(struct add_sta_param));
@@ -4156,7 +4156,7 @@ int wilc_del_station(struct wilc_vif *vif, const u8 *mac_addr)
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,
 		   "Setting deleting station message queue params\n");
-	msg.work_fun = &handle_del_station;
+	msg.fn = handle_del_station;
 	msg.vif = vif;
 
 	if (!mac_addr)
@@ -4183,7 +4183,7 @@ int wilc_del_allstation(struct wilc_vif *vif, u8 mac_addr[][ETH_ALEN])
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,
 		   "Setting deauthenticating station message queue params\n");
-	msg.work_fun = &handle_del_all_sta;
+	msg.fn = handle_del_all_sta;
 	msg.vif = vif;
 
 	for (i = 0; i < MAX_NUM_STA; i++) {
@@ -4228,7 +4228,7 @@ int wilc_edit_station(struct wilc_vif *vif,
 		   "Setting editing station message queue params\n");
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_edit_station;
+	msg.fn = handle_edit_station;
 	msg.vif = vif;
 
 	memcpy(add_sta_info, sta_param, sizeof(struct add_sta_param));
@@ -4262,7 +4262,7 @@ int wilc_set_power_mgmt(struct wilc_vif *vif, bool enabled, u32 timeout)
 		   enabled);
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_power_management;
+	msg.fn = handle_power_management;
 	msg.vif = vif;
 
 	pwr_mgmt_info->enabled = enabled;
@@ -4288,7 +4288,7 @@ int wilc_setup_multicast_filter(struct wilc_vif *vif, bool enabled,
 		   "Setting Multicast Filter params\n");
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_set_mcast_filter;
+	msg.fn = handle_set_mcast_filter;
 	msg.vif = vif;
 
 	multicast_filter_param->enabled = enabled;
@@ -4472,7 +4472,7 @@ int wilc_set_tx_power(struct wilc_vif *vif, u8 tx_power)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_set_tx_pwr;
+	msg.fn = handle_set_tx_pwr;
 	msg.body.tx_power.tx_pwr = tx_power;
 	msg.vif = vif;
 
@@ -4490,7 +4490,7 @@ int wilc_get_tx_power(struct wilc_vif *vif, u8 *tx_power)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_get_tx_pwr;
+	msg.fn = handle_get_tx_pwr;
 	msg.vif = vif;
 
 	ret = wilc_enqueue_cmd(&msg);
@@ -4531,7 +4531,7 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
-	msg.work_fun = &handle_set_antenna_mode;
+	msg.fn = handle_set_antenna_mode;
 
 	msg.vif = vif;
 	msg.body.set_ant.mode = mode;
@@ -4577,7 +4577,7 @@ int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger)
 	struct host_if_msg msg;
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
-	msg.work_fun = &handle_set_wowlan_trigger;
+	msg.fn = handle_set_wowlan_trigger;
 	msg.body.wow_trigger.wowlan_trigger = wowlan_trigger;
 	msg.vif = vif;
 
