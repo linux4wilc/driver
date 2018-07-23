@@ -174,8 +174,6 @@ struct wilc {
 	u32 rx_buffer_offset;
 	u8 *tx_buffer;
 
-	unsigned long txq_spinlock_flags;
-
 	struct txq_handle txq[NQUEUES];
 	int txq_entries;
 	int txq_exit;

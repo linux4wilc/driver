@@ -242,11 +242,12 @@ static int wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
 	struct wilc *wilc;
 	u32 i = 0;
 	u32 dropped = 0;
+	unsigned long flags;
 
 	vif = netdev_priv(dev);
 	wilc = vif->wilc;
 
-	spin_lock_irqsave(&wilc->txq_spinlock, wilc->txq_spinlock_flags);
+	spin_lock_irqsave(&wilc->txq_spinlock, flags);
 	for (i = pending_base; i < (pending_base + pending_acks); i++) {
 		u32 session_index;
 		u32 bigger_ack_num;
@@ -286,7 +287,7 @@ static int wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
 	else
 		pending_base = 0;
 
-	spin_unlock_irqrestore(&wilc->txq_spinlock, wilc->txq_spinlock_flags);
+	spin_unlock_irqrestore(&wilc->txq_spinlock, flags);
 
 	while (dropped > 0) {
 		if(!wait_for_completion_timeout(&wilc->txq_event,
@@ -357,8 +358,9 @@ static void ac_q_limit(struct wilc *wilc, u8 ac, u16 *q_limit)
 	u8 factors[NQUEUES] = {1, 1, 1, 1};
 	static u16 sum;
 	u16 i;
+	unsigned long flags;
 
-	spin_lock_irqsave(&wilc->txq_spinlock, wilc->txq_spinlock_flags);
+	spin_lock_irqsave(&wilc->txq_spinlock, flags);
 	if (!initialized) {
 		for (i = 0; i < AC_BUFFER_SIZE; i++)
 			buffer[i] = i % NQUEUES;
@@ -387,7 +389,7 @@ static void ac_q_limit(struct wilc *wilc, u8 ac, u16 *q_limit)
 		else
 			q_limit[i] = (cnt[i] * FLOW_CONTROL_UPPER_THRESHOLD / sum) + 1;
 	}
-	spin_unlock_irqrestore(&wilc->txq_spinlock, wilc->txq_spinlock_flags);
+	spin_unlock_irqrestore(&wilc->txq_spinlock, flags);
 	return;
 }
 
@@ -397,8 +399,9 @@ static inline u8 ac_classify(struct wilc *wilc, struct txq_entry_t *tqe)
 	u8 *buffer = tqe->buffer;
 	u8 ac;
 	u16 h_proto;
+	unsigned long flags;
 
-	spin_lock_irqsave(&wilc->txq_spinlock, wilc->txq_spinlock_flags);
+	spin_lock_irqsave(&wilc->txq_spinlock, flags);
 
 	eth_hdr_ptr = &buffer[0];
 	h_proto = ntohs(*((unsigned short *)&eth_hdr_ptr[12]));
@@ -437,7 +440,7 @@ static inline u8 ac_classify(struct wilc *wilc, struct txq_entry_t *tqe)
 	}
 
 	tqe->q_num = ac;
-	spin_unlock_irqrestore(&wilc->txq_spinlock, wilc->txq_spinlock_flags);
+	spin_unlock_irqrestore(&wilc->txq_spinlock, flags);
 
 	return ac;
 }
