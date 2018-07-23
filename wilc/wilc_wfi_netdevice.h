@@ -176,8 +176,6 @@ struct wilc {
 
 	unsigned long txq_spinlock_flags;
 
-	struct txq_entry_t *txq_head;
-	struct txq_entry_t *txq_tail;
 	struct txq_handle txq[NQUEUES];
 	int txq_entries;
 	int txq_exit;

@@ -224,12 +224,6 @@
  *      Tx/Rx Queue Structure
  *
  ********************************************/
-struct txq_handle {
-	struct txq_entry_t *txq_head;
-	struct txq_entry_t *txq_tail;
-	u16 count;
-	u8 acm;
-};
 
 enum ip_pkt_priority {
 	AC_VO_Q = 0,
@@ -239,8 +233,7 @@ enum ip_pkt_priority {
 };
 
 struct txq_entry_t {
-	struct txq_entry_t *next;
-	struct txq_entry_t *prev;
+	struct list_head list;
 	int type;
 	u8 q_num;
 	int tcp_pending_ack_idx;
@@ -249,6 +242,12 @@ struct txq_entry_t {
 	void *priv;
 	int status;
 	void (*tx_complete_func)(void *priv, int status);
+};
+
+struct txq_handle {
+	struct txq_entry_t txq_head;
+	u16 count;
+	u8 acm;
 };
 
 struct rxq_entry_t {
