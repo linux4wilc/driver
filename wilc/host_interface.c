@@ -1882,8 +1882,6 @@ out_wep:
 		}
 out_wpa_rx_gtk:
 		complete(&msg->work_comp);
-		kfree(hif_key->attr.wpa.key);
-		kfree(hif_key->attr.wpa.seq);
 		break;
 
 	case WPA_PTK:
@@ -3216,8 +3214,8 @@ int wilc_add_rx_gtk(struct wilc_vif *vif, const u8 *rx_gtk, u8 gtk_key_len,
 							  key_rsc_len,
 							  GFP_KERNEL);
 		if (!msg->body.key_info.attr.wpa.seq) {
-			result = -ENOMEM;
-			goto free_msg;
+			kfree(msg);
+			return -ENOMEM;
 		}
 	}
 
@@ -3255,16 +3253,12 @@ int wilc_add_rx_gtk(struct wilc_vif *vif, const u8 *rx_gtk, u8 gtk_key_len,
 	}
 
 	wait_for_completion(&msg->work_comp);
-	kfree(msg);
-	return 0;
 
 free_key:
 	kfree(msg->body.key_info.attr.wpa.key);
 
 free_seq:
 	kfree(msg->body.key_info.attr.wpa.seq);
-
-free_msg:
 	kfree(msg);
 	return result;
 }
