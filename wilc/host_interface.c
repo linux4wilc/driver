@@ -999,10 +999,9 @@ static void handle_connect(struct work_struct *work)
 
 	if (hif_drv->usr_scan_req.scan_result) {
 		result = wilc_enqueue_work(msg);
-		if (result) {
-			kfree(msg);
+		if (result)
 			goto error;
-		}
+
 		usleep_range(2 * 1000, 2 * 1000);
 		return;
 	}
@@ -3322,10 +3321,10 @@ int wilc_set_mac_address(struct wilc_vif *vif, u8 *mac_addr)
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "Failed to send get mac address\n");
-		kfree(msg);
-		return -EFAULT;
+		result = -EFAULT;
+	} else {
+		wait_for_completion(&msg->work_comp);
 	}
-	wait_for_completion(&msg->work_comp);
 	kfree(msg);
 	return result;
 }
