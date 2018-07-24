@@ -5,14 +5,6 @@
 #define TAG_PARAM_OFFSET	(MAC_HDR_LEN + TIME_STAMP_LEN + \
 				 BEACON_INTERVAL_LEN + CAP_INFO_LEN)
 
-enum basic_frame_type {
-	FRAME_TYPE_CONTROL     = 0x04,
-	FRAME_TYPE_DATA        = 0x08,
-	FRAME_TYPE_MANAGEMENT  = 0x00,
-	FRAME_TYPE_RESERVED    = 0x0C,
-	FRAME_TYPE_FORCE_32BIT = 0xFFFFFFFF
-};
-
 enum info_element_id {
 	ISSID               = 0,   /* Service Set Identifier         */
 	ISUPRATES           = 1,   /* Supported Rates                */

@@ -181,12 +181,6 @@ enum {
 };
 
 enum {
-	DONT_RESET		= 0,
-	DO_RESET		= 1,
-	NO_REQUEST		= 2,
-};
-
-enum {
 	REKEY_DISABLE		= 1,
 	REKEY_TIME_BASE,
 	REKEY_PKT_BASE,
@@ -197,17 +191,6 @@ enum {
 	FILTER_NO		= 0x00,
 	FILTER_AP_ONLY		= 0x01,
 	FILTER_STA_ONLY		= 0x02
-};
-
-enum {
-	PRI_HIGH_RSSI		= 0x00,
-	PRI_LOW_RSSI		= 0x04,
-	PRI_DETECT		= 0x08
-};
-
-enum {
-	CH_FILTER_OFF		= 0x00,
-	CH_FILTER_ON		= 0x10
 };
 
 enum {
@@ -247,15 +230,6 @@ enum {
 	STATIC_MODE		= 1,
 	DYNAMIC_MODE		= 2,
 	MIMO_MODE		= 3,	/* power save disable */
-};
-
-enum {
-	DISABLE_SELF_CTS,
-	ENABLE_SELF_CTS,
-	DISABLE_TX_ABORT,
-	ENABLE_TX_ABORT,
-	HW_TRIGGER_ABORT,
-	SW_TRIGGER_ABORT,
 };
 
 enum wid_type {
