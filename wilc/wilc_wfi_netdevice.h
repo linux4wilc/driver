@@ -77,12 +77,10 @@ struct wilc_priv {
 
 	u8 associated_bss[ETH_ALEN];
 	struct sta_info assoc_stainfo;
-	int status;
 	struct sk_buff *skb;
 	struct net_device *dev;
 	struct host_if_drv *hif_drv;
 	struct host_if_pmkid_attr pmkid_list;
-	struct wilc_wfi_stats netstats;
 	u8 wep_key[4][WLAN_KEY_LEN_WEP104];
 	u8 wep_key_len[4];
 	/* The real interface that the monitor is on */
@@ -92,8 +90,6 @@ struct wilc_priv {
 	u8 wilc_groupkey;
 
 	struct mutex scan_req_lock;
-	/*  */
-	bool auto_rate_adjusted;
 
 	bool p2p_listen_state;
 	struct wilc_buffered_eap *buffered_eap;

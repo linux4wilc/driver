@@ -2961,8 +2961,6 @@ int wilc_init_host_int(struct net_device *net)
 	setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #endif
 
-	priv->auto_rate_adjusted = false;
-
 	priv->p2p_listen_state = false;
 
 	mutex_init(&priv->scan_req_lock);
@@ -2981,8 +2979,6 @@ int wilc_deinit_host_int(struct net_device *net)
 
 	priv = wdev_priv(net->ieee80211_ptr);
 	vif = netdev_priv(priv->dev);
-
-	priv->auto_rate_adjusted = false;
 
 	priv->p2p_listen_state = false;
 
