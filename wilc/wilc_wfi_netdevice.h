@@ -77,8 +77,6 @@ struct wilc_priv {
 
 	u8 associated_bss[ETH_ALEN];
 	struct sta_info assoc_stainfo;
-	struct net_device_stats stats;
-	u8 monitor_flag;
 	int status;
 	struct sk_buff *skb;
 	struct net_device *dev;
