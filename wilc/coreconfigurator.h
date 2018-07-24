@@ -65,26 +65,6 @@ enum sub_frame_type {
 	FRAME_SUBTYPE_FORCE_32BIT  = 0xFFFFFFFF
 };
 
-enum connect_status {
-	SUCCESSFUL_STATUSCODE    = 0,
-	UNSPEC_FAIL              = 1,
-	UNSUP_CAP                = 10,
-	REASOC_NO_ASOC           = 11,
-	FAIL_OTHER               = 12,
-	UNSUPT_ALG               = 13,
-	AUTH_SEQ_FAIL            = 14,
-	CHLNG_FAIL               = 15,
-	AUTH_TIMEOUT             = 16,
-	AP_FULL                  = 17,
-	UNSUP_RATE               = 18,
-	SHORT_PREAMBLE_UNSUP     = 19,
-	PBCC_UNSUP               = 20,
-	CHANNEL_AGIL_UNSUP       = 21,
-	SHORT_SLOT_UNSUP         = 25,
-	OFDM_DSSS_UNSUP          = 26,
-	CONNECT_STS_FORCE_16_BIT = 0xFFFF
-};
-
 struct rssi_history_buffer {
 	bool full;
 	u8 index;
