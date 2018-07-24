@@ -2854,13 +2854,13 @@ static struct wireless_dev *wilc_wfi_cfg_alloc(struct net_device *net)
 	wdev = kzalloc(sizeof(*wdev), GFP_KERNEL);
 	if (!wdev) {
 		PRINT_ER(net, "Cannot allocate wireless device\n");
-		goto _fail_;
+		goto out;
 	}
 
 	wdev->wiphy = wiphy_new(&wilc_cfg80211_ops, sizeof(struct wilc_priv));
 	if (!wdev->wiphy) {
 		PRINT_ER(net, "Cannot allocate wiphy\n");
-		goto _fail_mem_;
+		goto free_mem;
 	}
 
 	wilc_band_2ghz.ht_cap.ht_supported = 1;
@@ -2876,9 +2876,9 @@ static struct wireless_dev *wilc_wfi_cfg_alloc(struct net_device *net)
 #endif
 	return wdev;
 
-_fail_mem_:
+free_mem:
 	kfree(wdev);
-_fail_:
+out:
 	return NULL;
 }
 
