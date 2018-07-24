@@ -299,7 +299,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		PRINT_D(vif->ndev, GENERIC_DBG,
 			"\n =========== IP Address Obtained ============\n\n");
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
-			hif_drv->IFC_UP = 1;
+			hif_drv->ifc_up = 1;
 
 			handle_pwrsave_during_obtainingIP(vif,
 							  IP_STATE_OBTAINED);
@@ -319,7 +319,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		PRINT_D(vif->ndev, GENERIC_DBG,
 			"\n =========== IP Address Released ============\n\n");
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
-			hif_drv->IFC_UP = 0;
+			hif_drv->ifc_up = 0;
 			handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
 		}
 
