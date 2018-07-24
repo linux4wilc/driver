@@ -176,12 +176,8 @@ struct wilc {
 
 	struct txq_handle txq[NQUEUES];
 	int txq_entries;
-	int txq_exit;
 
 	struct rxq_entry_t rxq_head;
-	int rxq_exit;
-
-	unsigned char eth_src_address[NUM_CONCURRENT_IFC][6];
 
 	const struct firmware *firmware;
 
