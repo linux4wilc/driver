@@ -254,7 +254,6 @@ u8 wilc_multicast_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
 
 static u8 rcv_assoc_resp[MAX_ASSOC_RESP_FRAME_SIZE];
 
-static s8 rssi;
 static u32 clients_count;
 
 extern int recovery_on;
@@ -2097,7 +2096,7 @@ static void handle_get_rssi(struct work_struct *work)
 
 	wid.id = (u16)WID_RSSI;
 	wid.type = WID_CHAR;
-	wid.val = &rssi;
+	wid.val = msg->body.data;
 	wid.size = sizeof(char);
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Getting RSSI value\n");
@@ -2105,7 +2104,7 @@ static void handle_get_rssi(struct work_struct *work)
 				      wilc_get_vif_idx(vif));
 	if (result) {
 		PRINT_ER(vif->ndev, "Failed to get RSSI value\n");
-		rssi = INVALID_RSSI;
+		*msg->body.data = INVALID_RSSI;
 	}
 
 	complete(&msg->work_comp);
@@ -3582,18 +3581,25 @@ int wilc_get_rssi(struct wilc_vif *vif, s8 *rssi_level)
 	if (IS_ERR(msg))
 		return PTR_ERR(msg);
 
+	msg->body.data = kzalloc(sizeof(s8), GFP_KERNEL);
+	if (!msg->body.data) {
+		kfree(msg);
+		return -ENOMEM;
+	}
+
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "Failed to send get host ch param\n");
 	} else {
 		wait_for_completion(&msg->work_comp);
 
-		if(rssi == INVALID_RSSI)
+		if(*msg->body.data == INVALID_RSSI)
 			result = -EFAULT;
 		else
-			*rssi_level = rssi;
+			*rssi_level = *msg->body.data;
 	}
 
+	kfree(msg->body.data);
 	kfree(msg);
 
 	return result;
