@@ -347,7 +347,7 @@ static void handle_set_channel(struct work_struct *work)
 	int ret = 0;
 	struct wid wid;
 
-	wid.id = (u16)WID_CURRENT_CHANNEL;
+	wid.id = WID_CURRENT_CHANNEL;
 	wid.type = WID_CHAR;
 	wid.val = (char *)&hif_set_ch->set_ch;
 	wid.size = sizeof(char);
@@ -390,7 +390,7 @@ static void handle_set_wfi_drv_handler(struct work_struct *work)
 	currbyte++;
 	*currbyte = (hif_drv_handler->ifc_id | (hif_drv_handler->mode << 1));
 
-	wid.id = (u16)WID_SET_DRV_HANDLER;
+	wid.id = WID_SET_DRV_HANDLER;
 	wid.type = WID_STR;
 	wid.val = (s8 *)buffer;
 	wid.size = DRV_HANDLER_SIZE;
@@ -414,7 +414,7 @@ static void handle_set_operation_mode(struct work_struct *work)
 	int ret = 0;
 	struct wid wid;
 
-	wid.id = (u16)WID_SET_OPERATION_MODE;
+	wid.id = WID_SET_OPERATION_MODE;
 	wid.type = WID_INT;
 	wid.val = (s8 *)&hif_op_mode->mode;
 	wid.size = sizeof(u32);
@@ -437,7 +437,7 @@ static void handle_get_mac_address(struct work_struct *work)
 	int ret = 0;
 	struct wid wid;
 
-	wid.id = (u16)WID_MAC_ADDR;
+	wid.id = WID_MAC_ADDR;
 	wid.type = WID_STR;
 	wid.val = msg->body.dev_mac_info.mac_addr;
 	wid.size = ETH_ALEN;
@@ -458,7 +458,7 @@ static void handle_set_mac_address(struct work_struct *work)
 	int ret;
 	struct wid wid;
 
-	wid.id = (u16)WID_MAC_ADDR;
+	wid.id = WID_MAC_ADDR;
 	wid.type = WID_STR;
 	wid.val = msg->body.dev_mac_info.mac_addr;
 	wid.size = ETH_ALEN;
@@ -833,7 +833,7 @@ static void handle_scan(struct work_struct *work)
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,"Setting SCAN params\n");
 	hif_drv->usr_scan_req.rcvd_ch_cnt = 0;
 
-	wid_list[index].id = (u16)WID_SSID_PROBE_REQ;
+	wid_list[index].id = WID_SSID_PROBE_REQ;
 	wid_list[index].type = WID_STR;
 
 	for (i = 0; i < hidden_net->n_ssids; i++)
@@ -950,7 +950,7 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 	} else if (evt == SCAN_EVENT_ABORTED) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,"Abort running scan\n");		
 		abort_running_scan = 1;
-		wid.id = (u16)WID_ABORT_RUNNING_SCAN;
+		wid.id = WID_ABORT_RUNNING_SCAN;
 		wid.type = WID_CHAR;
 		wid.val = (s8 *)&abort_running_scan;
 		wid.size = sizeof(char);
@@ -1096,14 +1096,14 @@ static void handle_connect(struct work_struct *work)
 	wid_list[wid_cnt].size = hif_drv->usr_conn_req.ies_len;
 	wid_cnt++;
 
-	wid_list[wid_cnt].id = (u16)WID_11I_MODE;
+	wid_list[wid_cnt].id = WID_11I_MODE;
 	wid_list[wid_cnt].type = WID_CHAR;
 	wid_list[wid_cnt].size = sizeof(char);
 	wid_list[wid_cnt].val = (s8 *)&hif_drv->usr_conn_req.security;
 	wid_cnt++;
 
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Encrypt Mode = %x\n", hif_drv->usr_conn_req.security);
-	wid_list[wid_cnt].id = (u16)WID_AUTH_TYPE;
+	wid_list[wid_cnt].id = WID_AUTH_TYPE;
 	wid_list[wid_cnt].type = WID_CHAR;
 	wid_list[wid_cnt].size = sizeof(char);
 	wid_list[wid_cnt].val = (s8 *)&hif_drv->usr_conn_req.auth_type;
@@ -1113,7 +1113,7 @@ static void handle_connect(struct work_struct *work)
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Connecting to network of SSID %s on channel %d\n",
 		 hif_drv->usr_conn_req.ssid, conn_attr->ch);
 
-	wid_list[wid_cnt].id = (u16)WID_JOIN_REQ_EXTENDED;
+	wid_list[wid_cnt].id = WID_JOIN_REQ_EXTENDED;
 	wid_list[wid_cnt].type = WID_STR;
 	wid_list[wid_cnt].size = 112;
 	wid_list[wid_cnt].val = kmalloc(wid_list[wid_cnt].size, GFP_KERNEL);
@@ -1341,7 +1341,7 @@ static void handle_connect_timeout(struct work_struct *work)
 		PRINT_ER(vif->ndev, "Connect callback is NULL\n");
 	}
 
-	wid.id = (u16)WID_DISCONNECT;
+	wid.id = WID_DISCONNECT;
 	wid.type = WID_CHAR;
 	wid.val = (s8 *)&dummy_reason_code;
 	wid.size = sizeof(char);
@@ -1686,7 +1686,7 @@ static int wilc_pmksa_key_copy(struct wilc_vif *vif, struct key_attr *hif_key)
 		       hif_key->attr.pmkid.pmkidlist[i].pmkid, PMKID_LEN);
 	}
 
-	wid.id = (u16)WID_PMKID_INFO;
+	wid.id = WID_PMKID_INFO;
 	wid.type = WID_STR;
 	wid.val = (s8 *)key_buf;
 	wid.size = (hif_key->attr.pmkid.numpmkid * PMKSA_KEY_LEN) + 1;
@@ -1717,7 +1717,7 @@ static void handle_key(struct work_struct *work)
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, 
 				   "Handling WEP key index: %d\n",
 				   hif_key->attr.wep.index);
-			wid_list[0].id = (u16)WID_11I_MODE;
+			wid_list[0].id = WID_11I_MODE;
 			wid_list[0].type = WID_CHAR;
 			wid_list[0].size = sizeof(char);
 			wid_list[0].val = (s8 *)&hif_key->attr.wep.mode;
@@ -1741,7 +1741,7 @@ static void handle_key(struct work_struct *work)
 			memcpy(&key_buf[2], hif_key->attr.wep.key,
 			       hif_key->attr.wep.key_len);
 
-			wid_list[2].id = (u16)WID_WEP_KEY_VALUE;
+			wid_list[2].id = WID_WEP_KEY_VALUE;
 			wid_list[2].type = WID_STR;
 			wid_list[2].size = hif_key->attr.wep.key_len + 2;
 			wid_list[2].val = (s8 *)key_buf;
@@ -1765,7 +1765,7 @@ static void handle_key(struct work_struct *work)
 			memcpy(key_buf + 2, hif_key->attr.wep.key,
 			       hif_key->attr.wep.key_len);
 
-			wid.id = (u16)WID_ADD_WEP_KEY;
+			wid.id = WID_ADD_WEP_KEY;
 			wid.type = WID_STR;
 			wid.val = (s8 *)key_buf;
 			wid.size = hif_key->attr.wep.key_len + 2;
@@ -1776,7 +1776,7 @@ static void handle_key(struct work_struct *work)
 			kfree(key_buf);
 		} else if (hif_key->action & REMOVEKEY) {
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, "Removing key\n");
-			wid.id = (u16)WID_REMOVE_WEP_KEY;
+			wid.id = WID_REMOVE_WEP_KEY;
 			wid.type = WID_STR;
 
 			wid.val = (s8 *)&hif_key->attr.wep.index;
@@ -1786,7 +1786,7 @@ static void handle_key(struct work_struct *work)
 						      &wid, 1,
 						      wilc_get_vif_idx(vif));
 		} else if (hif_key->action & DEFAULTKEY) {
-			wid.id = (u16)WID_KEY_ID;
+			wid.id = WID_KEY_ID;
 			wid.type = WID_CHAR;
 			wid.val = (s8 *)&hif_key->attr.wep.index;
 			wid.size = sizeof(char);
@@ -1817,12 +1817,12 @@ out_wep:
 			memcpy(key_buf + 16, hif_key->attr.wpa.key,
 			       hif_key->attr.wpa.key_len);
 
-			wid_list[0].id = (u16)WID_11I_MODE;
+			wid_list[0].id = WID_11I_MODE;
 			wid_list[0].type = WID_CHAR;
 			wid_list[0].size = sizeof(char);
 			wid_list[0].val = (s8 *)&hif_key->attr.wpa.mode;
 
-			wid_list[1].id = (u16)WID_ADD_RX_GTK;
+			wid_list[1].id = WID_ADD_RX_GTK;
 			wid_list[1].type = WID_STR;
 			wid_list[1].val = (s8 *)key_buf;
 			wid_list[1].size = RX_MIC_KEY_MSG_LEN;
@@ -1852,7 +1852,7 @@ out_wep:
 			memcpy(key_buf + 16, hif_key->attr.wpa.key,
 			       hif_key->attr.wpa.key_len);
 
-			wid.id = (u16)WID_ADD_RX_GTK;
+			wid.id = WID_ADD_RX_GTK;
 			wid.type = WID_STR;
 			wid.val = (s8 *)key_buf;
 			wid.size = RX_MIC_KEY_MSG_LEN;
@@ -1882,12 +1882,12 @@ out_wpa_rx_gtk:
 			memcpy(key_buf + 8, hif_key->attr.wpa.key,
 			       hif_key->attr.wpa.key_len);
 
-			wid_list[0].id = (u16)WID_11I_MODE;
+			wid_list[0].id = WID_11I_MODE;
 			wid_list[0].type = WID_CHAR;
 			wid_list[0].size = sizeof(char);
 			wid_list[0].val = (s8 *)&hif_key->attr.wpa.mode;
 
-			wid_list[1].id = (u16)WID_ADD_PTK;
+			wid_list[1].id = WID_ADD_PTK;
 			wid_list[1].type = WID_STR;
 			wid_list[1].val = (s8 *)key_buf;
 			wid_list[1].size = PTK_KEY_MSG_LEN + 1;
@@ -1908,7 +1908,7 @@ out_wpa_rx_gtk:
 			memcpy(key_buf + 7, hif_key->attr.wpa.key,
 			       hif_key->attr.wpa.key_len);
 
-			wid.id = (u16)WID_ADD_PTK;
+			wid.id = WID_ADD_PTK;
 			wid.type = WID_STR;
 			wid.val = (s8 *)key_buf;
 			wid.size = PTK_KEY_MSG_LEN;
@@ -1971,7 +1971,7 @@ static void handle_disconnect(struct work_struct *work)
 			handle_scan_done(vif, SCAN_EVENT_ABORTED);
 		}
 	}
-	wid.id = (u16)WID_DISCONNECT;
+	wid.id = WID_DISCONNECT;
 	wid.type = WID_CHAR;
 	wid.val = (s8 *)&dummy_reason_code;
 	wid.size = sizeof(char);
@@ -2078,7 +2078,7 @@ static void handle_get_rssi(struct work_struct *work)
 	s32 result = 0;
 	struct wid wid;
 
-	wid.id = (u16)WID_RSSI;
+	wid.id = WID_RSSI;
 	wid.type = WID_CHAR;
 	wid.val = msg->body.data;
 	wid.size = sizeof(char);
@@ -2164,7 +2164,7 @@ static void handle_get_inactive_time(struct work_struct *work)
 	s32 result = 0;
 	struct wid wid;
 
-	wid.id = (u16)WID_SET_STA_MAC_INACTIVE_TIME;
+	wid.id = WID_SET_STA_MAC_INACTIVE_TIME;
 	wid.type = WID_STR;
 	wid.size = ETH_ALEN;
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
@@ -2183,7 +2183,7 @@ static void handle_get_inactive_time(struct work_struct *work)
 		goto out;
 	}
 
-	wid.id = (u16)WID_GET_INACTIVE_TIME;
+	wid.id = WID_GET_INACTIVE_TIME;
 	wid.type = WID_INT;
 	wid.val = (s8 *)&hif_sta_inactive->inactive_time;
 	wid.size = sizeof(u32);
@@ -2209,7 +2209,7 @@ static void handle_add_beacon(struct work_struct *work)
 	struct wid wid;
 	u8 *cur_byte;
 
-	wid.id = (u16)WID_ADD_BEACON;
+	wid.id = WID_ADD_BEACON;
 	wid.type = WID_BIN;
 	wid.size = param->head_len + param->tail_len + 16;
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
@@ -2264,7 +2264,7 @@ static void handle_del_beacon(struct work_struct *work)
 	struct wid wid;
 	u8 del_beacon = 0;
 
-	wid.id = (u16)WID_DEL_BEACON;
+	wid.id = WID_DEL_BEACON;
 	wid.type = WID_CHAR;
 	wid.size = sizeof(char);
 	wid.val = &del_beacon;
@@ -2318,7 +2318,7 @@ static void handle_add_station(struct work_struct *work)
 	struct wid wid;
 	u8 *cur_byte;
 
-	wid.id = (u16)WID_ADD_STA;
+	wid.id = WID_ADD_STA;
 	wid.type = WID_BIN;
 	wid.size = WILC_ADD_STA_LENGTH + param->rates_len;
 
@@ -2351,7 +2351,7 @@ static void handle_del_all_sta(struct work_struct *work)
 	u8 i;
 	u8 zero_buff[6] = {0};
 
-	wid.id = (u16)WID_DEL_ALL_STA;
+	wid.id = WID_DEL_ALL_STA;
 	wid.type = WID_STR;
 	wid.size = (param->assoc_sta * ETH_ALEN) + 1;
 
@@ -2393,7 +2393,7 @@ static void handle_del_station(struct work_struct *work)
 	s32 result = 0;
 	struct wid wid;
 
-	wid.id = (u16)WID_REMOVE_STA;
+	wid.id = WID_REMOVE_STA;
 	wid.type = WID_BIN;
 	wid.size = ETH_ALEN;
 
@@ -2424,7 +2424,7 @@ static void handle_edit_station(struct work_struct *work)
 	struct wid wid;
 	u8 *cur_byte;
 
-	wid.id = (u16)WID_EDIT_STA;
+	wid.id = WID_EDIT_STA;
 	wid.type = WID_BIN;
 	wid.size = WILC_ADD_STA_LENGTH + param->rates_len;
 
@@ -2518,7 +2518,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting channel :%d\n", hif_remain_ch->ch);
 	remain_on_chan_flag = true;
-	wid.id = (u16)WID_REMAIN_ON_CHAN;
+	wid.id = WID_REMAIN_ON_CHAN;
 	wid.type = WID_STR;
 	wid.size = 2;
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
@@ -2568,7 +2568,7 @@ static void handle_register_frame(struct work_struct *work)
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling frame register Flag : %d FrameType: %d\n",
 					hif_reg_frame->reg,
 					hif_reg_frame->frame_type);
-	wid.id = (u16)WID_REGISTER_FRAME;
+	wid.id = WID_REGISTER_FRAME;
 	wid.type = WID_STR;
 	wid.val = kmalloc(sizeof(u16) + 2, GFP_KERNEL);
 	if (!wid.val)
@@ -2607,7 +2607,7 @@ static void handle_listen_state_expired(struct work_struct *work)
 
 	if (hif_drv->hif_state == HOST_IF_P2P_LISTEN) {
 		remain_on_chan_flag = false;
-		wid.id = (u16)WID_REMAIN_ON_CHAN;
+		wid.id = WID_REMAIN_ON_CHAN;
 		wid.type = WID_STR;
 		wid.size = 2;
 		wid.val = kmalloc(wid.size, GFP_KERNEL);
@@ -2684,7 +2684,7 @@ static void handle_power_management(struct work_struct *work)
 	struct wid wid;
 	s8 power_mode;
 
-	wid.id = (u16)WID_POWER_MANAGEMENT;
+	wid.id = WID_POWER_MANAGEMENT;
 
 	if (pm_param->enabled)
 		power_mode = MIN_FAST_PS;
@@ -2717,7 +2717,7 @@ static void handle_set_mcast_filter(struct work_struct *work)
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setup Multicast Filter\n");
 
-	wid.id = (u16)WID_SETUP_MULTICAST_FILTER;
+	wid.id = WID_SETUP_MULTICAST_FILTER;
 	wid.type = WID_BIN;
 	wid.size = sizeof(struct set_multicast) + (hif_set_mc->cnt * ETH_ALEN);
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
@@ -2756,7 +2756,7 @@ static void handle_set_wowlan_trigger(struct work_struct *work)
 	int ret = 0;
 	struct wid wid;
 
-	wid.id = (u16)WID_WOWLAN_TRIGGER;
+	wid.id = WID_WOWLAN_TRIGGER;
 	wid.type = WID_CHAR;
 	wid.val = &msg->body.wow_trigger.wowlan_trigger;
 	wid.size = sizeof(s8);
@@ -2777,7 +2777,7 @@ static void handle_set_tx_pwr(struct work_struct *work)
 	int ret;
 	struct wid wid;
 
-	wid.id = (u16)WID_TX_POWER;
+	wid.id = WID_TX_POWER;
 	wid.type = WID_CHAR;
 	wid.val = &tx_pwr;
 	wid.size = sizeof(char);
@@ -2798,7 +2798,7 @@ static void handle_get_tx_pwr(struct work_struct *work)
 	int ret = 0;
 	struct wid wid;
 
-	wid.id = (u16)WID_TX_POWER;
+	wid.id = WID_TX_POWER;
 	wid.type = WID_CHAR;
 	wid.val = (s8 *)tx_pwr;
 	wid.size = sizeof(char);
@@ -2860,7 +2860,7 @@ static void handle_set_antenna_mode(struct work_struct *work)
 	sysfs_attr_group *attr_syfs_p = &vif->attr_sysfs;
 	struct host_if_set_ant *set_ant = &msg->body.set_ant;
 
-	wid.id = (u16)WID_ANTENNA_SELECTION;
+	wid.id = WID_ANTENNA_SELECTION;
 	wid.type = WID_BIN;
 	wid.val = (u8 *)set_ant;
 	wid.size = sizeof(struct host_if_set_ant);
@@ -3448,7 +3448,7 @@ static s32 host_int_get_assoc_res_info(struct wilc_vif *vif,
 	s32 result = 0;
 	struct wid wid;
 
-	wid.id = (u16)WID_ASSOC_RES_INFO;
+	wid.id = WID_ASSOC_RES_INFO;
 	wid.type = WID_STR;
 	wid.val = assoc_resp_info;
 	wid.size = max_assoc_resp_info_len;
