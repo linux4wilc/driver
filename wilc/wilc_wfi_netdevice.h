@@ -21,6 +21,11 @@
 
 #define NUM_REG_FRAME 				2
 
+#define TCP_ACK_FILTER_LINK_SPEED_THRESH       54
+#define DEFAULT_LINK_SPEED                     72
+
+#define GET_PKT_OFFSET(a) (((a) >> 22) & 0x1ff)
+
 #define ANT_SWTCH_INVALID_GPIO_CTRL 		0
 #define ANT_SWTCH_SNGL_GPIO_CTRL 		1
 #define ANT_SWTCH_DUAL_GPIO_CTRL		2
