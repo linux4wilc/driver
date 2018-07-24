@@ -1699,8 +1699,8 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	#endif
 
 	kfree(wilc);
-	wilc_sysfs_exit();
 	wilc_debugfs_remove();
+	wilc_sysfs_exit();
 	pr_info("Module_exit Done.\n");
 }
 
@@ -1723,11 +1723,11 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	struct wilc *wl;
 	struct wireless_dev *wdev;
 
-	wilc_debugfs_init();
 	wl = kzalloc(sizeof(*wl), GFP_KERNEL);
 	if (!wl)
 		return -ENOMEM;
 
+	wilc_debugfs_init();
 	*wilc = wl;
 	wl->io_type = io_type;
 	wl->hif_func = ops;
