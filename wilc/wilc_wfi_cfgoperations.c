@@ -1569,7 +1569,6 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 {
 	u32 i;
 	s32 ret = 0;
-
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 
 	PRINT_INFO(netdev, CFG80211_DBG, "Deleting PMKSA keys\n");
@@ -1671,7 +1670,6 @@ static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 * buf,
 					 u32 len,bool oper_ch, u8 p2p_mode)
 {
 	u32 index = 0;
-
 	u8 op_channel_attr_index = 0;
 	u8 channel_list_attr_index = 0;
 
@@ -2940,9 +2938,9 @@ int wilc_init_host_int(struct net_device *net)
 {
 	int ret = 0;
 	struct wilc_priv *priv;
+	priv = wdev_priv(net->ieee80211_ptr);
 
 	PRINT_INFO(net, INIT_DBG, "Host[%p][%p]\n", net, net->ieee80211_ptr);
-	priv = wdev_priv(net->ieee80211_ptr);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
