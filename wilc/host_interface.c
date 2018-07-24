@@ -150,6 +150,7 @@ struct power_mgmt_param {
 
 struct sta_inactive_t {
 	u8 mac[6];
+	u32 inactive_time;
 };
 
 struct host_if_wowlan_trigger {
@@ -254,7 +255,6 @@ u8 wilc_multicast_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
 static u8 rcv_assoc_resp[MAX_ASSOC_RESP_FRAME_SIZE];
 
 static s8 rssi;
-static u32 inactive_time;
 static u32 clients_count;
 
 extern int recovery_on;
@@ -2202,7 +2202,7 @@ static void handle_get_inactive_time(struct work_struct *work)
 
 	wid.id = (u16)WID_GET_INACTIVE_TIME;
 	wid.type = WID_INT;
-	wid.val = (s8 *)&inactive_time;
+	wid.val = (s8 *)&hif_sta_inactive->inactive_time;
 	wid.size = sizeof(u32);
 
 	result = wilc_send_config_pkt(vif, GET_CFG, &wid, 1,
@@ -2211,7 +2211,7 @@ static void handle_get_inactive_time(struct work_struct *work)
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to get inactive time\n");
 
-	PRINT_INFO(vif->ndev, CFG80211_DBG, "Getting inactive time : %d\n", inactive_time);
+	PRINT_INFO(vif->ndev, CFG80211_DBG, "Getting inactive time : %d\n", hif_sta_inactive->inactive_time);
 out:
 	/* free 'msg' data in caller */
 	complete(&msg->work_comp);
@@ -3562,7 +3562,7 @@ s32 wilc_get_inactive_time(struct wilc_vif *vif, const u8 *mac,
 	else
 		wait_for_completion(&msg->work_comp);
 
-	*out_val = inactive_time;
+	*out_val = msg->body.mac_info.inactive_time;
 	kfree(msg);
 
 	return result;
