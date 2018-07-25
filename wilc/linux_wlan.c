@@ -1330,13 +1330,29 @@ static int wilc_set_mac_addr(struct net_device *dev, void *p)
 	int result;
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct sockaddr *addr = (struct sockaddr *)p;
+	struct wilc *wilc = vif->wilc;
+	unsigned char mac_addr[6] = {0};
+	int i;
 
-	/* configure new MAC address */
 	if (!is_valid_ether_addr(addr->sa_data)) {
 		PRINT_INFO(vif->ndev, INIT_DBG,"Invalid MAC address \n");
 		return -EINVAL;
 	}
 	
+	for (i = 0; i <= wilc->vif_num; i++) {
+		wilc_get_mac_address(wilc->vif[i], mac_addr);
+		if (ether_addr_equal(addr->sa_data, mac_addr)) {
+			if (vif != wilc->vif[i]) {
+				PRINT_INFO(vif->ndev, INIT_DBG,
+					   "MAC address is alredy in use\n");
+				return -EINVAL;
+			} else {
+				return 0;
+			}
+		}
+	}
+	
+	/* configure new MAC address */
 	result = wilc_set_mac_address(vif,(u8 *)addr->sa_data);
 	ether_addr_copy(vif->bssid, addr->sa_data);
 	ether_addr_copy(vif->ndev->dev_addr, vif->bssid);
