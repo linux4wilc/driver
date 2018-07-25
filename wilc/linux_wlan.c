@@ -563,7 +563,7 @@ int wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
 				   "set bssid [%x][%x][%x]\n", bssid[0],
 				   bssid[1], bssid[2]);
-			memcpy(wilc->vif[i]->bssid, bssid, 6);
+			ether_addr_copy(wilc->vif[i]->bssid, bssid);
 			wilc->vif[i]->iftype = mode;
 		}
 	}
@@ -1295,16 +1295,14 @@ static int wilc_mac_open(struct net_device *ndev)
 	wilc_set_operation_mode(vif, vif->iftype);
 	wilc_get_mac_address(vif, mac_add);
 	PRINT_INFO(vif->ndev, INIT_DBG, "Mac address: %pM\n", mac_add);
-	memcpy(vif->src_addr, mac_add, ETH_ALEN);
 
-	memcpy(ndev->dev_addr, vif->src_addr, ETH_ALEN);
-
-	if (!is_valid_ether_addr(ndev->dev_addr)) {
+	if (!is_valid_ether_addr(mac_add)) {
 		PRINT_ER(ndev, "Wrong MAC address\n");
 		wilc_deinit_host_int(ndev);
 		wilc_wlan_deinitialize(ndev);
 		return -EINVAL;
 	}
+	ether_addr_copy(ndev->dev_addr, mac_add);
 
 	wilc_mgmt_frame_register(vif->ndev->ieee80211_ptr->wiphy,
 				 vif->ndev->ieee80211_ptr,
