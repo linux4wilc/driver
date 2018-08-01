@@ -11,6 +11,7 @@
 #define STATION_MODE	0x02
 #define GO_MODE		0x03
 #define CLIENT_MODE	0x04
+#define MONITOR_MODE	0x05
 
 #define P2P_IFC		0x00
 #define WLAN_IFC	0x01
@@ -185,7 +186,7 @@ typedef void (*wilc_connect_result)(enum conn_event,
 typedef void (*wilc_remain_on_chan_expired)(void *, u32);
 typedef void (*wilc_remain_on_chan_ready)(void *);
 
-typedef void (*wilc_frmw_to_linux_t)(struct wilc *, u8 *, unsigned int,
+typedef void (*wilc_frmw_to_linux_t)(struct wilc_vif *, u8 *, unsigned int,
 				     unsigned int, u8);
 typedef void (*free_eap_buf_param)(void *);
 

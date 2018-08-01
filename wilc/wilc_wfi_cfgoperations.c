@@ -2285,6 +2285,11 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 	priv_2 = wdev_priv(net_device_2->ieee80211_ptr);
 	vif_1 = netdev_priv(net_device_1);
 	vif_2 = netdev_priv(net_device_2);
+
+	if (wilc_wfi_mon == dev) {
+		wilc_wfi_mon = NULL;
+		vif->monitor_flag = 0;
+	}
 	
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 		   "In Change virtual interface function\n");
@@ -2306,10 +2311,9 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			   "Interface type = NL80211_IFTYPE_STATION\n");
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
-		vif->monitor_flag = 0;
 		vif->iftype = STATION_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 STATION_MODE, vif->ifc_id);
+					 			STATION_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, STATION_MODE);
 
 		memset(priv->assoc_stainfo.sta_associated_bss, 0,
@@ -2326,11 +2330,10 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			   "Interface type = NL80211_IFTYPE_P2P_CLIENT\n");
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
-		vif->monitor_flag = 0;
 		vif->iftype = CLIENT_MODE;
 		wilc_enable_ps = false;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 STATION_MODE, vif->ifc_id);
+					 			STATION_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, STATION_MODE);
 
 		wilc_set_power_mgmt(vif_1, 0, 0);
@@ -2346,7 +2349,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		wilc_enable_ps = false;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-						 AP_MODE, vif->ifc_id);
+						 			AP_MODE, vif->ifc_id);
 			wilc_set_operation_mode(vif, AP_MODE);
 			wilc_set_power_mgmt(vif_1, 0, 0);
 			wilc_set_power_mgmt(vif_2, 0, 0);
@@ -2365,11 +2368,30 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		priv->wdev->iftype = type;
 		vif->iftype = GO_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-						 AP_MODE, vif->ifc_id);
+						 		AP_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, AP_MODE);
 		wilc_enable_ps = false;
 		wilc_set_power_mgmt(vif_1, 0, 0);
 		wilc_set_power_mgmt(vif_2, 0, 0);
+		break;
+	case NL80211_IFTYPE_MONITOR:
+		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
+			   "Interface type = NL80211_IFTYPE_MONITOR\n");
+		wilc_wfi_mon = dev;
+		dev->ieee80211_ptr->iftype = type;
+		wilc_wfi_mon->type = ARPHRD_IEEE80211_RADIOTAP;
+		priv->wdev->iftype = type;
+		vif->iftype = MONITOR_MODE;
+		wilc_enable_ps = false;
+		if (wl->initialized) {
+		vif->monitor_flag = 1;
+		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
+			 		 MONITOR_MODE, vif->ifc_id);
+
+		wilc_set_operation_mode(vif, MONITOR_MODE);
+		wilc_set_power_mgmt(vif_1, 0, 0);
+		wilc_set_power_mgmt(vif_2, 0, 0);
+		}
 		break;
 
 	default:
@@ -2675,7 +2697,6 @@ static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 
 	priv = wiphy_priv(wiphy);
 	vif = netdev_priv(priv->wdev->netdev);
-
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Adding monitor interface[%p]\n",
 		   priv->wdev->netdev);
 
@@ -2700,7 +2721,7 @@ static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 static int del_virtual_intf(struct wiphy *wiphy, struct wireless_dev *wdev)
 {
 	struct wilc_priv *priv = wiphy_priv(wiphy);
-	
+
 	PRINT_INFO(priv->dev, HOSTAPD_DBG, "Deleting virtual interface\n");
 	return 0;
 }

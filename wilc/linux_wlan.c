@@ -133,7 +133,7 @@ void clear_during_ip(unsigned long arg)
 }
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
-void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
+void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset,
 			u8 status);
 static int wilc_mac_open(struct net_device *ndev);
 static int wilc_mac_close(struct net_device *ndev);
@@ -525,28 +525,6 @@ void eap_buff_timeout(unsigned long user)
                                     (void *)priv);
 	if (status)
 		PRINT_ER(vif->ndev, "Failed so send buffered eap\n");
-}
-
-static struct net_device *get_if_handler(struct wilc *wilc, u8 *mac_header)
-{
-	u8 *bssid, *bssid1;
-	int i = 0;
-
-	bssid = mac_header + 10;
-	bssid1 = mac_header + 4;
-	for (i = 0; i <= wilc->vif_num; i++) {
-		if (wilc->vif[i]->iftype == STATION_MODE)
-			if (ether_addr_equal_unaligned(bssid,
-						       wilc->vif[i]->bssid))
-				return wilc->vif[i]->ndev;
-		if (wilc->vif[i]->iftype == AP_MODE)
-			if (ether_addr_equal_unaligned(bssid1,
-						       wilc->vif[i]->bssid))
-				return wilc->vif[i]->ndev;
-	}
-
-	PRINT_WRN(wilc->vif[0]->ndev, GENERIC_DBG, "Invalid handle\n");
-	return NULL;
 }
 
 int wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
@@ -1548,27 +1526,17 @@ static int wilc_mac_close(struct net_device *ndev)
 	return 0;
 }
 
-void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
+void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset,
 			u8 status)
 {
 	unsigned int frame_len = 0;
 	int stats;
 	unsigned char *buff_to_send = NULL;
 	struct sk_buff *skb;
-	struct net_device *wilc_netdev;
-	struct wilc_vif *vif;
 	struct wilc_priv *priv;
 	u8 null_bssid[ETH_ALEN] = {0};
 
-	if (!wilc)
-		return;
-
-	wilc_netdev = get_if_handler(wilc, buff);
-	if (!wilc_netdev)
-		return;
-
 	buff += pkt_offset;
-	vif = netdev_priv(wilc_netdev);
 	priv = wiphy_priv(vif->ndev->ieee80211_ptr->wiphy);
 
 	if (size > 0) {
@@ -1588,7 +1556,7 @@ void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
 					priv->buffered_eap->size = 0;
 					priv->buffered_eap->pkt_offset = 0;
 				} else {
-					PRINT_ER(wilc_netdev,
+					PRINT_ER(vif->ndev,
 						 "failed to alloc buffered_eap\n");
 					return;
 				}
@@ -1610,29 +1578,27 @@ void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size, u32 pkt_offset,
 		}
 		skb = dev_alloc_skb(frame_len);
 		if (!skb) {
-       	 		PRINT_ER(wilc_netdev, "Low memory - packet droped\n");
+       	 		PRINT_ER(vif->ndev, "Low memory - packet droped\n");
 			return;
 		}
 
-		if (wilc == NULL || wilc_netdev == NULL)
-			PRINT_ER(wilc_netdev, "wilc_netdev in wilc is NULL");
-		skb->dev = wilc_netdev;
+		skb->dev = vif->ndev;
 		if (skb->dev == NULL)
-			PRINT_ER(wilc_netdev, "skb->dev is NULL\n");
+			PRINT_ER(vif->ndev, "skb->dev is NULL\n");
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
 		skb_put_data(skb, buff_to_send, frame_len);
 	#else
 		memcpy(skb_put(skb, frame_len), buff_to_send, frame_len);
 	#endif
 
-		skb->protocol = eth_type_trans(skb, wilc_netdev);
+		skb->protocol = eth_type_trans(skb, vif->ndev);
 		vif->netstats.rx_packets++;
 		vif->netstats.rx_bytes += frame_len;
 		skb->ip_summed = CHECKSUM_UNNECESSARY;
 		stats = netif_rx(skb);
-		PRINT_D(wilc_netdev, RX_DBG, "netif_rx ret value is: %d\n", stats);
+		PRINT_D(vif->ndev, RX_DBG, "netif_rx ret value is: %d\n", stats);
 	} else {
-		PRINT_ER(wilc_netdev,
+		PRINT_ER(vif->ndev,
 			 "Discard sending packet with len = %d\n", size);
 	}
 }

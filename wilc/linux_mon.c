@@ -15,7 +15,7 @@ struct wilc_wfi_radiotap_cb_hdr {
 	u16 tx_flags;
 } __packed;
 
-static struct net_device *wilc_wfi_mon; /* global monitor netdev */
+struct net_device *wilc_wfi_mon = NULL; /* global monitor netdev */
 
 static u8 srcadd[6];
 static u8 bssid[6];

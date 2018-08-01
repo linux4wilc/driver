@@ -321,7 +321,7 @@ static void handle_send_buffered_eap(struct work_struct *work)
 		goto out;
 
 	if (hif_buff_eap->frmw_to_linux)
-		hif_buff_eap->frmw_to_linux(vif->wilc, hif_buff_eap->buff,
+		hif_buff_eap->frmw_to_linux(vif, hif_buff_eap->buff,
 					    hif_buff_eap->size,
 					    hif_buff_eap->pkt_offset,
 					    PKT_STATUS_BUFFERED);

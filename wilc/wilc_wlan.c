@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0
+#include <linux/etherdevice.h>
+
 #include "wilc_wfi_netdevice.h"
 #include "wilc_wlan_cfg.h"
+#include "linux_wlan.h"
 
 #define WAKUP_TRAILS_TIMEOUT		(10000)
 
@@ -9,8 +12,9 @@
 	list_entry((pos)->member.next, typeof(*(pos)), member)
 #endif
 
-extern void wilc_frmw_to_linux(struct wilc *wilc, u8 *buff, u32 size,
+extern void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size,
 				u32 pkt_offset, u8 status);
+extern void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size);
 
 void acquire_bus(struct wilc *wilc, enum bus_acquire acquire, int source)
 {
@@ -302,6 +306,32 @@ static int wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
 	}
 
 	return 1;
+}
+
+static struct net_device *get_if_handler(struct wilc *wilc, u8 *mac_header)
+{
+	u8 *bssid, *bssid1;
+	int i = 0;
+	struct net_device *mon_netdev = NULL;
+
+	bssid = mac_header + 10;
+	bssid1 = mac_header + 4;
+	for (i = 0; i <= wilc->vif_num; i++) {
+		if (wilc->vif[i]->iftype == STATION_MODE)
+			if (ether_addr_equal_unaligned(bssid,
+						       wilc->vif[i]->bssid))
+				return wilc->vif[i]->ndev;
+		if (wilc->vif[i]->iftype == AP_MODE)
+			if (ether_addr_equal_unaligned(bssid1,
+						       wilc->vif[i]->bssid))
+				return wilc->vif[i]->ndev;
+		if (wilc->vif[i]->iftype == MONITOR_MODE)
+			mon_netdev = wilc->vif[i]->ndev;
+	}
+
+	if (!mon_netdev)
+		PRINT_WRN(wilc->vif[0]->ndev, GENERIC_DBG, "Invalid handle\n");
+	return mon_netdev;
 }
 
 static bool ack_filter_enabled;
@@ -1275,40 +1305,52 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 			break;
 		}
 
-		if (pkt_offset & IS_MANAGMEMENT) {
-			pkt_offset &= ~(IS_MANAGMEMENT |
-					IS_MANAGMEMENT_CALLBACK |
-					IS_MGMT_STATUS_SUCCES);
-			buff_ptr += HOST_HDR_OFFSET;
-			wilc_wfi_mgmt_rx(wilc, buff_ptr, pkt_len);
-		} else {
-			if (!is_cfg_packet) {
-				if (pkt_len > 0) {
-					wilc_frmw_to_linux(wilc, buff_ptr,
-							   pkt_len,
-							   pkt_offset,
-							   PKT_STATUS_NEW);
-				}
-			} else {
-				struct wilc_cfg_rsp rsp;
+		if (is_cfg_packet) {
+			struct wilc_cfg_rsp rsp;
 
-				buff_ptr += pkt_offset;
+			buff_ptr += pkt_offset;
 
-				wilc_wlan_cfg_indicate_rx(wilc, buff_ptr,
-							  pkt_len,
-							  &rsp);
-				if (rsp.type == WILC_CFG_RSP) {
-					PRINT_INFO(vif->ndev, RX_DBG, 
-						   "cfg_seq %d rsp.seq %d\n",
-						   wilc->cfg_seq_no,
-						   rsp.seq_no);
-					if (wilc->cfg_seq_no == rsp.seq_no)
-						complete(&wilc->cfg_event);
-				} else if (rsp.type == WILC_CFG_RSP_STATUS) {
-					wilc_mac_indicate(wilc);
-				}
+			wilc_wlan_cfg_indicate_rx(wilc, buff_ptr, pkt_len,
+						  &rsp);
+			if (rsp.type == WILC_CFG_RSP) {
+				PRINT_INFO(vif->ndev, RX_DBG,
+					   "cfg_seq %d rsp.seq %d\n",
+					   wilc->cfg_seq_no, rsp.seq_no);
+
+				if (wilc->cfg_seq_no == rsp.seq_no)
+					complete(&wilc->cfg_event);
+
+			} else if (rsp.type == WILC_CFG_RSP_STATUS) {
+				wilc_mac_indicate(wilc);
 			}
+		} else if (pkt_offset & IS_MANAGMEMENT) {
+			 pkt_offset &= ~(IS_MANAGMEMENT |
+					 IS_MANAGMEMENT_CALLBACK |
+					 IS_MGMT_STATUS_SUCCES);
+			 buff_ptr += HOST_HDR_OFFSET;
+			 wilc_wfi_mgmt_rx(wilc, buff_ptr, pkt_len);
+		} else {
+			struct net_device *wilc_netdev;
+			
+			wilc_netdev = get_if_handler(wilc, buffer);
+			if (!wilc_netdev) {
+				PRINT_ER(vif->ndev,
+					 "wilc_netdev in wilc is NULL");
+				return;
+			 }
+
+			 vif = netdev_priv(wilc_netdev);
+
+			 if (vif->iftype == MONITOR_MODE)
+			 /* packet received on monitor interface */
+			 wilc_wfi_monitor_rx(vif, buffer, size);
+			 else if (pkt_len > 0)				 
+				 wilc_frmw_to_linux(vif, buff_ptr,
+							pkt_len,
+							pkt_offset,
+							PKT_STATUS_NEW);
 		}
+
 		offset += tp_len;
 		if (offset >= size)
 			break;
