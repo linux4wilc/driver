@@ -1417,41 +1417,35 @@ static void wilc_wlan_handle_isr_ext(struct wilc *wilc, u32 int_status)
 		retries++;
 	}
 
-	if (size > 0) {
-		if (LINUX_RX_SIZE - offset < size)
-			offset = 0;
+	if (size <= 0)
+		return;
 
-		if (wilc->rx_buffer) {
-			buffer = &wilc->rx_buffer[offset];
-		} else {
-			PRINT_ER(vif->ndev,
-				 "Rx Buffer is NULL. drop the packets (%d)\n",
-				 size);
-			goto end;
-		}
-		wilc->hif_func->hif_clear_int_ext(wilc,
-					      DATA_INT_CLR | ENABLE_RX_VMM);
-		ret = wilc->hif_func->hif_block_rx_ext(wilc, 0, buffer, size);
+	if (LINUX_RX_SIZE - offset < size)
+		offset = 0;
 
-		if (!ret)
-			PRINT_ER(vif->ndev, "fail block rx\n");
-end:
-		if (ret) {
-			offset += size;
-			wilc->rx_buffer_offset = offset;
-			rqe = kmalloc(sizeof(*rqe), GFP_KERNEL);
-			if (rqe) {
-				rqe->buffer = buffer;
-				rqe->buffer_size = size;
-				PRINT_INFO(vif->ndev, RX_DBG,
-					   "rxq entery Size= %d Address= %p\n",
-					   rqe->buffer_size, rqe->buffer);
-				wilc_wlan_rxq_add(wilc, rqe);
-			}
-		}
+	buffer = &wilc->rx_buffer[offset];
+
+	wilc->hif_func->hif_clear_int_ext(wilc, DATA_INT_CLR | ENABLE_RX_VMM);
+
+	ret = wilc->hif_func->hif_block_rx_ext(wilc, 0, buffer, size);
+	if (!ret) {
+		PRINT_ER(vif->ndev, "fail block rx\n");
+		return;
 	}
-	if (ret)
-		wilc_wlan_handle_rxq(wilc);
+
+	offset += size;
+	wilc->rx_buffer_offset = offset;
+	rqe = kmalloc(sizeof(*rqe), GFP_KERNEL);
+	if (!rqe)
+		return;
+
+	rqe->buffer = buffer;
+	rqe->buffer_size = size;
+	PRINT_INFO(vif->ndev, RX_DBG,
+		   "rxq entery Size= %d Address= %p\n",
+		   rqe->buffer_size, rqe->buffer);
+	wilc_wlan_rxq_add(wilc, rqe);
+	wilc_wlan_handle_rxq(wilc);
 }
 
 void wilc_handle_isr(struct wilc *wilc)
