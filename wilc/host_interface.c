@@ -1816,20 +1816,14 @@ static void handle_rcvd_gnrl_async_info(struct work_struct *work)
 			   mac_status, mac_status_reason_code,
 			   mac_status_additional_info);
 		if (hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP) {
-			PRINT_INFO(vif->ndev, HOSTINF_DBG,
-				   "Recieved MAC status= %d Reason= %d Code= %d\n",
-				   mac_status, mac_status_reason_code,
-				   mac_status_additional_info);
 			host_int_parse_assoc_resp_info(vif, mac_status);
 		} else if ((mac_status == MAC_STATUS_DISCONNECTED) &&
 			   (hif_drv->hif_state == HOST_IF_CONNECTED)) {
 			host_int_handle_disconnect(vif);
 		} else if ((mac_status == MAC_STATUS_DISCONNECTED) &&
 			   (hif_drv->usr_scan_req.scan_result)) {
-			PRINT_INFO(vif->ndev, HOSTINF_DBG, 
-				   "Received MAC_STATUS_DISCONNECTED from the FW while scanning\n");
 			PRINT_WRN(vif->ndev, HOSTINF_DBG,
-				  "\n\n<< Abort the running Scan >>\n\n");
+				  "Received MAC_STATUS_DISCONNECTED. Abort the running Scan");
 			del_timer(&hif_drv->scan_timer);
 			if (hif_drv->usr_scan_req.scan_result)
 				handle_scan_done(vif, SCAN_EVENT_ABORTED);
