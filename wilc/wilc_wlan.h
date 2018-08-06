@@ -10,8 +10,15 @@
 #include <linux/types.h>
 #include <linux/version.h>
 
-#define ISWILC1000(id)			((id & 0xfffff000) == 0x100000 ? 1 : 0)
-#define ISWILC3000(id)			((id & 0xfffff000) == 0x300000 ? 1 : 0)
+static inline bool is_wilc1000(u32 id)
+{
+	return ((id & 0xfffff000) == 0x100000 ? true : false);
+}
+
+static inline bool is_wilc3000(u32 id)
+{
+	return ((id & 0xfffff000) == 0x300000 ? true : false);
+}
 
 /********************************************
  *

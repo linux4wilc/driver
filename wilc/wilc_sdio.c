@@ -858,9 +858,9 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	 **/
 	if (!resume) {
 		chipid = wilc_get_chipid(wilc, true);
-		if(ISWILC3000(chipid)) {
+		if(is_wilc3000(chipid)) {
 			wilc->chip = WILC_3000;
-		} else if(ISWILC1000(chipid)) {
+		} else if(is_wilc1000(chipid)) {
 			wilc->chip = WILC_1000;
 		} else {
 			dev_err(&func->dev, "Unsupported chipid: %x\n", chipid);

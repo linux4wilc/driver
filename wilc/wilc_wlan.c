@@ -1954,10 +1954,10 @@ u32 wilc_get_chipid(struct wilc *wilc, bool update)
 						     &tempchipid);
 		if (!ret) 
 			pr_err("[wilc start]: fail read reg 0x3b0000\n");
-		if (!ISWILC3000(tempchipid)) {
+		if (!is_wilc3000(tempchipid)) {
 			wilc->hif_func->hif_read_reg(wilc, 0x1000,
 						     &tempchipid);
-			if (!ISWILC1000(tempchipid)) {
+			if (!is_wilc1000(tempchipid)) {
 				chipid = 0;
 				return chipid;
 			}

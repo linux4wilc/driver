@@ -1121,10 +1121,10 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 
 	if (!resume) {
 		chipid = wilc_get_chipid(wilc, true);
-		if(ISWILC3000(chipid)) {
+		if(is_wilc3000(chipid)) {
 			wilc->chip = WILC_3000;
 			goto pass;
-		} else if(ISWILC1000(chipid)) {
+		} else if(is_wilc1000(chipid)) {
 			wilc->chip = WILC_1000;
 			goto pass;
 		} else {
