@@ -17,12 +17,12 @@
 #define WILC_MAX_NUM_PMKIDS			16
 #define PMKID_LEN				16
 #define PMKID_FOUND				1
- #define NUM_STA_ASSOCIATED			8
+#define NUM_STA_ASSOCIATED			8
 
-#define NUM_REG_FRAME 				2
+#define NUM_REG_FRAME				2
 
-#define TCP_ACK_FILTER_LINK_SPEED_THRESH       54
-#define DEFAULT_LINK_SPEED                     72
+#define TCP_ACK_FILTER_LINK_SPEED_THRESH	54
+#define DEFAULT_LINK_SPEED			72
 
 #define GET_PKT_OFFSET(a) (((a) >> 22) & 0x1ff)
 

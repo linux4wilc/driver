@@ -53,13 +53,11 @@ wilc_wlan_txq_remove_from_head(struct net_device *dev, u8 q_num)
 {
 	struct txq_entry_t *tqe = NULL;
 	unsigned long flags;
-	struct wilc_vif *vif;
-	struct wilc *wilc;
-
-	vif = netdev_priv(dev);
-	wilc = vif->wilc;
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc *wilc = vif->wilc;
 
 	spin_lock_irqsave(&wilc->txq_spinlock, flags);
+
 	if (!list_empty(&wilc->txq[q_num].txq_head.list)) {
 		tqe = list_first_entry(&wilc->txq[q_num].txq_head.list,
 				       struct txq_entry_t, list);
@@ -75,13 +73,11 @@ static void wilc_wlan_txq_add_to_tail(struct net_device *dev, u8 q_num,
 				      struct txq_entry_t *tqe)
 {
 	unsigned long flags;
-	struct wilc_vif *vif;
-	struct wilc *wilc;
-
-	vif = netdev_priv(dev);
-	wilc = vif->wilc;
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc *wilc = vif->wilc;
 
 	spin_lock_irqsave(&wilc->txq_spinlock, flags);
+
 	list_add_tail(&tqe->list, &wilc->txq[q_num].txq_head.list);
 	wilc->txq_entries += 1;
 	wilc->txq[q_num].count++;
@@ -103,6 +99,7 @@ static int wilc_wlan_txq_add_to_head(struct wilc_vif *vif, u8 q_num,
 	mutex_lock(&wilc->txq_add_to_head_cs);
 
 	spin_lock_irqsave(&wilc->txq_spinlock, flags);
+
 	list_add(&tqe->list, &wilc->txq[q_num].txq_head.list);
 	wilc->txq_entries += 1;
 	wilc->txq[q_num].count++;
@@ -231,14 +228,11 @@ static inline void tcp_process(struct net_device *dev, struct txq_entry_t *tqe)
 
 static int wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
 {
-	struct wilc_vif *vif;
-	struct wilc *wilc;
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc *wilc = vif->wilc;
 	u32 i = 0;
 	u32 dropped = 0;
 	unsigned long flags;
-
-	vif = netdev_priv(dev);
-	wilc = vif->wilc;
 
 	spin_lock_irqsave(&wilc->txq_spinlock, flags);
 	for (i = pending_base; i < (pending_base + pending_acks); i++) {
@@ -626,6 +620,7 @@ static struct txq_entry_t *wilc_wlan_txq_get_first(struct wilc *wilc, u8 q_num)
 	unsigned long flags;
 
 	spin_lock_irqsave(&wilc->txq_spinlock, flags);
+
 	if(!list_empty(&wilc->txq[q_num].txq_head.list))
 		tqe = list_first_entry(&wilc->txq[q_num].txq_head.list,
 				       struct txq_entry_t, list);
@@ -642,11 +637,11 @@ static struct txq_entry_t *wilc_wlan_txq_get_next(struct wilc *wilc,
 	unsigned long flags;
 
 	spin_lock_irqsave(&wilc->txq_spinlock, flags);
+
 	if(!list_is_last(&tqe->list, &wilc->txq[q_num].txq_head.list))
 		tqe = list_next_entry(tqe, list);
 	else
 		tqe = NULL;
-
 	spin_unlock_irqrestore(&wilc->txq_spinlock, flags);
 
 	return tqe;
@@ -681,7 +676,6 @@ static struct rxq_entry_t *wilc_wlan_rxq_remove(struct wilc *wilc)
 		PRINT_INFO(vif->ndev, RX_DBG,"Nothing to get from Q\n");
 	}
 	mutex_unlock(&wilc->rxq_cs);
-
 	return rqe;
 }
 
@@ -954,12 +948,9 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 	int timeout;
 	u32 vmm_table[WILC_VMM_TBL_SIZE];
 	u8 ac_pkt_num_to_chip[NQUEUES] = {0, 0, 0, 0};
-	struct wilc_vif *vif;
-	struct wilc *wilc;
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc *wilc = vif->wilc;
 	const struct wilc_hif_func *func;
-
-	vif = netdev_priv(dev);
-	wilc = vif->wilc;
 
 	txb = wilc->tx_buffer;
 	if (!wilc->txq_entries) {
@@ -971,7 +962,7 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 		goto out;
 	if (ac_balance(ac_fw_count, ac_desired_ratio))
 		return -1;
-	
+
 	mutex_lock(&wilc->txq_add_to_head_cs);
 	wilc_wlan_txq_filter_dup_tcp_ack(dev);
 
@@ -1189,6 +1180,7 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 		ac_pkt_num_to_chip[vmm_entries_ac[i]]++;
 		if (!tqe)
 			break;
+
 		if (vmm_table[i] == 0)
 			break;
 
@@ -1700,11 +1692,8 @@ void wilc_wlan_cleanup(struct net_device *dev)
 	struct txq_entry_t *tqe;
 	struct rxq_entry_t *rqe;
 	u8 ac;
-	struct wilc_vif *vif;
-	struct wilc *wilc;
-
-	vif = netdev_priv(dev);
-	wilc = vif->wilc;
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc *wilc = vif->wilc;
 
 	wilc->quit = 1;
 	for (ac = 0; ac < NQUEUES; ac++) {
@@ -1907,11 +1896,8 @@ static u32 init_chip(struct net_device *dev)
 {
 	u32 chipid;
 	u32 reg, ret = 0;
-	struct wilc_vif *vif;
-	struct wilc *wilc;
-
-	vif = netdev_priv(dev);
-	wilc = vif->wilc;
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc *wilc = vif->wilc;
 
 	acquire_bus(wilc, ACQUIRE_AND_WAKEUP,PWR_DEV_SRC_WIFI);
 

@@ -22,7 +22,8 @@ static u8 bssid[6];
 
 #define IEEE80211_RADIOTAP_F_TX_RTS	0x0004  /* used rts/cts handshake */
 #define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001  /* failed due to excessive*/
-#define TX_RADIOTAP_PRESENT ((1 << IEEE80211_RADIOTAP_RATE) |  \
+
+#define TX_RADIOTAP_PRESENT ((1 << IEEE80211_RADIOTAP_RATE) |	\
 			     (1 << IEEE80211_RADIOTAP_TX_FLAGS))
 
 void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
@@ -188,7 +189,7 @@ static netdev_tx_t wilc_wfi_mon_xmit(struct sk_buff *skb,
 				     struct net_device *dev)
 {
 	u32 rtap_len, ret = 0;
-	struct wilc_wfi_mon_priv *mon_priv;
+	struct wilc_wfi_mon_priv  *mon_priv;
 
 	if (!wilc_wfi_mon)
 		return -EFAULT;
