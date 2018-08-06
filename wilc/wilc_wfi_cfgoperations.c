@@ -1742,7 +1742,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 	struct wilc_vif *vif;
 	u32 header, pkt_offset;
 	struct host_if_drv *wfi_drv;
-	s32 s32Freq;
+	s32 freq;
 
 	vif = netdev_priv(dev);
 	priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
@@ -1768,12 +1768,12 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 		   buff[FRAME_TYPE_ID]);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
-	s32Freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
+	freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
  #else
-	s32Freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
+	freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
  #endif
 	if (!ieee80211_is_action(buff[FRAME_TYPE_ID])) {
-		cfg80211_rx_mgmt(priv->wdev, s32Freq, 0, buff, size, 0);
+		cfg80211_rx_mgmt(priv->wdev, freq, 0, buff, size, 0);
 		return;
 	}
 
@@ -1821,7 +1821,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 		}
 	}
 
-	cfg80211_rx_mgmt(priv->wdev, s32Freq, 0, buff, size, 0);
+	cfg80211_rx_mgmt(priv->wdev, freq, 0, buff, size, 0);
 }
 
 static void wilc_wfi_mgmt_tx_complete(void *priv, int status)
