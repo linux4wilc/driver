@@ -12,7 +12,6 @@
 #define AES			BIT(5)
 #define TKIP			BIT(6)
 
-#define FRAME_TYPE_ID			0
 #define ACTION_CAT_ID			24
 #define ACTION_SUBTYPE_ID		25
 #define P2P_PUB_ACTION_SUBTYPE		30
@@ -1709,10 +1708,11 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 
 	pkt_offset = GET_PKT_OFFSET(header);
 
+	fc = ((struct ieee80211_hdr *)buff)->frame_control;
 	if (pkt_offset & IS_MANAGMEMENT_CALLBACK) {
 		bool ack = false;
 
-		if (buff[FRAME_TYPE_ID] == IEEE80211_STYPE_PROBE_RESP ||
+		if (ieee80211_is_probe_resp(fc) ||
 		    pkt_offset & IS_MGMT_STATUS_SUCCES)
 			ack = true;
 
@@ -1721,15 +1721,13 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 		return;
 	}
 
-	PRINT_D(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n",
-		   buff[FRAME_TYPE_ID]);
+	PRINT_D(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n", fc);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 	freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
  #else
 	freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
  #endif
-	fc = ((struct ieee80211_hdr *)buff)->frame_control;
 	if (!ieee80211_is_action(fc)) {
 		cfg80211_rx_mgmt(priv->wdev, freq, 0, buff, size, 0);
 		return;
