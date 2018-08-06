@@ -14,11 +14,6 @@
 #include "coreconfigurator.h"
 #include "wilc_wfi_netdevice.h"
 
-/********************************************
- *
- *      Global Data
- *
- ********************************************/
 enum cfg_cmd_type {
 	CFG_BYTE_CMD	= 0,
 	CFG_HWORD_CMD	= 1,

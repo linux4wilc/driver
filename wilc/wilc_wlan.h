@@ -280,12 +280,6 @@ struct wilc_hif_func {
 	bool (*hif_is_init)(void);
 };
 
-/********************************************
- *
- *      Configuration Structure
- *
- ********************************************/
-
 #define MAX_CFG_FRAME_SIZE	1468
 
 struct wilc_cfg_frame {

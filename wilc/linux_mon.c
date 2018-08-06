@@ -78,7 +78,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 
 		cb_hdr->hdr.it_present = cpu_to_le32(TX_RADIOTAP_PRESENT);
 
-		cb_hdr->rate = 5; /* txrate->bitrate / 5; */
+		cb_hdr->rate = 5;
 
 		if (pkt_offset & IS_MGMT_STATUS_SUCCES)	{
 			/* success */
@@ -112,7 +112,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 				(1 << IEEE80211_RADIOTAP_RATE); /* | */
 		PRINT_D(vif->ndev, HOSTAPD_DBG,"Presentflags %d\n",
 			hdr->hdr.it_present);
-		hdr->rate = 5; /* txrate->bitrate / 5; */
+		hdr->rate = 5;
 	}
 
 	skb->dev = wilc_wfi_mon;
@@ -214,11 +214,12 @@ static netdev_tx_t wilc_wfi_mon_xmit(struct sk_buff *skb,
 	PRINT_D(dev, HOSTAPD_DBG,"SKB netdevice name = %s\n", skb->dev->name);
 	PRINT_D(dev, HOSTAPD_DBG,"MONITOR real dev name = %s\n",
 		mon_priv->real_ndev->name);
-	/* Identify if Ethernet or MAC header (data or mgmt) */
 	memcpy(srcadd, &skb->data[10], 6);
 	memcpy(bssid, &skb->data[16], 6);
-	/* if source address and bssid fields are equal>>Mac header */
-	/*send it to mgmt frames handler */
+	/*
+	* Identify if data or mgmt packet, if source address and bssid
+	* fields are equal send it to mgmt frames handler
+	*/
 	if (!(memcmp(srcadd, bssid, 6))) {
 		ret = mon_mgmt_tx(mon_priv->real_ndev, skb->data, skb->len);
 		if (ret)
