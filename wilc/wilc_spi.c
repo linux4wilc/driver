@@ -806,7 +806,7 @@ static int spi_internal_write(struct wilc *wilc, u32 adr, u32 dat)
 	u8 retry = SPI_RETRY_COUNT;
 
 retry:
-	dat = cpu_to_le32(dat);
+	cpu_to_le32s(&dat);
 	result = spi_cmd_complete(wilc, CMD_INTERNAL_WRITE, adr, (u8 *)&dat, 4,
 				  0);
 	if (result != N_OK) {
@@ -841,7 +841,7 @@ retry:
 		goto fail;
 	}
 
-	*data = cpu_to_le32(*data);
+	le32_to_cpus(data);
 
 fail:
 	if(result != N_OK) {
@@ -870,7 +870,7 @@ static int wilc_spi_write_reg(struct wilc *wilc, u32 addr, u32 data)
 	u8 cmd = CMD_SINGLE_WRITE;
 	u8 clockless = 0;
 
-	data = cpu_to_le32(data);
+	cpu_to_le32s(&data);
 _RETRY_:
 	if (addr <= 0x30) {
 		/* Clockless register */
@@ -977,7 +977,7 @@ retry:
 		goto fail;
 	}
 
-	*data = cpu_to_le32(*data);
+	le32_to_cpus(data);
 
 fail:
 	if(result != N_OK) {

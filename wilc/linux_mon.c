@@ -46,6 +46,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 
 	/* Get WILC header */
 	memcpy(&header, (buff - HOST_HDR_OFFSET), HOST_HDR_OFFSET);
+	le32_to_cpus(&header);
 	/*
 	 * The packet offset field contain info about what type of management
 	 * the frame we are dealing with and ack status

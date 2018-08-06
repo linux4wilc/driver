@@ -1703,6 +1703,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 	struct wilc_vif *vif = netdev_priv(dev);
 	u32 header, pkt_offset;
 	s32 freq;
+	__le16 fc;
 
 	memcpy(&header, (buff - HOST_HDR_OFFSET), HOST_HDR_OFFSET);
 
@@ -1728,7 +1729,8 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
  #else
 	freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
  #endif
-	if (!ieee80211_is_action(buff[FRAME_TYPE_ID])) {
+	fc = ((struct ieee80211_hdr *)buff)->frame_control;
+	if (!ieee80211_is_action(fc)) {
 		cfg80211_rx_mgmt(priv->wdev, freq, 0, buff, size, 0);
 		return;
 	}
