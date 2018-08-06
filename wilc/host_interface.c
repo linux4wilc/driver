@@ -612,7 +612,7 @@ static void handle_cfg_param(struct work_struct *work)
 			wid_list[i].size = sizeof(char);
 			hif_drv->cfg_values.preamble_type = preamble_type;
 		} else {
-			PRINT_ER(vif->ndev, "Preamle Range(0~2) over\n");
+			PRINT_ER(vif->ndev, "Preamble Range(0~2) over\n");
 			goto unlock;
 		}
 		i++;
