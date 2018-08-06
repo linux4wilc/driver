@@ -958,7 +958,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 				security = ENCRYPT_ENABLED | WPA | AES;
 		} else {
 			ret = -ENOTSUPP;
-			PRINT_ER(dev, "Not supported cipher\n");
+			PRINT_ER(dev, "Unsupported cipher\n");
 			wilc_connecting = 0;
 			return ret;
 		}
@@ -1250,7 +1250,7 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 		break;
 
 	default:
-		PRINT_ER(netdev, "Not supported cipher: Error(%d)\n", ret);
+		PRINT_ER(netdev, "Unsupported cipher\n");
 		ret = -ENOTSUPP;
 	}
 
@@ -1771,7 +1771,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 
 		default:
 			PRINT_WRN(dev, GENERIC_DBG, 
-				   "NOT HANDLED PUBLIC ACTION FRAME TYPE:%x\n",
+				   "Not handled action frame type:%x\n",
 				   buff[ACTION_SUBTYPE_ID]);
 			break;
 		}
@@ -2041,7 +2041,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 
 		default:
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "NOT HANDLED PUBLIC ACTION FRAME TYPE:%x\n",
+				   "Not handled action frame type:%x\n",
 				   buf[ACTION_SUBTYPE_ID]);
 			break;
 		}
@@ -2162,7 +2162,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	if (!priv->hif_drv) {
-		PRINT_ER(dev, "Driver is NULL\n");
+		PRINT_ER(dev, "hif driver is NULL\n");
 		return -EIO;
 	}
 

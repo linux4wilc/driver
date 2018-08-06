@@ -1446,7 +1446,7 @@ static int wilc_mac_close(struct net_device *ndev)
 	}
 
 	if (!hif_drv) {
-		PRINT_ER(ndev, "hif_drv = NULL\n");
+		PRINT_ER(ndev, "hif driver is NULL\n");
 		return 0;
 	}
 

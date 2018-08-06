@@ -424,7 +424,7 @@ static void handle_set_operation_mode(struct work_struct *work)
 		complete(&hif_driver_comp);
 
 	if (ret)
-		PRINT_ER(vif->ndev, "Failed to set driver handler\n");
+		PRINT_ER(vif->ndev, "Failed to set operation mode\n");
 	kfree(msg);
 }
 
@@ -938,7 +938,7 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,"in handle_scan_done()\n");
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "Driver handler is NULL\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return result;
 	}
 
@@ -990,7 +990,7 @@ static void handle_connect(struct work_struct *work)
 	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "Driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		result = -EFAULT;
 		goto error;
 	}
@@ -1279,7 +1279,7 @@ error:
 			conn_info.req_ies = NULL;
 
 		} else {
-			PRINT_ER(vif->ndev, "Connect callback is NULL\n");
+			PRINT_ER(vif->ndev, "conn_result is NULL\n");
 		}
 	}
 
@@ -1307,7 +1307,7 @@ static void handle_connect_timeout(struct work_struct *work)
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "Driver handler is NULL\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		goto out;
 	}
 
@@ -1339,7 +1339,7 @@ static void handle_connect_timeout(struct work_struct *work)
 		kfree(info.req_ies);
 		info.req_ies = NULL;
 	} else {
-		PRINT_ER(vif->ndev, "Connect callback is NULL\n");
+		PRINT_ER(vif->ndev, "conn_result is NULL\n");
 	}
 
 	wid.id = WID_DISCONNECT;
@@ -1555,7 +1555,7 @@ static void handle_rcvd_ntwrk_info(struct work_struct *work)
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "State: Scanning, parsing network information received\n");
 	wilc_parse_network_info(vif, rcvd_info->buffer, &info);
 	if (!info || !scan_req->scan_result) {
-		PRINT_ER(vif->ndev, "driver is null\n");
+		PRINT_ER(vif->ndev, "info or scan result NULL\n");
 		goto done;
 	}
 
@@ -1682,7 +1682,7 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 	if (mac_status == MAC_STATUS_CONNECTED &&
 	    conn_info.status != WLAN_STATUS_SUCCESS) {
 		PRINT_ER(vif->ndev,
-			 "Received MAC status is MAC_STATUS_CONNECTED while the received status code in Asoc Resp is not WLAN_STATUS_SUCCESS\n");
+			 "Received MAC status is MAC_STATUS_CONNECTED, Assoc Resp is not SUCCESS\n");
 		eth_zero_addr(wilc_connected_ssid);
 	} else if (mac_status == MAC_STATUS_DISCONNECTED)    {
 		PRINT_ER(vif->ndev, "Received MAC status is MAC_STATUS_DISCONNECTED\n");
@@ -1787,12 +1787,12 @@ static void handle_rcvd_gnrl_async_info(struct work_struct *work)
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!rcvd_info->buffer) {
-		netdev_err(vif->ndev, "Received buffer is NULL\n");
+		netdev_err(vif->ndev, "buffer is NULL\n");
 		goto free_msg;
 	}
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "Driver handler is NULL\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		goto free_rcvd_info;
 	}
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Current State = %d,Received state = %d\n",
@@ -1803,7 +1803,7 @@ static void handle_rcvd_gnrl_async_info(struct work_struct *work)
 	    hif_drv->hif_state == HOST_IF_CONNECTED ||
 	    hif_drv->usr_scan_req.scan_result) {
 		if (!hif_drv->usr_conn_req.conn_result) {
-			PRINT_ER(vif->ndev, "driver is null\n");
+			PRINT_ER(vif->ndev, "conn_result is NULL\n");
 			goto free_rcvd_info;
 		}
 
@@ -2133,7 +2133,7 @@ static void handle_disconnect(struct work_struct *work)
 	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "Driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		goto out;
 	}
 	
@@ -3133,7 +3133,7 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "Coud not send EAP\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg->body.send_buff_eap.buff);
 		kfree(msg);
 	}
@@ -3148,7 +3148,7 @@ int wilc_remove_wep_key(struct wilc_vif *vif, u8 index)
 
 	if (!hif_drv) {
 		result = -EFAULT;
-		PRINT_ER(vif->ndev, "Driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return result;
 	}
 
@@ -3162,7 +3162,7 @@ int wilc_remove_wep_key(struct wilc_vif *vif, u8 index)
 
 	result = wilc_enqueue_work(msg);
 	if (result)
-		PRINT_ER(vif->ndev, "Request to remove WEP key\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 	else
 		wait_for_completion(&msg->work_comp);
 
@@ -3178,7 +3178,7 @@ int wilc_set_wep_default_keyid(struct wilc_vif *vif, u8 index)
 
 	if (!hif_drv) {
 		result = -EFAULT;
-		PRINT_ER(vif->ndev, "driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return result;
 	}
 
@@ -3192,7 +3192,7 @@ int wilc_set_wep_default_keyid(struct wilc_vif *vif, u8 index)
 
 	result = wilc_enqueue_work(msg);
 	if (result)
-		PRINT_ER(vif->ndev, "Default key index\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 	else
 		wait_for_completion(&msg->work_comp);
 
@@ -3208,7 +3208,7 @@ int wilc_add_wep_key_bss_sta(struct wilc_vif *vif, const u8 *key, u8 len,
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return -EFAULT;
 	}
 
@@ -3229,7 +3229,7 @@ int wilc_add_wep_key_bss_sta(struct wilc_vif *vif, const u8 *key, u8 len,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "STA - WEP Key\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		goto free_key;
 	}
 		
@@ -3252,7 +3252,7 @@ int wilc_add_wep_key_bss_ap(struct wilc_vif *vif, const u8 *key, u8 len,
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return -EFAULT;
 	}
 
@@ -3275,7 +3275,7 @@ int wilc_add_wep_key_bss_ap(struct wilc_vif *vif, const u8 *key, u8 len,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "AP - WEP Key\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		goto free_key;
 	}
 
@@ -3299,7 +3299,7 @@ int wilc_add_ptk(struct wilc_vif *vif, const u8 *ptk, u8 ptk_key_len,
 	u8 key_len = ptk_key_len;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return -EFAULT;
 	}
 
@@ -3341,7 +3341,7 @@ int wilc_add_ptk(struct wilc_vif *vif, const u8 *ptk, u8 ptk_key_len,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "PTK Key\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		goto free_key;
 	}
 
@@ -3366,7 +3366,7 @@ int wilc_add_rx_gtk(struct wilc_vif *vif, const u8 *rx_gtk, u8 gtk_key_len,
 	u8 key_len = gtk_key_len;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return -EFAULT;
 	}
 
@@ -3419,7 +3419,7 @@ int wilc_add_rx_gtk(struct wilc_vif *vif, const u8 *rx_gtk, u8 gtk_key_len,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "RX GTK\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		goto free_key;
 	}
 
@@ -3459,7 +3459,7 @@ int wilc_set_pmkid_info(struct wilc_vif *vif,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "PMKID Info\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 
@@ -3479,7 +3479,7 @@ int wilc_get_mac_address(struct wilc_vif *vif, u8 *mac_addr)
 
 	result = wilc_enqueue_work(msg);
 	if (result)
-		PRINT_ER(vif->ndev, "Failed to send get mac address\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 	else
 		wait_for_completion(&msg->work_comp);
 
@@ -3501,7 +3501,7 @@ int wilc_set_mac_address(struct wilc_vif *vif, u8 *mac_addr)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "Failed to send get mac address\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		result = -EFAULT;
 	} else {
 		wait_for_completion(&msg->work_comp);
@@ -3521,12 +3521,12 @@ int wilc_set_join_req(struct wilc_vif *vif, u8 *bssid, const u8 *ssid,
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!hif_drv || !connect_result) {
-		PRINT_ER(vif->ndev, "Driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver or connect result is NULL\n");
 		return -EFAULT;
 	}
 
 	if (!join_params) {
-		PRINT_ER(vif->ndev, "Unable to Join - JoinParams is NULL\n");
+		PRINT_ER(vif->ndev, "joinparams is NULL\n");
 		return -EFAULT;
 	}
 
@@ -3573,7 +3573,7 @@ int wilc_set_join_req(struct wilc_vif *vif, u8 *bssid, const u8 *ssid,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "send message: Set join request\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		goto free_ies;
 	}
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
@@ -3606,7 +3606,7 @@ int wilc_disconnect(struct wilc_vif *vif, u16 reason_code)
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "Driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return -EFAULT;
 	}
 
@@ -3616,7 +3616,7 @@ int wilc_disconnect(struct wilc_vif *vif, u16 reason_code)
 
 	result = wilc_enqueue_work(msg);
 	if (result)
-		PRINT_ER(vif->ndev, "Failed to send message: disconnect\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 	else
 		wait_for_completion(&msg->work_comp);
 
@@ -3637,7 +3637,7 @@ int wilc_set_mac_chnl_num(struct wilc_vif *vif, u8 channel)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc mq send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 
@@ -3660,7 +3660,7 @@ int wilc_set_wfi_drv_handler(struct wilc_vif *vif, int index, u8 mode,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc mq send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 
@@ -3679,7 +3679,7 @@ int wilc_set_operation_mode(struct wilc_vif *vif, u32 mode)
 	msg->body.mode.mode = mode;
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc mq send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 
@@ -3694,7 +3694,7 @@ s32 wilc_get_inactive_time(struct wilc_vif *vif, const u8 *mac,
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return -EFAULT;
 	}
 
@@ -3706,7 +3706,7 @@ s32 wilc_get_inactive_time(struct wilc_vif *vif, const u8 *mac,
 
 	result = wilc_enqueue_work(msg);
 	if (result)
-		PRINT_ER(vif->ndev, "Failed to send get host ch param\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 	else
 		wait_for_completion(&msg->work_comp);
 
@@ -3738,7 +3738,7 @@ int wilc_get_rssi(struct wilc_vif *vif, s8 *rssi_level)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "Failed to send get host ch param\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 	} else {
 		wait_for_completion(&msg->work_comp);
 
@@ -3769,7 +3769,7 @@ wilc_get_statistics(struct wilc_vif *vif, struct rf_info *stats, bool is_sync)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "Failed to send get host channel\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 		return result;
 	}
@@ -3833,7 +3833,7 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "Error in sending message queue\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		goto free_ies;
 	}
 
@@ -3891,7 +3891,7 @@ static void get_periodic_rssi(unsigned long arg)
 	struct wilc_vif *vif = periodic_rssi_vif;
 
 	if (!vif->hif_drv) {
-		PRINT_ER(vif->ndev, "Driver handler is NULL\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return;
 	}
 
@@ -3913,7 +3913,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 
 	hif_drv  = kzalloc(sizeof(*hif_drv), GFP_KERNEL);
 	if (!hif_drv) {
-		PRINT_ER(dev, "Driver is null\n");
+		PRINT_ER(dev, "hif driver is NULL\n");
 		return -ENOMEM;
 	}
 	*hif_drv_handler = hif_drv;
@@ -3993,7 +3993,7 @@ int wilc_deinit(struct wilc_vif *vif)
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "hif_drv = NULL\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return -EFAULT;
 	}
 
@@ -4113,7 +4113,7 @@ void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 	hif_drv = vif->hif_drv;
 
 	if (!hif_drv || hif_drv == terminated_handle) {
-		PRINT_ER(vif->ndev, "hif_drv = NULL\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		mutex_unlock(&hif_deinit_lock);
 		return;
 	}
@@ -4140,7 +4140,7 @@ void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "synchronous info (%d)\n", result);
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg->body.async_info.buffer);
 		kfree(msg);
 	}
@@ -4166,7 +4166,7 @@ void wilc_scan_complete_received(struct wilc *wilc, u8 *buffer, u32 length)
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Scan notification received\n");
 
 	if (!hif_drv || hif_drv == terminated_handle) {
-		PRINT_ER(vif->ndev, "hif_drv = NULL\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return;
 	}
 
@@ -4179,7 +4179,7 @@ void wilc_scan_complete_received(struct wilc *wilc, u8 *buffer, u32 length)
 
 		result = wilc_enqueue_work(msg);
 		if (result) {
-			PRINT_ER(vif->ndev, "complete param (%d)\n", result);
+			PRINT_ER(vif->ndev, "enqueue work failed\n");
 			kfree(msg);
 		}
 	}
@@ -4207,7 +4207,7 @@ int wilc_remain_on_channel(struct wilc_vif *vif, u32 session_id,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc mq send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 
@@ -4221,7 +4221,7 @@ int wilc_listen_state_expired(struct wilc_vif *vif, u32 session_id)
 	struct host_if_drv *hif_drv = vif->hif_drv;
 
 	if (!hif_drv) {
-		PRINT_ER(vif->ndev, "Driver is null\n");
+		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		return -EFAULT;
 	}
 
@@ -4235,7 +4235,7 @@ int wilc_listen_state_expired(struct wilc_vif *vif, u32 session_id)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc mq send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 
@@ -4271,7 +4271,7 @@ int wilc_frame_register(struct wilc_vif *vif, u16 frame_type, bool reg)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc mq send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 
@@ -4313,7 +4313,7 @@ int wilc_add_beacon(struct wilc_vif *vif, u32 interval, u32 dtim_period,
 
 	result = wilc_enqueue_work(msg);
 	if (result)
-		PRINT_ER(vif->ndev, "wilc mq send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 
 error:
 	if (result) {
@@ -4340,7 +4340,7 @@ int wilc_del_beacon(struct wilc_vif *vif)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 
@@ -4373,7 +4373,7 @@ int wilc_add_station(struct wilc_vif *vif, struct add_sta_param *sta_param)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(add_sta_info->rates);
 		kfree(msg);
 	}
@@ -4401,7 +4401,7 @@ int wilc_del_station(struct wilc_vif *vif, const u8 *mac_addr)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 	return result;
@@ -4449,7 +4449,7 @@ int wilc_del_allstation(struct wilc_vif *vif, u8 mac_addr[][ETH_ALEN])
 	result = wilc_enqueue_work(msg);
 
 	if (result)
-		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 	else
 		wait_for_completion(&msg->work_comp);
 
@@ -4485,7 +4485,7 @@ int wilc_edit_station(struct wilc_vif *vif,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(add_sta_info->rates);
 		kfree(msg);
 	}
@@ -4515,7 +4515,7 @@ int wilc_set_power_mgmt(struct wilc_vif *vif, bool enabled, u32 timeout)
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 	return result;
@@ -4538,7 +4538,7 @@ int wilc_setup_multicast_filter(struct wilc_vif *vif, bool enabled,
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
-		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 	return result;
@@ -4557,7 +4557,7 @@ int wilc_set_tx_power(struct wilc_vif *vif, u8 tx_power)
 
 	ret = wilc_enqueue_work(msg);
 	if (ret) {
-		PRINT_ER(vif->ndev, "wilc_mq_send fail\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 
@@ -4575,7 +4575,7 @@ int wilc_get_tx_power(struct wilc_vif *vif, u8 *tx_power)
 
 	ret = wilc_enqueue_work(msg);
 	if (ret) {
-		PRINT_ER(vif->ndev, "Failed to get TX PWR\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 	} else {
 		wait_for_completion(&msg->work_comp);
 		*tx_power = msg->body.tx_power.tx_pwr;
@@ -4647,8 +4647,7 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 	msg->body.set_ant.gpio_mode = attr_syfs_p->ant_swtch_mode;
 	ret = wilc_enqueue_work(msg);
 	if(ret) {
-		PRINT_ER(vif->ndev,
-			 "Failed to send get host channel param's message queue ");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 		return -EINVAL;
 	}
@@ -4665,7 +4664,7 @@ int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger)
 
 	result = wilc_enqueue_work(msg);
 	if(result) {
-		PRINT_ER(vif->ndev, "Failed to enq wowlan trigger req\n");
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
 	return result;
