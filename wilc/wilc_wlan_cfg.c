@@ -517,7 +517,7 @@ void wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 
 int wilc_wlan_cfg_init(struct wilc *wl)
 {
-	struct wilc_mac_cfg *mac_cfg;
+	struct wilc_cfg_str_vals *str_vals;
 	struct wilc_bin_vals *bin_vals;
 	int i = 0;
 
@@ -537,8 +537,8 @@ int wilc_wlan_cfg_init(struct wilc *wl)
 	if (!wl->cfg.s)
 		goto out_s;
 
-	mac_cfg = kzalloc(sizeof(mac_cfg), GFP_KERNEL);
-	if (!mac_cfg)
+	str_vals = kzalloc(sizeof(str_vals), GFP_KERNEL);
+	if (!str_vals)
 		goto out_str_val;
 
 
@@ -551,15 +551,15 @@ int wilc_wlan_cfg_init(struct wilc *wl)
 		goto out_bin_val;
 
 	/* store the string cfg parameters */
-	wl->cfg.str_vals = mac_cfg;
+	wl->cfg.str_vals = str_vals;
 	wl->cfg.s[i].id = WID_FIRMWARE_VERSION;
-	wl->cfg.s[i].str = mac_cfg->firmware_version;
+	wl->cfg.s[i].str = str_vals->firmware_version;
 	i++;
 	wl->cfg.s[i].id = WID_MAC_ADDR;
-	wl->cfg.s[i].str = mac_cfg->mac_address;
+	wl->cfg.s[i].str = str_vals->mac_address;
 	i++;
 	wl->cfg.s[i].id = WID_ASSOC_RES_INFO;
-	wl->cfg.s[i].str = mac_cfg->assoc_rsp;
+	wl->cfg.s[i].str = str_vals->assoc_rsp;
 	i++;
 	wl->cfg.s[i].id = WID_NIL;
 	wl->cfg.s[i].str = NULL;
@@ -578,7 +578,7 @@ int wilc_wlan_cfg_init(struct wilc *wl)
 out_bin_val:
 	kfree(wl->cfg.bin);
 out_bin:
-	kfree(mac_cfg);
+	kfree(str_vals);
 	
 out_str_val:
 	kfree(wl->cfg.s);
