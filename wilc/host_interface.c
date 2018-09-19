@@ -246,7 +246,6 @@ static struct mutex hif_deinit_lock;
 static struct timer_list periodic_rssi;
 static struct wilc_vif *periodic_rssi_vif;
 
-u8 wilc_multicast_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
 
 static u8 rcv_assoc_resp[MAX_ASSOC_RESP_FRAME_SIZE];
 
@@ -2949,7 +2948,7 @@ static void handle_set_mcast_filter(struct work_struct *work)
 	*cur_byte++ = ((hif_set_mc->cnt >> 24) & 0xFF);
 
 	if (hif_set_mc->cnt > 0)
-		memcpy(cur_byte, wilc_multicast_mac_addr_list,
+		memcpy(cur_byte, vif->mc_mac_addr_list,
 		       ((hif_set_mc->cnt) * ETH_ALEN));
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,

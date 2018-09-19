@@ -1308,14 +1308,14 @@ static void wilc_set_multicast_list(struct net_device *dev)
 	}
 
 	netdev_for_each_mc_addr(ha, dev) {
-		memcpy(wilc_multicast_mac_addr_list[i], ha->addr, ETH_ALEN);
+		memcpy(vif->mc_mac_addr_list[i], ha->addr, ETH_ALEN);
 		PRINT_INFO(vif->ndev, INIT_DBG, "Entry[%d]: %x:%x:%x:%x:%x:%x\n", i,
-			   wilc_multicast_mac_addr_list[i][0],
-			   wilc_multicast_mac_addr_list[i][1],
-			   wilc_multicast_mac_addr_list[i][2],
-			   wilc_multicast_mac_addr_list[i][3],
-			   wilc_multicast_mac_addr_list[i][4],
-			   wilc_multicast_mac_addr_list[i][5]);
+			   vif->mc_mac_addr_list[i][0],
+			   vif->mc_mac_addr_list[i][1],
+			   vif->mc_mac_addr_list[i][2],
+			   vif->mc_mac_addr_list[i][3],
+			   vif->mc_mac_addr_list[i][4],
+			   vif->mc_mac_addr_list[i][5]);
 		i++;
 	}
 

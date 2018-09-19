@@ -384,7 +384,6 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode);
 
 signed int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger);
 extern u8 wilc_connected_ssid[6];
-extern u8 wilc_multicast_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
 
 extern int wilc_connecting;
 extern u8 wilc_initialized;

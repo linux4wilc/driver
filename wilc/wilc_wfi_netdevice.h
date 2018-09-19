@@ -141,6 +141,7 @@ struct wilc_vif {
 	struct timer_list during_ip_timer;
 	bool obtaining_ip;
 #endif
+	u8 mc_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
 };
 
 struct wilc {
