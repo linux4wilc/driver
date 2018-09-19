@@ -9,8 +9,6 @@
 #include <linux/ieee80211.h>
 #include "coreconfigurator.h"
 
-#define IP_ALEN  4
-
 #define IDLE_MODE	0x00
 #define AP_MODE		0x01
 #define STATION_MODE	0x02
