@@ -189,7 +189,7 @@ struct wilc {
 	struct device *dev;
 
 	struct rf_info dummy_statistics;
-
+	bool enable_ps;
 	enum wilc_chip_type chip;
 
 	uint8_t power_status[PWR_DEV_SRC_MAX];

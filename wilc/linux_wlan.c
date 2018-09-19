@@ -61,7 +61,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		wilc_optaining_ip = false;
 
 		/* Recover PS previous state */
-		if(wilc_enable_ps == true)
+		if(vif->wilc->enable_ps == true)
 		{
 			wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 		}
@@ -131,7 +131,7 @@ void clear_during_ip(unsigned long arg)
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
 
 	/* Recover PS previous state */
-	if(wilc_enable_ps == true)
+	if(vif->wilc->enable_ps == true)
 	{
 		wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 	}
@@ -142,8 +142,6 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 			u8 status);
 static int wilc_mac_open(struct net_device *ndev);
 static int wilc_mac_close(struct net_device *ndev);
-
-bool wilc_enable_ps = true;
 
 int debug_running = false;
 int recovery_on = 0;

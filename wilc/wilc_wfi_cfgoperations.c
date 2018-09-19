@@ -2186,7 +2186,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, " Power save Enabled= %d , TimeOut = %d\n", enabled, timeout);
 
-	if (wilc_enable_ps)
+	if (vif->wilc->enable_ps)
 		wilc_set_power_mgmt(vif, enabled, timeout);
 
 	return 0;
@@ -2243,7 +2243,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		memset(priv->assoc_stainfo.sta_associated_bss, 0,
 		       MAX_NUM_STA * ETH_ALEN);
 
-		wilc_enable_ps = true;
+		wl->enable_ps = true;
 		wilc_set_power_mgmt(vif_1, 1, 0);
 		wilc_set_power_mgmt(vif_2, 1, 0);
 		break;
@@ -2255,7 +2255,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
 		vif->iftype = CLIENT_MODE;
-		wilc_enable_ps = false;
+		wl->enable_ps = false;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 					 STATION_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, STATION_MODE);
@@ -2270,7 +2270,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
 		vif->iftype = AP_MODE;
-		wilc_enable_ps = false;
+		wl->enable_ps = false;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 						 AP_MODE, vif->ifc_id);
@@ -2294,7 +2294,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 						 AP_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, AP_MODE);
-		wilc_enable_ps = false;
+		wl->enable_ps = false;
 		wilc_set_power_mgmt(vif_1, 0, 0);
 		wilc_set_power_mgmt(vif_2, 0, 0);
 		break;
@@ -2306,7 +2306,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		wilc_wfi_mon->type = ARPHRD_IEEE80211_RADIOTAP;
 		priv->wdev->iftype = type;
 		vif->iftype = MONITOR_MODE;
-		wilc_enable_ps = false;
+		wl->enable_ps = false;
 		if (wl->initialized) {
 		vif->monitor_flag = 1;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
