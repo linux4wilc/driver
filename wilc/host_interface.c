@@ -240,9 +240,6 @@ struct join_bss_param {
 };
 
 static struct host_if_drv *terminated_handle;
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-bool wilc_optaining_ip;
-#endif
 static struct workqueue_struct *hif_workqueue;
 static struct completion hif_driver_comp;
 static struct mutex hif_deinit_lock;
@@ -860,7 +857,7 @@ static void handle_scan(struct work_struct *work)
 		goto error;
 	}
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	if (wilc_optaining_ip) {
+	if (vif->obtaining_ip) {
 		PRINT_ER(vif->ndev, "Don't do obss scan\n");
 		result = -EBUSY;
 		goto error;
@@ -2727,7 +2724,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 		goto error;
 	}
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	if (wilc_optaining_ip) {
+	if (vif->obtaining_ip) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "[handle_scan]: Don't do obss scan until IP adresss is obtained\n");
 		result = -EBUSY;
 		goto error;
@@ -3962,8 +3959,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 		}
 	
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-
-	wilc_optaining_ip = false;
+	vif->obtaining_ip = false;
 #endif
 
 	if (clients_count == 0) {

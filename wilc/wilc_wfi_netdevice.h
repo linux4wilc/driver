@@ -106,7 +106,6 @@ struct wilc_priv {
 
 	struct timer_list aging_timer;
 	struct timer_list eap_buff_timer;
-	struct timer_list during_ip_timer;
 	struct network_info scanned_shadow[MAX_NUM_SCANNED_NETWORKS_SHADOW];
 	int scanned_cnt;
 };
@@ -139,6 +138,8 @@ struct wilc_vif {
 	sysfs_attr_group attr_sysfs;
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	bool pwrsave_current_state;
+	struct timer_list during_ip_timer;
+	bool obtaining_ip;
 #endif
 };
 

@@ -612,7 +612,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 					GFP_KERNEL);
 	} else if (conn_disconn_evt == CONN_DISCONN_EVENT_DISCONN_NOTIF) {
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		wilc_optaining_ip = false;
+		vif->obtaining_ip = false;
 #endif
 		PRINT_ER(vif->ndev,
 			 "Received MAC_STATUS_DISCONNECTED from firmware with reason %d on dev [%p]\n",
@@ -2126,7 +2126,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	}
 
 	/* Can't set PS during obtaining IP */
-	if (wilc_optaining_ip == true)
+	if (vif->obtaining_ip == true)
 	{
 		PRINT_ER(dev, "Device obtaining IP, Power Managment will be handled after IP Obtained\n");
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
@@ -2807,18 +2807,19 @@ int wilc_init_host_int(struct net_device *net)
 {
 	int ret;
 	struct wilc_priv *priv = wdev_priv(net->ieee80211_ptr);
+	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	PRINT_INFO(net, INIT_DBG, "Host[%p][%p]\n", net, net->ieee80211_ptr);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	timer_setup(&priv->during_ip_timer, clear_during_ip, 0);
+	timer_setup(&vif->during_ip_timer, clear_during_ip, 0);
 	#endif
 	timer_setup(&priv->eap_buff_timer, eap_buff_timeout, 0);
 	timer_setup(&priv->aging_timer, remove_network_from_shadow, 0);
 #else
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	setup_timer(&priv->during_ip_timer, clear_during_ip, 0);
+	setup_timer(&vif->during_ip_timer, clear_during_ip, 0);
 	#endif
 	setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
 	setup_timer(&priv->aging_timer, remove_network_from_shadow, 0);
@@ -2846,7 +2847,7 @@ int wilc_deinit_host_int(struct net_device *net)
 	ret = wilc_deinit(vif);
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	del_timer_sync(&priv->during_ip_timer);
+	del_timer_sync(&vif->during_ip_timer);
 #endif
 	del_timer_sync(&priv->eap_buff_timer);
 	del_timer_sync(&priv->aging_timer);

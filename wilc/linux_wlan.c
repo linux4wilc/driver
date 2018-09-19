@@ -38,7 +38,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "Obtaining an IP, Disable (Scan-Set PowerSave)\n");
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "Save the Current state of the PS = %d\n", vif->pwrsave_current_state);
 
-		wilc_optaining_ip = true;
+		vif->obtaining_ip = true;
 
 		/* Set this flag to avoid storing the disabled case of PS which occurs duringIP */
 		g_ignore_PS_state = true;
@@ -47,9 +47,9 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 
 		/* Start the DuringIPTimer */
 	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
-		priv->during_ip_timer.data = (uint32_t)priv;
+		vif->during_ip_timer.data = (uint32_t)vif;
 	#endif
-		mod_timer(&priv->during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
+		mod_timer(&vif->during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
 
 		break;
 
@@ -58,7 +58,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP obtained , Enable (Scan-Set PowerSave)\n");
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
 
-		wilc_optaining_ip = false;
+		vif->obtaining_ip = false;
 
 		/* Recover PS previous state */
 		if(vif->wilc->enable_ps == true)
@@ -66,38 +66,31 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 			wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 		}
 
-		del_timer(&priv->during_ip_timer);
+		del_timer(&vif->during_ip_timer);
 
 		break;
 
 	case IP_STATE_GO_ASSIGNING:
 
-		/* Set the wilc_optaining_ip flag */
-		wilc_optaining_ip = true;
+		vif->obtaining_ip = true;
 
 		/* Start the DuringIPTimer */
 	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
-		priv->during_ip_timer.data = (uint32_t)priv;
+		vif->during_ip_timer.data = (uint32_t)vif;
 	#endif
-		mod_timer(&priv->during_ip_timer, (jiffies + msecs_to_jiffies(DURING_IP_TIME_OUT)));
+		mod_timer(&vif->during_ip_timer, (jiffies + msecs_to_jiffies(DURING_IP_TIME_OUT)));
 
 		break;
 
 	default: //IP_STATE_DEFAULT
 
-		/* Clear the wilc_optaining_ip flag */
-		wilc_optaining_ip = false;
+		vif->obtaining_ip = false;
 
 		/* Stop the DuringIPTimer */
-		del_timer(&priv->during_ip_timer);
+		del_timer(&vif->during_ip_timer);
 
 		break;
 	}
-}
-
-void set_obtaining_IP_flag(bool val)
-{
-	wilc_optaining_ip = val;
 }
 
 void store_power_save_current_state(struct wilc_vif *vif, bool val)
@@ -117,16 +110,14 @@ void clear_during_ip(unsigned long arg)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-	struct wilc_priv *priv = from_timer(priv, t, during_ip_timer);
+	struct wilc_vif *vif= from_timer(vif, t, during_ip_timer);
 #else
-	struct wilc_priv *priv = (struct wilc_priv *)arg;
+	struct wilc_vif *vif = (struct wilc_vif *)arg;
 #endif
-	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	PRINT_ER(vif->ndev, "Unable to Obtain IP\n");
 
-	/* Clear the wilc_optaining_ip flag */
-	wilc_optaining_ip = false;
+	vif->obtaining_ip = false;
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
 
