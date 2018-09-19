@@ -239,10 +239,7 @@ struct join_bss_param {
 	u8 start_time[4];
 };
 
-static struct host_if_drv *terminated_handle;
-static struct workqueue_struct *hif_workqueue;
-static struct completion hif_driver_comp;
-static struct mutex hif_deinit_lock;
+static struct host_if_drv *terminated_handle;;
 static struct timer_list periodic_rssi;
 static struct wilc_vif *periodic_rssi_vif;
 
@@ -250,6 +247,8 @@ static struct wilc_vif *periodic_rssi_vif;
 static u8 rcv_assoc_resp[MAX_ASSOC_RESP_FRAME_SIZE];
 
 extern int recovery_on;
+static struct mutex hif_deinit_lock;
+static struct completion hif_driver_comp;
 
 /* 'msg' should be free by the caller for syc */
 static struct host_if_msg*
@@ -276,7 +275,11 @@ wilc_alloc_work(struct wilc_vif *vif, void (*work_fun)(struct work_struct *),
 static int wilc_enqueue_work(struct host_if_msg *msg)
 {
 	INIT_WORK(&msg->work, msg->fn);
-	if (!hif_workqueue || !queue_work(hif_workqueue, &msg->work))
+
+	if (!msg->vif || !msg->vif->wilc || !msg->vif->wilc->hif_workqueue)
+		return -EINVAL;
+
+	if (!queue_work(msg->vif->wilc->hif_workqueue, &msg->work))
 		return -EINVAL;
 
 	return 0;
@@ -3963,8 +3966,8 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 		init_completion(&hif_driver_comp);
 		mutex_init(&hif_deinit_lock);
 
-		hif_workqueue = create_singlethread_workqueue("WILC_wq");
-		if (!hif_workqueue) {
+		wilc->hif_workqueue = create_singlethread_workqueue("WILC_wq");
+		if (!wilc->hif_workqueue) {
 			PRINT_ER(vif->ndev, "Failed to create workqueue\n");
 			kfree(hif_drv);
 			return -ENOMEM;
@@ -4061,9 +4064,9 @@ int wilc_deinit(struct wilc_vif *vif)
 				wait_for_completion(&msg->work_comp);
 			kfree(msg);
 		}
-		flush_workqueue(hif_workqueue);
-		destroy_workqueue(hif_workqueue);
-		hif_workqueue = NULL;
+		flush_workqueue(vif->wilc->hif_workqueue);
+		destroy_workqueue(vif->wilc->hif_workqueue);
+		vif->wilc->hif_workqueue = NULL;
 	}
 
 	kfree(hif_drv);
@@ -4536,7 +4539,7 @@ int wilc_set_power_mgmt(struct wilc_vif *vif, bool enabled, u32 timeout)
 	msg->body.pwr_mgmt_info.enabled = enabled;
 	msg->body.pwr_mgmt_info.timeout = timeout;
 
-	if(!hif_workqueue)
+	if(!vif->wilc->hif_workqueue)
 		return 0;
 
 	result = wilc_enqueue_work(msg);

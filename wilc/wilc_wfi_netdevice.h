@@ -201,6 +201,7 @@ struct wilc {
 	uint8_t keep_awake[PWR_DEV_SRC_MAX];
 	struct mutex cs;
 	int clients_count;
+	struct workqueue_struct *hif_workqueue;
 };
 
 struct wilc_wfi_mon_priv {
