@@ -250,8 +250,6 @@ u8 wilc_multicast_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
 
 static u8 rcv_assoc_resp[MAX_ASSOC_RESP_FRAME_SIZE];
 
-static u32 clients_count;
-
 extern int recovery_on;
 
 /* 'msg' should be free by the caller for syc */
@@ -3943,7 +3941,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 	int i;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Initializing host interface for client %d\n",
-		   clients_count + 1);
+		   wilc->clients_count + 1);
 
 	hif_drv  = kzalloc(sizeof(*hif_drv), GFP_KERNEL);
 	if (!hif_drv) {
@@ -3962,10 +3960,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 	vif->obtaining_ip = false;
 #endif
 
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "INIT: CLIENT COUNT %d\n", 
-				clients_count);
-
-	if (clients_count == 0) {
+	if (wilc->clients_count == 0) {
 		init_completion(&hif_driver_comp);
 		mutex_init(&hif_deinit_lock);
 
@@ -4014,7 +4009,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 		hif_drv->cfg_values.curr_tx_rate);
 	mutex_unlock(&hif_drv->cfg_values_lock);
 
-	clients_count++;
+	wilc->clients_count++;
 
 	return 0;
 }
@@ -4034,7 +4029,7 @@ int wilc_deinit(struct wilc_vif *vif)
 	terminated_handle = hif_drv;
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, 
 		   "De-initializing host interface for client %d\n",
-		   clients_count);
+		   vif->wilc->clients_count);
 
 	del_timer_sync(&hif_drv->scan_timer);
 	del_timer_sync(&hif_drv->connect_timer);
@@ -4055,7 +4050,7 @@ int wilc_deinit(struct wilc_vif *vif)
 
 	memset(wilc_connected_ssid, 0, ETH_ALEN);
 
-	if (clients_count == 1)	{
+	if (vif->wilc->clients_count == 1) {
 		struct host_if_msg *msg;
 
 		msg = wilc_alloc_work(vif, handle_hif_exit_work, true);
@@ -4074,7 +4069,7 @@ int wilc_deinit(struct wilc_vif *vif)
 
 	kfree(hif_drv);
 
-	clients_count--;
+	vif->wilc->clients_count--;
 	terminated_handle = NULL;
 	mutex_unlock(&hif_deinit_lock);
 	return result;
