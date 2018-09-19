@@ -578,10 +578,9 @@ int wilc_wlan_cfg_get_wid_value(struct wilc_vif *vif, u16 wid, u8 *buffer,
 	return ret;
 }
 
-int wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
-			      struct wilc_cfg_rsp *rsp)
+void wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
+			       struct wilc_cfg_rsp *rsp)
 {
-	int ret = 1;
 	u8 msg_type;
 	u8 msg_id;
 
@@ -589,6 +588,7 @@ int wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 	msg_id = frame[1];      /* seq no */
 	frame += 4;
 	size -= 4;
+	rsp->type = 0;
 
 	/*
 	 * The valid types of response messages are
@@ -606,7 +606,7 @@ int wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 
 	case 'I':
 		wilc_wlan_parse_info_frame(wilc, frame);
-		rsp->type = WILC_CFG_RSP_STATUS; 
+		rsp->type = WILC_CFG_RSP_STATUS;
 		rsp->seq_no = msg_id;
 		/*call host interface info parse as well*/
 		PRINT_D(wilc->vif[0]->ndev, RX_DBG,"Info message received\n");
@@ -615,7 +615,6 @@ int wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 
 	case 'N':
 		wilc_network_info_received(wilc, frame - 4, size + 4);
-		rsp->type = 0;
 		break;
 
 	case 'S':
@@ -628,13 +627,9 @@ int wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 			"Receive unknown message %d-%d-%d-%d-%d-%d-%d-%d\n",
 			 frame[0], frame[1], frame[2], frame[3], frame[4],
 			 frame[5], frame[6], frame[7]);
-		rsp->type = 0;
 		rsp->seq_no = msg_id;
-		ret = 0;
 		break;
 	}
-
-	return ret;
 }
 
 int wilc_wlan_cfg_init(void)
