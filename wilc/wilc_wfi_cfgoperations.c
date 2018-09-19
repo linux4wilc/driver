@@ -300,11 +300,11 @@ void remove_network_from_shadow(unsigned long arg)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-	struct wilc* wilc = from_timer(wilc, t, aging_timer);
+	struct wilc_priv *priv = from_timer(priv, t, aging_timer);
 #else
-	struct wilc* wilc = (struct wilc*)arg;
+	struct wilc_priv *priv = (struct wilc_priv*)arg;
 #endif
-	struct wilc_vif* vif = wilc->aging_timer_vif;
+	struct wilc_vif* vif = netdev_priv(priv->dev);
 	unsigned long now = jiffies;
 	int i, j;
 
@@ -332,10 +332,9 @@ void remove_network_from_shadow(unsigned long arg)
 
 	if (last_scanned_cnt != 0) {
 	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
-		wilc->aging_timer.data = (unsigned long) wilc;
+		priv->aging_timer.data = (unsigned long) priv;
 	#endif
-		wilc->aging_timer_vif = vif;
-		mod_timer(&wilc->aging_timer,
+		mod_timer(&priv->aging_timer,
 			  jiffies + msecs_to_jiffies(AGING_TIME));
 	}
 	else {
@@ -344,25 +343,18 @@ void remove_network_from_shadow(unsigned long arg)
 	}
 }
 
-static int is_network_in_shadow(struct network_info *nw_info, struct wilc_priv *priv)
+static int is_network_in_shadow(struct network_info *nw_info,
+				struct wilc_priv *priv)
 {
-	struct wilc* wilc;
-	struct wilc_vif* vif;
-	struct net_device *dev;
 	int state = -1;
 	int i;
-
-	dev = priv->dev;
-	vif = netdev_priv(dev);
-	wilc = vif->wilc;
 
 	if (last_scanned_cnt == 0) {
 		PRINT_INFO(priv->dev, CFG80211_DBG, "Starting Aging timer\n");
 	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
-		wilc->aging_timer.data = (unsigned long) wilc;
+		priv->aging_timer.data = (unsigned long) priv;
 	#endif
-		wilc->aging_timer_vif = vif;
-		mod_timer(&wilc->aging_timer,
+		mod_timer(&priv->aging_timer,
 			  jiffies + msecs_to_jiffies(AGING_TIME));
 		state = -1;
 	} else {
@@ -2861,11 +2853,13 @@ int wilc_init_host_int(struct net_device *net)
 	timer_setup(&priv->during_ip_timer, clear_during_ip, 0);
 	#endif
 	timer_setup(&priv->eap_buff_timer, eap_buff_timeout, 0);
+	timer_setup(&priv->aging_timer, remove_network_from_shadow, 0);
 #else
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	setup_timer(&priv->during_ip_timer, clear_during_ip, 0);
 	#endif
 	setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
+	setup_timer(&priv->aging_timer, remove_network_from_shadow, 0);
 #endif
 
 	priv->p2p_listen_state = false;
@@ -2893,6 +2887,7 @@ int wilc_deinit_host_int(struct net_device *net)
 	del_timer_sync(&priv->during_ip_timer);
 #endif
 	del_timer_sync(&priv->eap_buff_timer);
+	del_timer_sync(&priv->aging_timer);
 
 	if (ret)
 		PRINT_ER(net, "Error while deinitializing host interface\n");

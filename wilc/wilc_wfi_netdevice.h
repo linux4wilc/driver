@@ -104,6 +104,7 @@ struct wilc_priv {
 	bool p2p_listen_state;
 	struct wilc_buffered_eap *buffered_eap;
 
+	struct timer_list aging_timer;
 	struct timer_list eap_buff_timer;
 	struct timer_list during_ip_timer;
 };
@@ -195,9 +196,6 @@ struct wilc {
 	uint8_t power_status[PWR_DEV_SRC_MAX];
 	uint8_t keep_awake[PWR_DEV_SRC_MAX];
 	struct mutex cs;
-
-	struct timer_list aging_timer;
-	struct wilc_vif *aging_timer_vif;
 };
 
 struct wilc_wfi_mon_priv {

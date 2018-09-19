@@ -966,7 +966,6 @@ static void wilc_wlan_deinitialize(struct net_device *dev)
 			return;
 		}
 
-		del_timer_sync(&vif->wilc->aging_timer);
 		PRINT_D(vif->ndev, INIT_DBG, "destroy aging timer\n");
 
 		clear_shadow_scan();
@@ -1137,13 +1136,6 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			ret = -EIO;
 			goto fail_fw_start;
 		}
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-		timer_setup(&wl->aging_timer, remove_network_from_shadow,
-		    (unsigned long)wl);
-	#else
-		setup_timer(&wl->aging_timer, remove_network_from_shadow,
-		    (unsigned long)wl);
-	#endif
 
 		wl->initialized = true;
 		return 0;
