@@ -107,6 +107,8 @@ struct wilc_priv {
 	struct timer_list aging_timer;
 	struct timer_list eap_buff_timer;
 	struct timer_list during_ip_timer;
+	struct network_info scanned_shadow[MAX_NUM_SCANNED_NETWORKS_SHADOW];
+	int scanned_cnt;
 };
 
 struct frame_reg {

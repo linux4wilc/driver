@@ -77,9 +77,6 @@ struct send_buffered_eap {
 	void *user_arg;
 };
 
-extern void filter_shadow_scan(void* pUserVoid, u8 *ch_freq_list,
-							   u8 ch_list_len);
-
 signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 				  wilc_frmw_to_linux_t frmw_to_linux,
 				  free_eap_buf_param eap_buf_param,
@@ -313,6 +310,39 @@ static struct wilc_vif *wilc_get_vif_from_idx(struct wilc *wilc, int idx)
 		return NULL;
 
 	return wilc->vif[index];
+}
+
+void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len)
+{
+	int i;
+	int ch_index;
+	int j;
+
+	if(ch_list_len > 0) {
+		for(i = 0;i < priv->scanned_cnt;) {
+			for(ch_index=0;ch_index < ch_list_len;ch_index++) 				
+				if(priv->scanned_shadow[i].ch == (ch_freq_list[ch_index] + 1))
+					break;
+
+			/* filter only un-matched channels */
+			if (ch_index == ch_list_len){
+				if (priv->scanned_shadow[i].ies){
+					kfree(priv->scanned_shadow[i].ies);
+					priv->scanned_shadow[i].ies = NULL;
+				}
+
+				kfree(priv->scanned_shadow[i].join_params);
+				priv->scanned_shadow[i].join_params = NULL;
+
+				for(j=i;(j<priv->scanned_cnt-1);j++)
+					priv->scanned_shadow[j] = priv->scanned_shadow[j+1];
+
+				priv->scanned_cnt--;
+				continue;
+			}
+			i++;
+		}
+	}
 }
 
 static void handle_send_buffered_eap(struct work_struct *work)
@@ -780,6 +810,8 @@ static void handle_scan(struct work_struct *work)
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	struct wilc_vif *vif = msg->vif;
 	struct scan_attr *scan_info = &msg->body.scan_info;
+	struct wiphy *wiphy = vif->ndev->ieee80211_ptr->wiphy;
+	struct wilc_priv *priv = wiphy_priv(wiphy);
 	int result = 0;
 	struct wid wid_list[5];
 	u32 index = 0;
@@ -902,7 +934,7 @@ static void handle_scan(struct work_struct *work)
      * Remove APs from shadow scan list which are 
      * not in the requested scan channels list 
      */
-	filter_shadow_scan(vif, scan_info->ch_freq_list,
+	filter_shadow_scan(priv, scan_info->ch_freq_list,
 			   scan_info->ch_list_len);
 	
 	result = wilc_send_config_pkt(vif, SET_CFG, wid_list,
