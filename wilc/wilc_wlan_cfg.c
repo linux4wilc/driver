@@ -527,28 +527,28 @@ int wilc_wlan_cfg_init(struct wilc *wl)
 
 	wl->cfg.hw = kmemdup(g_cfg_hword, sizeof(g_cfg_hword), GFP_KERNEL);
 	if (!wl->cfg.hw)
-		goto out_hw;
+		goto out_b;
 
 	wl->cfg.w = kmemdup(g_cfg_word, sizeof(g_cfg_word), GFP_KERNEL);
 	if (!wl->cfg.w)
-		goto out_w;
+		goto out_hw;
 
 	wl->cfg.s = kmemdup(g_cfg_str, sizeof(g_cfg_str), GFP_KERNEL);
 	if (!wl->cfg.s)
-		goto out_s;
+		goto out_w;
 
 	str_vals = kzalloc(sizeof(str_vals), GFP_KERNEL);
 	if (!str_vals)
-		goto out_str_val;
+		goto out_s;
 
 
 	wl->cfg.bin = kmemdup(g_cfg_bin, sizeof(g_cfg_bin), GFP_KERNEL);
 	if (!wl->cfg.bin)
-		goto out_bin;
+		goto out_str_val;
 
 	bin_vals = kzalloc(sizeof(bin_vals), GFP_KERNEL);
 	if (!bin_vals)
-		goto out_bin_val;
+		goto out_bin;
 
 	/* store the string cfg parameters */
 	wl->cfg.str_vals = str_vals;
@@ -575,18 +575,17 @@ int wilc_wlan_cfg_init(struct wilc *wl)
 
 	return 0;
 
-out_bin_val:
-	kfree(wl->cfg.bin);
 out_bin:
-	kfree(str_vals);
-	
+	kfree(wl->cfg.bin);
 out_str_val:
-	kfree(wl->cfg.s);
+	kfree(str_vals);
 out_s:
-	kfree(wl->cfg.w);
+	kfree(wl->cfg.s);
 out_w:
-	kfree(wl->cfg.hw);
+	kfree(wl->cfg.w);
 out_hw:
+	kfree(wl->cfg.hw);
+out_b:
 	kfree(wl->cfg.b);
 	return -ENOMEM;
 }
