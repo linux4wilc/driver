@@ -3964,13 +3964,6 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 		init_completion(&hif_driver_comp);
 		mutex_init(&hif_deinit_lock);
 
-		wilc->hif_workqueue = create_singlethread_workqueue("WILC_wq");
-		if (!wilc->hif_workqueue) {
-			PRINT_ER(vif->ndev, "Failed to create workqueue\n");
-			kfree(hif_drv);
-			return -ENOMEM;
-		}
-
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 		timer_setup(&vif->periodic_rssi, get_periodic_rssi, 0);
 	#else
@@ -4049,23 +4042,6 @@ int wilc_deinit(struct wilc_vif *vif)
 	hif_drv->hif_state = HOST_IF_IDLE;
 
 	memset(wilc_connected_ssid, 0, ETH_ALEN);
-
-	if (vif->wilc->clients_count == 1) {
-		struct host_if_msg *msg;
-
-		msg = wilc_alloc_work(vif, handle_hif_exit_work, true);
-		if (!IS_ERR(msg)) {
-			result = wilc_enqueue_work(msg);
-			if (result)
-				PRINT_ER(vif->ndev, "deinit : Error(%d)\n", result);
-			else
-				wait_for_completion(&msg->work_comp);
-			kfree(msg);
-		}
-		flush_workqueue(vif->wilc->hif_workqueue);
-		destroy_workqueue(vif->wilc->hif_workqueue);
-		vif->wilc->hif_workqueue = NULL;
-	}
 
 	kfree(hif_drv);
 

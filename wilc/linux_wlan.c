@@ -1596,6 +1596,9 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 		unregister_inetaddr_notifier(&g_dev_notifier);
 	#endif
 
+	flush_workqueue(wilc->hif_workqueue);
+	destroy_workqueue(wilc->hif_workqueue);
+	wilc->hif_workqueue = NULL;
 	kfree(wilc);
 	wilc_wlan_cfg_deinit(wilc);
 	wilc_debugfs_remove();
@@ -1639,6 +1642,12 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		INIT_LIST_HEAD(&wl->txq[i].txq_head.list);
 
 	INIT_LIST_HEAD(&wl->rxq_head.list);
+	
+	wl->hif_workqueue = create_singlethread_workqueue("WILC_wq");
+	if (!wl->hif_workqueue) {
+		kfree(wl);
+		return -ENOMEM;
+	}
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	register_inetaddr_notifier(&g_dev_notifier);
