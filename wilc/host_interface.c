@@ -240,8 +240,6 @@ struct join_bss_param {
 };
 
 static struct host_if_drv *terminated_handle;;
-static u8 rcv_assoc_resp[MAX_ASSOC_RESP_FRAME_SIZE];
-
 extern int recovery_on;
 static struct mutex hif_deinit_lock;
 static struct completion hif_driver_comp;
@@ -1686,9 +1684,9 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 	if (mac_status == MAC_STATUS_CONNECTED) {
 		u32 assoc_resp_info_len;
 
-		memset(rcv_assoc_resp, 0, MAX_ASSOC_RESP_FRAME_SIZE);
+		memset(hif_drv->assoc_resp, 0, MAX_ASSOC_RESP_FRAME_SIZE);
 
-		host_int_get_assoc_res_info(vif, rcv_assoc_resp,
+		host_int_get_assoc_res_info(vif, hif_drv->assoc_resp,
 					    MAX_ASSOC_RESP_FRAME_SIZE,
 					    &assoc_resp_info_len);
 
@@ -1699,7 +1697,7 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 			s32 err = 0;
 			PRINT_INFO(vif->ndev, HOSTINF_DBG, 
 				   "Parsing association response\n");
-			err = wilc_parse_assoc_resp_info(rcv_assoc_resp,
+			err = wilc_parse_assoc_resp_info(hif_drv->assoc_resp,
 							 assoc_resp_info_len,
 							 &conn_info);
 			if (err)
