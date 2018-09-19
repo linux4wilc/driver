@@ -142,6 +142,8 @@ struct wilc_vif {
 	bool obtaining_ip;
 #endif
 	u8 mc_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
+	struct rf_info periodic_stats;
+	struct timer_list periodic_rssi;
 };
 
 struct wilc {
@@ -193,7 +195,6 @@ struct wilc {
 
 	struct device *dev;
 
-	struct rf_info dummy_statistics;
 	bool enable_ps;
 	enum wilc_chip_type chip;
 

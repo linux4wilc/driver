@@ -240,10 +240,6 @@ struct join_bss_param {
 };
 
 static struct host_if_drv *terminated_handle;;
-static struct timer_list periodic_rssi;
-static struct wilc_vif *periodic_rssi_vif;
-
-
 static u8 rcv_assoc_resp[MAX_ASSOC_RESP_FRAME_SIZE];
 
 extern int recovery_on;
@@ -3917,12 +3913,16 @@ int wilc_hif_set_cfg(struct wilc_vif *vif,
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-static void get_periodic_rssi(struct timer_list *unused)
+static void get_periodic_rssi(struct timer_list *t)
 #else
 static void get_periodic_rssi(unsigned long arg)
 #endif
 {
-	struct wilc_vif *vif = periodic_rssi_vif;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+	struct wilc_vif *vif= from_timer(vif, t, periodic_rssi);
+#else
+	struct wilc_vif *vif = (struct wilc_vif *)arg;
+#endif
 
 	if (!vif->hif_drv) {
 		PRINT_ER(vif->ndev, "hif driver is NULL\n");
@@ -3930,9 +3930,9 @@ static void get_periodic_rssi(unsigned long arg)
 	}
 
 	if (vif->hif_drv->hif_state == HOST_IF_CONNECTED)
-		wilc_get_statistics(vif, &vif->wilc->dummy_statistics, false);
+		wilc_get_statistics(vif, &vif->periodic_stats, false);
 
-	mod_timer(&periodic_rssi, jiffies + msecs_to_jiffies(5000));
+	mod_timer(&vif->periodic_rssi, jiffies + msecs_to_jiffies(5000));
 }
 
 int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
@@ -3973,14 +3973,14 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 			return -ENOMEM;
 		}
 
-		periodic_rssi_vif = vif;
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-		timer_setup(&periodic_rssi, get_periodic_rssi, 0);
+		timer_setup(&vif->periodic_rssi, get_periodic_rssi, 0);
 	#else
-		setup_timer(&periodic_rssi, get_periodic_rssi, (unsigned long)vif);
+		setup_timer(&vif->periodic_rssi, get_periodic_rssi, (unsigned long)vif);
 	#endif
-		mod_timer(&periodic_rssi, jiffies + msecs_to_jiffies(5000));
+		mod_timer(&vif->periodic_rssi, jiffies + msecs_to_jiffies(5000));
 	}
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 	timer_setup(&hif_drv->scan_timer, timer_scan_cb, 0);
 	timer_setup(&hif_drv->connect_timer, timer_connect_cb, 0);
@@ -4035,7 +4035,7 @@ int wilc_deinit(struct wilc_vif *vif)
 
 	del_timer_sync(&hif_drv->scan_timer);
 	del_timer_sync(&hif_drv->connect_timer);
-	del_timer_sync(&periodic_rssi);
+	del_timer_sync(&vif->periodic_rssi);
 	del_timer_sync(&hif_drv->remain_on_ch_timer);
 
 	wilc_set_wfi_drv_handler(vif, 0, vif->iftype, vif->ifc_id);
