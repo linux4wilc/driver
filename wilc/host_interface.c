@@ -3962,14 +3962,13 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 	vif->obtaining_ip = false;
 #endif
 
+	PRINT_INFO(vif->ndev, HOSTINF_DBG, "INIT: CLIENT COUNT %d\n", 
+				clients_count);
+
 	if (clients_count == 0) {
 		init_completion(&hif_driver_comp);
 		mutex_init(&hif_deinit_lock);
-	}
 
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "INIT: CLIENT COUNT %d\n", 
-				clients_count);
-	if (clients_count == 0) {
 		hif_workqueue = create_singlethread_workqueue("WILC_wq");
 		if (!hif_workqueue) {
 			PRINT_ER(vif->ndev, "Failed to create workqueue\n");
