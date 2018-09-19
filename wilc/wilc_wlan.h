@@ -325,7 +325,7 @@ int wilc_wlan_cfg_get_val(struct wilc_vif *vif, u16 wid, u8 *buffer,
 int wilc_wlan_txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
 			       u32 buffer_size, wilc_tx_complete_func_t func);
 
-void wilc_enable_tcp_ack_filter(bool value);
+void wilc_enable_tcp_ack_filter(struct wilc_vif *vif, bool value);
 int wilc_wlan_get_num_conn_ifcs(struct wilc *wilc);
 netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *dev);
 

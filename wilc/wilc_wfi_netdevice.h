@@ -115,6 +115,32 @@ struct frame_reg {
 	bool reg;
 };
 
+#define MAX_TCP_SESSION                25
+#define MAX_PENDING_ACKS               256
+
+struct ack_session_info {
+	u32 seq_num;
+	u32 bigger_ack_num;
+	u16 src_port;
+	u16 dst_port;
+	u16 status;
+};
+
+struct pending_acks_info {
+	u32 ack_num;
+	u32 session_index;
+	struct txq_entry_t  *txqe;
+};
+
+struct tcp_ack_filter {
+	struct ack_session_info ack_session_info[2 * MAX_TCP_SESSION];
+	struct pending_acks_info pending_acks_info[MAX_PENDING_ACKS];
+	u32 pending_base;
+	u32 tcp_session;
+	u32 pending_acks;
+	bool enabled;
+};
+
 typedef struct {
 	bool p2p_mode;
 	u8 ant_swtch_mode;
@@ -144,6 +170,7 @@ struct wilc_vif {
 	u8 mc_mac_addr_list[WILC_MULTICAST_TABLE_SIZE][ETH_ALEN];
 	struct rf_info periodic_stats;
 	struct timer_list periodic_rssi;
+	struct tcp_ack_filter ack_filter;
 };
 
 struct wilc {
