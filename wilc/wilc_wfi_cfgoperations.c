@@ -546,7 +546,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 	struct host_if_drv *wfi_drv = priv->hif_drv;
 	u8 null_bssid[ETH_ALEN] = {0};
 
-	vif->wilc_connecting = 0;
+	vif->connecting = false;
 
 	if (conn_disconn_evt == CONN_DISCONN_EVENT_CONN_RESP) {
 		u16 connect_status;
@@ -793,7 +793,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 	enum authtype auth_type = ANY;
 	u32 cipher_group;
 
-	vif->wilc_connecting = 1;
+	vif->connecting = true;
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Connecting to SSID [%s] on netdev [%p] host if [%x]\n",
@@ -847,7 +847,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 			nw_info->bssid[4], nw_info->bssid[5]);
 	} else {
 		ret = -ENOENT;
-		vif->wilc_connecting = 0;
+		vif->connecting = false;
 		if (priv->scanned_cnt == 0)
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
 				   "No Scan results yet\n");
@@ -916,7 +916,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		} else {
 			ret = -ENOTSUPP;
 			PRINT_ER(dev, "Unsupported cipher\n");
-			vif->wilc_connecting = 0;
+			vif->connecting = false;
 			return ret;
 		}
 	}
@@ -979,7 +979,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 	if (ret != 0) {
 		PRINT_ER(dev, "wilc_set_join_req(): Error(%d)\n", ret);
 		ret = -ENOENT;
-		vif->wilc_connecting = 0;
+		vif->connecting = false;
 		return ret;
 	}
 
@@ -996,7 +996,7 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev,
 	int ret;
 	u8 null_bssid[ETH_ALEN] = {0};
 
-	vif->wilc_connecting = 0;
+	vif->connecting = false;
 
 	if (!wilc)
 		return -EIO;
@@ -2182,7 +2182,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 
 	switch (type) {
 	case NL80211_IFTYPE_STATION:
-		vif->wilc_connecting = 0;
+		vif->connecting = false;
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 			   "Interface type = NL80211_IFTYPE_STATION\n");
 		dev->ieee80211_ptr->iftype = type;
@@ -2201,7 +2201,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		break;
 
 	case NL80211_IFTYPE_P2P_CLIENT:
-		vif->wilc_connecting = 0;
+		vif->connecting = false;
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 			   "Interface type = NL80211_IFTYPE_P2P_CLIENT\n");
 		dev->ieee80211_ptr->iftype = type;

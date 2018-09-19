@@ -172,7 +172,7 @@ struct wilc_vif {
 	struct rf_info periodic_stats;
 	struct timer_list periodic_rssi;
 	struct tcp_ack_filter ack_filter;
-	int wilc_connecting;
+	bool connecting;
 };
 
 struct wilc {

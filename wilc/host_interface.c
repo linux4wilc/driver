@@ -845,7 +845,7 @@ static void handle_scan(struct work_struct *work)
 			goto error;
 		}
 	}
-	if(vif->wilc_connecting) {
+	if(vif->connecting) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
 		result = -EBUSY;
 		goto error;
@@ -2712,7 +2712,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 		}
 	}
 
-	if(vif->wilc_connecting) {
+	if(vif->connecting) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
 		result = -EBUSY;
 		goto error;
