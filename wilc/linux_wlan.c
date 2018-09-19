@@ -1314,10 +1314,10 @@ static void wilc_set_multicast_list(struct net_device *dev)
 
 	netdev_for_each_mc_addr(ha, dev) {
 		memcpy(mc_list + i, ha->addr, ETH_ALEN);
-		PRINT_INFO(vif->ndev, INIT_DBG, "Entry[%d]: %x:%x:%x:%x:%x:%x\n", i,
+		PRINT_INFO(vif->ndev, INIT_DBG, "Entry[%d]: %x:%x:%x:%x:%x:%x\n", i/ETH_ALEN,
 			   mc_list[i], mc_list[i + 1], mc_list[i + 2],
 			   mc_list[i + 3], mc_list[i + 4], mc_list[i + 5]);
-		i += ETH_ALEN + 1;
+		i += ETH_ALEN;
 	}
 
 	res = wilc_setup_multicast_filter(vif, true, dev->mc.count, mc_list);
