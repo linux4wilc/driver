@@ -2189,7 +2189,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		priv->wdev->iftype = type;
 		vif->iftype = STATION_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 STATION_MODE, vif->ifc_id);
+					 STATION_MODE, vif->ifc_id, false);
 		wilc_set_operation_mode(vif, STATION_MODE);
 
 		memset(priv->assoc_stainfo.sta_associated_bss, 0,
@@ -2209,7 +2209,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		vif->iftype = CLIENT_MODE;
 		wl->enable_ps = false;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 STATION_MODE, vif->ifc_id);
+					 STATION_MODE, vif->ifc_id, false);
 		wilc_set_operation_mode(vif, STATION_MODE);
 
 		wilc_set_power_mgmt(vif_1, 0, 0);
@@ -2225,7 +2225,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		wl->enable_ps = false;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-						 AP_MODE, vif->ifc_id);
+						 AP_MODE, vif->ifc_id, false);
 			wilc_set_operation_mode(vif, AP_MODE);
 			wilc_set_power_mgmt(vif_1, 0, 0);
 			wilc_set_power_mgmt(vif_2, 0, 0);
@@ -2244,7 +2244,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		priv->wdev->iftype = type;
 		vif->iftype = GO_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-						 AP_MODE, vif->ifc_id);
+						 AP_MODE, vif->ifc_id, false);
 		wilc_set_operation_mode(vif, AP_MODE);
 		wl->enable_ps = false;
 		wilc_set_power_mgmt(vif_1, 0, 0);
@@ -2262,7 +2262,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		if (wl->initialized) {
 		vif->monitor_flag = 1;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-			 		 MONITOR_MODE, vif->ifc_id);
+			 		 MONITOR_MODE, vif->ifc_id, false);
 
 		wilc_set_operation_mode(vif, MONITOR_MODE);
 		wilc_set_power_mgmt(vif_1, 0, 0);
