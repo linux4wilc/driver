@@ -404,23 +404,18 @@ static void wilc_wlan_parse_response_frame(struct wilc *wilc, u8 *info,
 	}
 }
 
-static int wilc_wlan_parse_info_frame(struct wilc *wilc, u8 *info, int size)
+static void wilc_wlan_parse_info_frame(struct wilc *wilc, u8 *info)
 {
 	struct wilc_mac_cfg *pd = &g_mac;
 	struct wilc_vif *vif = wilc->vif[0];
 	u32 wid, len;
-	int type = WILC_CFG_RSP_STATUS;
 
 	wid = info[0] | (info[1] << 8);
 
 	len = info[2];
 	PRINT_D(vif->ndev, GENERIC_DBG,"Status Len = %d Id= %d\n", len, wid);
-	if (len == 1 && wid == WID_STATUS) {
+	if (len == 1 && wid == WID_STATUS)
 		pd->mac_status = info[3];
-		type = WILC_CFG_RSP_STATUS;
-	}
-
-	return type;
 }
 
 /********************************************
@@ -610,7 +605,8 @@ int wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 		break;
 
 	case 'I':
-		rsp->type = wilc_wlan_parse_info_frame(wilc, frame, size);
+		wilc_wlan_parse_info_frame(wilc, frame);
+		rsp->type = WILC_CFG_RSP_STATUS; 
 		rsp->seq_no = msg_id;
 		/*call host interface info parse as well*/
 		PRINT_D(wilc->vif[0]->ndev, RX_DBG,"Info message received\n");
