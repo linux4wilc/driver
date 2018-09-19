@@ -19,7 +19,6 @@ enum cfg_cmd_type {
 };
 
 struct wilc_mac_cfg {
-	int mac_status;
 	u8 mac_address[7];
 	u8 firmware_version[129];
 	u8 assoc_rsp[256];
@@ -300,7 +299,6 @@ static void wilc_wlan_parse_response_frame(struct wilc *wilc, u8 *info,
 
 static void wilc_wlan_parse_info_frame(struct wilc *wilc, u8 *info)
 {
-	struct wilc_mac_cfg *pd = &g_mac;
 	struct wilc_vif *vif = wilc->vif[0];
 	u32 wid, len;
 
@@ -308,8 +306,21 @@ static void wilc_wlan_parse_info_frame(struct wilc *wilc, u8 *info)
 
 	len = info[2];
 	PRINT_D(vif->ndev, GENERIC_DBG,"Status Len = %d Id= %d\n", len, wid);
-	if (len == 1 && wid == WID_STATUS)
-		pd->mac_status = info[3];
+	
+	if (len == 1 && wid == WID_STATUS) {
+		int i = 0;
+
+		do {
+			if (g_cfg_byte[i].id == WID_NIL)
+				break;
+
+			if (g_cfg_byte[i].id == wid) {
+				g_cfg_byte[i].val = info[3];
+				break;
+			}
+			i++;
+		}while (1);
+	}
 }
 
 /********************************************
@@ -376,11 +387,6 @@ int wilc_wlan_cfg_get_wid_value(struct wilc_vif *vif, u16 wid, u8 *buffer,
 {
 	u32 type = (wid >> 12) & 0xf;
 	int i, ret = 0;
-
-	if (wid == WID_STATUS) {
-		*((u32 *)buffer) = g_mac.mac_status;
-		return 4;
-	}
 
 	i = 0;
 	if (type == CFG_BYTE_CMD) {
