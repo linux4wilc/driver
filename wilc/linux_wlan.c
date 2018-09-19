@@ -446,7 +446,7 @@ void wilc_mac_indicate(struct wilc *wilc)
 {
 	s8 status;
 
-	wilc_wlan_cfg_get_val(wilc->vif[0], WID_STATUS, &status, 1);
+	wilc_wlan_cfg_get_val(wilc, WID_STATUS, &status, 1);
 	if (wilc->mac_status == MAC_STATUS_INIT) {
 		wilc->mac_status = status;
 		complete(&wilc->sync_event);
@@ -1111,7 +1111,7 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			int size;
 			char firmware_ver[50];
 
-			size = wilc_wlan_cfg_get_val(vif, WID_FIRMWARE_VERSION,
+			size = wilc_wlan_cfg_get_val(wl, WID_FIRMWARE_VERSION,
 						     firmware_ver,
 						     sizeof(firmware_ver));
 			firmware_ver[size] = '\0';
@@ -1597,6 +1597,7 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	#endif
 
 	kfree(wilc);
+	wilc_wlan_cfg_deinit(wilc);
 	wilc_debugfs_remove();
 	wilc_sysfs_exit();
 	pr_info("Module_exit Done.\n");
@@ -1624,6 +1625,11 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	wl = kzalloc(sizeof(*wl), GFP_KERNEL);
 	if (!wl)
 		return -ENOMEM;
+	
+	if (wilc_wlan_cfg_init(wl)) {
+		kfree(wl);
+		return -ENOMEM;
+	}
 
 	wilc_debugfs_init();
 	*wilc = wl;

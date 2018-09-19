@@ -1825,10 +1825,10 @@ int wilc_wlan_cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 	return ret_size;
 }
 
-int wilc_wlan_cfg_get_val(struct wilc_vif *vif, u16 wid, u8 *buffer,
-			  u32 buffer_size)
+int wilc_wlan_cfg_get_val(struct wilc *wl, u16 wid, u8 *buffer, u32 buffer_size)
+			  
 {
-	return wilc_wlan_cfg_get_wid_value(vif, wid, buffer, buffer_size);
+	return wilc_wlan_cfg_get_wid_value(wl, wid, buffer, buffer_size);
 }
 unsigned int cfg_packet_timeout = 0;
 extern int wait_for_recovery;
@@ -1862,7 +1862,7 @@ int wilc_send_config_pkt(struct wilc_vif *vif, u8 mode, struct wid *wids,
 			}
 		}
 		for (i = 0; i < count; i++) {
-			wids[i].size = wilc_wlan_cfg_get_val(vif, wids[i].id,
+			wids[i].size = wilc_wlan_cfg_get_val(vif->wilc, wids[i].id,
 							     wids[i].val,
 							     wids[i].size);
 		}
@@ -1983,11 +1983,6 @@ int wilc_wlan_init(struct net_device *dev)
 			goto fail;
 		}
 		release_bus(wilc, RELEASE_ONLY, PWR_DEV_SRC_WIFI);
-	}
-
-	if (!wilc_wlan_cfg_init()) {
-		ret = -ENOBUFS;
-		goto fail;
 	}
 
 	if (!wilc->tx_buffer)

@@ -15,6 +15,7 @@
 
 #include "host_interface.h"
 #include "wilc_wlan.h"
+#include "wilc_wlan_cfg.h"
 
 #define FLOW_CONTROL_LOWER_THRESHOLD		128
 #define FLOW_CONTROL_UPPER_THRESHOLD		256
@@ -231,6 +232,8 @@ struct wilc {
 	struct mutex cs;
 	int clients_count;
 	struct workqueue_struct *hif_workqueue;
+
+	struct wilc_cfg cfg;
 };
 
 struct wilc_wfi_mon_priv {
