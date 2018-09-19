@@ -242,7 +242,7 @@ struct txq_entry_t {
 	struct list_head list;
 	int type;
 	u8 q_num;
-	int tcp_pending_ack_idx;
+	int ack_idx;
 	u8 *buffer;
 	int buffer_size;
 	void *priv;
