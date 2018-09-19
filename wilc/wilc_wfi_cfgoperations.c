@@ -2792,8 +2792,12 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net,
 	set_wiphy_dev(wdev->wiphy, dev);
 
 	ret = wiphy_register(wdev->wiphy);
-	if (ret)
+	if (ret) {
 		PRINT_ER(net, "Cannot register wiphy device\n");
+		wiphy_free(wdev->wiphy);
+		kfree(wdev);
+		return NULL;
+	}
 	else
 		PRINT_INFO(net, CFG80211_DBG, "Successful Registering\n");
 

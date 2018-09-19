@@ -1633,11 +1633,9 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	wl = kzalloc(sizeof(*wl), GFP_KERNEL);
 	if (!wl)
 		return -ENOMEM;
-	
-	if (wilc_wlan_cfg_init(wl)) {
-		kfree(wl);
-		return -ENOMEM;
-	}
+
+	if (wilc_wlan_cfg_init(wl))
+		goto free_wl;
 
 	wilc_debugfs_init();
 	*wilc = wl;
@@ -1647,12 +1645,10 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		INIT_LIST_HEAD(&wl->txq[i].txq_head.list);
 
 	INIT_LIST_HEAD(&wl->rxq_head.list);
-	
+
 	wl->hif_workqueue = create_singlethread_workqueue("WILC_wq");
-	if (!wl->hif_workqueue) {
-		kfree(wl);
-		return -ENOMEM;
-	}
+	if (!wl->hif_workqueue)
+		goto free_cfg;
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	register_inetaddr_notifier(&g_dev_notifier);
@@ -1661,7 +1657,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	for (i = 0; i < NUM_CONCURRENT_IFC; i++) {
 		ndev = alloc_etherdev(sizeof(struct wilc_vif));
 		if (!ndev)
-			return -ENOMEM;
+			goto free_ndev;
 
 		vif = netdev_priv(ndev);
 		memset(vif, 0, sizeof(struct wilc_vif));
@@ -1681,14 +1677,12 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		ndev->netdev_ops = &wilc_netdev_ops;
 
 		wdev = wilc_create_wiphy(ndev, dev);
-
-		if (dev)
-			SET_NETDEV_DEV(ndev, dev);
-
 		if (!wdev) {
 			PRINT_ER(ndev, "Can't register WILC Wiphy\n");
-			return -1;
+			goto free_ndev;
 		}
+
+ 		SET_NETDEV_DEV(ndev, dev);
 
 		vif->ndev->ieee80211_ptr = wdev;
 		vif->ndev->ml_priv = vif;
@@ -1702,7 +1696,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		if (ret) {
 			PRINT_ER(ndev, "Device couldn't be registered - %s\n",
 			       ndev->name);
-			return ret;
+			goto free_ndev;
 		}
 
 		vif->iftype = STATION_MODE;
@@ -1711,6 +1705,26 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	wilc_sysfs_init(wl->vif[0], wl->vif[1]);
 
 	return 0;
+
+free_ndev:
+	for (; i >= 0; i--) {
+		if (wl->vif[i]) {
+			if (wl->vif[i]->iftype == STATION_MODE)
+				unregister_netdev(wl->vif[i]->ndev);
+
+			if (wl->vif[i]->ndev) {
+				wilc_free_wiphy(wl->vif[i]->ndev);
+				free_netdev(wl->vif[i]->ndev);
+			}
+		}
+	}
+	unregister_inetaddr_notifier(&g_dev_notifier);
+	destroy_workqueue(wl->hif_workqueue);
+free_cfg:
+	wilc_wlan_cfg_deinit(wl);
+free_wl:
+	kfree(wl);
+	return -ENOMEM;
 }
 
 static void wilc_wlan_power(struct wilc *wilc, int power)
