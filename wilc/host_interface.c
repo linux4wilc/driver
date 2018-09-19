@@ -131,6 +131,7 @@ struct beacon_attr {
 struct set_multicast {
 	bool enabled;
 	u32 cnt;
+	u8 *mc_list;
 };
 
 struct del_all_sta {
@@ -2944,8 +2945,8 @@ static void handle_set_mcast_filter(struct work_struct *work)
 	*cur_byte++ = ((hif_set_mc->cnt >> 16) & 0xFF);
 	*cur_byte++ = ((hif_set_mc->cnt >> 24) & 0xFF);
 
-	if (hif_set_mc->cnt > 0)
-		memcpy(cur_byte, vif->mc_mac_addr_list,
+	if (hif_set_mc->cnt > 0 && hif_set_mc->mc_list)
+		memcpy(cur_byte, hif_set_mc->mc_list,
 		       ((hif_set_mc->cnt) * ETH_ALEN));
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
@@ -2954,6 +2955,7 @@ static void handle_set_mcast_filter(struct work_struct *work)
 		PRINT_ER(vif->ndev, "Failed to send setup multicast\n");
 
 error:
+	kfree(hif_set_mc->mc_list);
 	kfree(wid.val);
 	kfree(msg);
 }
@@ -4517,7 +4519,7 @@ int wilc_set_power_mgmt(struct wilc_vif *vif, bool enabled, u32 timeout)
 }
 
 int wilc_setup_multicast_filter(struct wilc_vif *vif, bool enabled,
-				u32 count)
+				u32 count, u8 *mc_list)
 {
 	int result;
 	struct host_if_msg *msg;
@@ -4530,6 +4532,7 @@ int wilc_setup_multicast_filter(struct wilc_vif *vif, bool enabled,
 
 	msg->body.multicast_info.enabled = enabled;
 	msg->body.multicast_info.cnt = count;
+	msg->body.multicast_info.mc_list = mc_list;
 
 	result = wilc_enqueue_work(msg);
 	if (result) {

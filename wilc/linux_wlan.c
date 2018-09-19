@@ -1282,6 +1282,8 @@ static void wilc_set_multicast_list(struct net_device *dev)
 	struct netdev_hw_addr *ha;
 	struct wilc_vif *vif = netdev_priv(dev);
 	int i = 0;
+	u8 *mc_list;
+	int res;
 
 	PRINT_INFO(vif->ndev, INIT_DBG,
 		   "Setting mcast List with count = %d. \n",dev->mc.count);
@@ -1295,30 +1297,33 @@ static void wilc_set_multicast_list(struct net_device *dev)
 	    dev->mc.count > WILC_MULTICAST_TABLE_SIZE) {
 		PRINT_INFO(vif->ndev, INIT_DBG,
 			   "Disable mcast filter retrive multicast pkts\n");
-		wilc_setup_multicast_filter(vif, false, 0);
+		wilc_setup_multicast_filter(vif, false, 0, NULL);
 		return;
 	}
 
 	if (dev->mc.count == 0) {
 		PRINT_INFO(vif->ndev, INIT_DBG,
 			   "Enable mcast filter retrive directed pkts only\n");
-		wilc_setup_multicast_filter(vif, true, 0);
+		wilc_setup_multicast_filter(vif, true, 0, NULL);
 		return;
 	}
+	
+	mc_list = kmalloc(dev->mc.count * ETH_ALEN, GFP_KERNEL);
+	if (!mc_list)
+		return;
 
 	netdev_for_each_mc_addr(ha, dev) {
-		memcpy(vif->mc_mac_addr_list[i], ha->addr, ETH_ALEN);
+		memcpy(mc_list + i, ha->addr, ETH_ALEN);
 		PRINT_INFO(vif->ndev, INIT_DBG, "Entry[%d]: %x:%x:%x:%x:%x:%x\n", i,
-			   vif->mc_mac_addr_list[i][0],
-			   vif->mc_mac_addr_list[i][1],
-			   vif->mc_mac_addr_list[i][2],
-			   vif->mc_mac_addr_list[i][3],
-			   vif->mc_mac_addr_list[i][4],
-			   vif->mc_mac_addr_list[i][5]);
-		i++;
+			   mc_list[i], mc_list[i + 1], mc_list[i + 2],
+			   mc_list[i + 3], mc_list[i + 4], mc_list[i + 5]);
+		i += ETH_ALEN + 1;
 	}
 
-	wilc_setup_multicast_filter(vif, true, (dev->mc.count));
+	res = wilc_setup_multicast_filter(vif, true, dev->mc.count, mc_list);
+	if (res)
+		kfree(mc_list);
+	
 }
 
 static void linux_wlan_tx_complete(void *priv, int status)
