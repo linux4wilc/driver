@@ -4201,14 +4201,14 @@ int wilc_listen_state_expired(struct wilc_vif *vif, u32 session_id)
 	return result;
 }
 
-int wilc_frame_register(struct wilc_vif *vif, u16 frame_type, bool reg)
+void wilc_frame_register(struct wilc_vif *vif, u16 frame_type, bool reg)
 {
 	int result;
 	struct host_if_msg *msg;
 
 	msg = wilc_alloc_work(vif, handle_register_frame, false);
 	if (IS_ERR(msg))
-		return PTR_ERR(msg);
+		return;
 
 	switch (frame_type) {
 	case ACTION:
@@ -4233,8 +4233,6 @@ int wilc_frame_register(struct wilc_vif *vif, u16 frame_type, bool reg)
 		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}
-
-	return result;
 }
 
 int wilc_add_beacon(struct wilc_vif *vif, u32 interval, u32 dtim_period,
