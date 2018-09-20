@@ -78,6 +78,12 @@ struct wilc_buffered_eap {
 	u8 *buff;
 };
 
+struct wilc_p2p_var {
+	u8 local_random;
+	u8 recv_random;
+	bool is_wilc_ie;
+};
+
 struct wilc_priv {
 	struct wireless_dev *wdev;
 	struct cfg80211_scan_request *scan_req;
@@ -109,6 +115,7 @@ struct wilc_priv {
 	struct timer_list eap_buff_timer;
 	struct network_info scanned_shadow[MAX_NUM_SCANNED_NETWORKS_SHADOW];
 	int scanned_cnt;
+	struct wilc_p2p_var p2p;
 };
 
 struct frame_reg {

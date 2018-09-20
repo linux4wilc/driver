@@ -149,10 +149,7 @@ struct p2p_mgmt_data {
 static u8 wlan_channel = INVALID_CHANNEL;
 static u8 curr_channel;
 static u8 p2p_oui[] = {0x50, 0x6f, 0x9A, 0x09};
-static u8 p2p_local_random = 0x01;
-static u8 p2p_recv_random;
 static u8 p2p_vendor_spec[] = {0xdd, 0x05, 0x00, 0x08, 0x40, 0x03};
-static bool wilc_ie;
 
 static struct ieee80211_supported_band wilc_band_2ghz = {
 	.channels = ieee80211_2ghz_channels,
@@ -614,9 +611,9 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		PRINT_ER(vif->ndev,
 			 "Received MAC_STATUS_DISCONNECTED from firmware with reason %d on dev [%p]\n",
 			 disconn_info->reason, priv->dev);
-		p2p_local_random = 0x01;
-		p2p_recv_random = 0x00;
-		wilc_ie = false;
+		priv->p2p.local_random = 0x01;
+		priv->p2p.recv_random = 0x00;
+		priv->p2p.is_wilc_ie = false;
 		eth_zero_addr(priv->associated_bss);
 		wilc_wlan_set_bssid(priv->dev, null_bssid, STATION_MODE);
 
@@ -1013,9 +1010,9 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev,
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Disconnecting with reason code(%d)\n", reason_code);
-	p2p_local_random = 0x01;
-	p2p_recv_random = 0x00;
-	wilc_ie = false;
+	priv->p2p.local_random = 0x01;
+	priv->p2p.recv_random = 0x00;
+	priv->p2p.is_wilc_ie = false;
 	wfi_drv->p2p_timeout = 0;
 
 	ret = wilc_disconnect(vif, reason_code);
@@ -1623,23 +1620,23 @@ static void wilc_wfi_cfg_parse_rx_vendor_spec(struct wilc_priv *priv, u8 *buff,
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	subtype = buff[P2P_PUB_ACTION_SUBTYPE];
-	if ((subtype == GO_NEG_REQ || subtype == GO_NEG_RSP) && !wilc_ie) {
+	if ((subtype == GO_NEG_REQ || subtype == GO_NEG_RSP) && !priv->p2p.is_wilc_ie) {
 		for (i = P2P_PUB_ACTION_SUBTYPE; i < size; i++) {
 			if (!memcmp(p2p_vendor_spec, &buff[i], 6)) {
-				p2p_recv_random = buff[i + 6];
-				wilc_ie = true;
+				priv->p2p.recv_random = buff[i + 6];
+				priv->p2p.is_wilc_ie = true;
 				PRINT_INFO(vif->ndev, GENERIC_DBG,
 					   "WILC Vendor specific IE:%02x\n",
-					   p2p_recv_random);
+					   priv->p2p.recv_random);
 				break;
 			}
 		}
 	}
 
-	if (p2p_local_random <= p2p_recv_random) {
+	if (priv->p2p.local_random <= priv->p2p.recv_random) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "PEER WILL BE GO LocaRand=%02x RecvRand %02x\n",
-			   p2p_local_random, p2p_recv_random);
+			   priv->p2p.local_random, priv->p2p.recv_random);
 		return;
 	}
 
@@ -1727,7 +1724,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 								  size);
 
 			if ((subtype == GO_NEG_REQ || subtype == GO_NEG_RSP) &&
-			    wilc_ie)
+			    priv->p2p.is_wilc_ie)
 				size -= 7;
 
 			break;
@@ -1831,12 +1828,12 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
-static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_vif *vif,
+static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 					struct p2p_mgmt_data *mgmt_tx,
 					struct cfg80211_mgmt_tx_params *params,
 					u8 iftype, u32 buf_len)
 #else
-static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_vif *vif,
+static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 					struct p2p_mgmt_data *mgmt_tx,
 					const u8 *buf, size_t len,
 					u8 iftype, u32 buf_len)
@@ -1846,18 +1843,19 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_vif *vif,
 	const u8 *buf = params->buf;
 	size_t len = params->len;
 #endif
+	struct wilc_vif *vif = netdev_priv(priv->dev);
 	u32 i;
 	u8 subtype = buf[P2P_PUB_ACTION_SUBTYPE];
 
 	if (subtype == GO_NEG_REQ || subtype == GO_NEG_RSP) {
-		if (p2p_local_random == 1 &&
-		    p2p_recv_random < p2p_local_random) {
-			get_random_bytes(&p2p_local_random, 1);
-			p2p_local_random++;
+		if (priv->p2p.local_random == 1 &&
+		    priv->p2p.recv_random < priv->p2p.local_random) {
+			get_random_bytes(&priv->p2p.local_random, 1);
+			priv->p2p.local_random++;
 		}
 	}
 
-	if (p2p_local_random <= p2p_recv_random || !(subtype == GO_NEG_REQ ||
+	if (priv->p2p.local_random <= priv->p2p.recv_random || !(subtype == GO_NEG_REQ ||
 						     subtype == GO_NEG_RSP ||
 						     subtype == P2P_INV_REQ ||
 						     subtype == P2P_INV_RSP))
@@ -1865,7 +1863,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_vif *vif,
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, 
 		   "LOCAL WILL BE GO LocaRand=%02x RecvRand %02x\n",
-		   p2p_local_random, p2p_recv_random);
+		   priv->p2p.local_random, priv->p2p.recv_random);
 	for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < len; i++) {
 		if (buf[i] == P2PELEM_ATTR_ID &&
 		    !memcmp(p2p_oui, &buf[i + 2], 4)) {
@@ -1887,7 +1885,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_vif *vif,
 
 		memcpy(&mgmt_tx->buff[len], p2p_vendor_spec,
 		       vendor_spec_len);
-		mgmt_tx->buff[len + vendor_spec_len] = p2p_local_random;
+		mgmt_tx->buff[len + vendor_spec_len] = priv->p2p.local_random;
 		mgmt_tx->size = buf_len;
 	}
 }
@@ -1916,7 +1914,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct host_if_drv *wfi_drv = priv->hif_drv;
 	struct wilc_vif *vif = netdev_priv(wdev->netdev);
-	u32 buf_len = len + sizeof(p2p_vendor_spec) + sizeof(p2p_local_random);
+	u32 buf_len = len + sizeof(p2p_vendor_spec) + sizeof(priv->p2p.local_random);
 	int ret = 0;
 
 	*cookie = (unsigned long)buf;
@@ -1988,12 +1986,12 @@ static int mgmt_tx(struct wiphy *wiphy,
 		case PUBLIC_ACT_VENDORSPEC:
 			if (!memcmp(p2p_oui, &buf[ACTION_SUBTYPE_ID + 1], 4))
 			#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
-				wilc_wfi_cfg_tx_vendor_spec(vif, mgmt_tx,
+				wilc_wfi_cfg_tx_vendor_spec(priv, mgmt_tx,
 							    params,
 							    vif->iftype,
 							    buf_len);
 			#else
-				wilc_wfi_cfg_tx_vendor_spec(vif, mgmt_tx, buf,
+				wilc_wfi_cfg_tx_vendor_spec(priv, mgmt_tx, buf,
 							    len, vif->iftype,
 							    buf_len);
 			#endif
@@ -2177,9 +2175,9 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		   "In Change virtual interface function\n");
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 		   "Wireless interface name =%s\n", dev->name);
-	p2p_local_random = 0x01;
-	p2p_recv_random = 0x00;
-	wilc_ie = false;
+	priv->p2p.local_random = 0x01;
+	priv->p2p.recv_random = 0x00;
+	priv->p2p.is_wilc_ie = false;
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	PRINT_INFO(vif->ndev, GENERIC_DBG,
 		   "Changing virtual interface, enable scan\n");
