@@ -382,7 +382,6 @@ int wilc_get_tx_power(struct wilc_vif *vif, u8 *tx_power);
 int wilc_set_antenna(struct wilc_vif *vif, u8 mode);
 
 signed int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger);
-extern u8 wilc_connected_ssid[6];
 
 extern u8 wilc_initialized;
 s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt);
