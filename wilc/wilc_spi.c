@@ -16,7 +16,6 @@ struct wilc_spi {
 	bool is_init;
 };
 
-static struct wilc_spi g_spi;
 static const struct wilc_hif_func wilc_hif_spi;
 
 static int wilc_spi_rx(struct wilc *wilc, u8 *rb, u32 rlen);
@@ -116,20 +115,27 @@ static int wilc_bus_probe(struct spi_device *spi)
 	static bool init_power;
 	struct wilc *wilc;
 	struct device *dev = &spi->dev;
-
 	int gpio_reset = -1;
 	int gpio_chip_en = -1;
 	int gpio_irq = -1;
+	struct wilc_spi *spi_priv;
 
 	dev_info(&spi->dev, "spiModalias: %s, spiMax-Speed: %d\n",
 			spi->modalias, spi->max_speed_hz);
 
+	spi_priv = kzalloc(sizeof(*spi_priv), GFP_KERNEL);
+	if (!spi_priv)
+		return -ENOMEM;
+
 	ret = wilc_netdev_init(&wilc, dev, HIF_SPI, &wilc_hif_spi);
-	if (ret)
+	if (ret) {
+		kfree(spi_priv);
 		return ret;
+	}
 
 	spi_set_drvdata(spi, wilc);
 	wilc->dev = &spi->dev;
+	wilc->bus_data = spi_priv;
 
 	gpio_reset = of_get_named_gpio_flags(dev->of_node, "gpio_reset", 0, NULL);
 	if (gpio_reset < 0) {
@@ -177,7 +183,9 @@ static int wilc_bus_probe(struct spi_device *spi)
 
 static int wilc_bus_remove(struct spi_device *spi)
 {
-	wilc_netdev_cleanup(spi_get_drvdata(spi));
+	struct wilc *wilc = spi_get_drvdata(spi);
+	
+	wilc_netdev_cleanup(wilc);
 	wilc_bt_deinit();
 	return 0;
 }
@@ -251,12 +259,13 @@ MODULE_LICENSE("GPL");
 
 static int spi_data_rsp(struct wilc *wilc, u8 cmd)
 {
-	struct spi_device *spi = to_spi_device(wilc->dev);
+    struct spi_device *spi = to_spi_device(wilc->dev);
+    struct wilc_spi *spi_priv = wilc->bus_data; 
     u8 len;
     u8 rsp[3];
     int result = N_OK;
 
-    if (!g_spi.crc_off)
+    if (!spi_priv->crc_off)
             len = 2;
     else
             len = 3;
@@ -401,6 +410,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 			    u8 clockless)
 {
 	struct spi_device *spi = to_spi_device(wilc->dev);
+	struct wilc_spi *spi_priv = wilc->bus_data;
 	u8 wb[32], rb[32];
 	u8 wix, rix;
 	u32 len2;
@@ -501,7 +511,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 	if (result != N_OK)
 		return result;
 
-	if (!g_spi.crc_off)
+	if (!spi_priv->crc_off)
 		wb[len - 1] = (crc7(0x7f, (const u8 *)&wb[0], len - 1)) << 1;
 	else
 		len -= 1;
@@ -519,7 +529,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 	} else if (cmd == CMD_INTERNAL_READ || cmd == CMD_SINGLE_READ) {
 		int tmp = NUM_RSP_BYTES + NUM_DATA_HDR_BYTES + NUM_DATA_BYTES
 			+ NUM_DUMMY_BYTES;
-		if (!g_spi.crc_off)
+		if (!spi_priv->crc_off)
 			len2 = len + tmp + NUM_CRC_BYTES;
 		else
 			len2 = len + tmp;
@@ -611,7 +621,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 			return N_FAIL;
 		}
 
-		if (!g_spi.crc_off) {
+		if (!spi_priv->crc_off) {
 			/*
 			 * Read Crc
 			 */
@@ -653,7 +663,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 			/*
 			 * Read Crc
 			 */
-			if (!g_spi.crc_off && wilc_spi_rx(wilc, crc, 2)) {
+			if (!spi_priv->crc_off && wilc_spi_rx(wilc, crc, 2)) {
 				dev_err(&spi->dev,
 					"Failed block crc read, bus err\n");
 				return N_FAIL;
@@ -711,7 +721,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 			/*
 			 * Read Crc
 			 */
-			if (!g_spi.crc_off && wilc_spi_rx(wilc, crc, 2)) {
+			if (!spi_priv->crc_off && wilc_spi_rx(wilc, crc, 2)) {
 				dev_err(&spi->dev,
 					"Failed block crc read, bus err\n");
 				result = N_FAIL;
@@ -728,6 +738,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 static int spi_data_write(struct wilc *wilc, u8 *b, u32 sz)
 {
 	struct spi_device *spi = to_spi_device(wilc->dev);
+	struct wilc_spi *spi_priv = wilc->bus_data;
 	int ix, nbytes;
 	int result = 1;
 	u8 cmd, order, crc[2] = {0};
@@ -774,7 +785,7 @@ static int spi_data_write(struct wilc *wilc, u8 *b, u32 sz)
 		/*
 		 * Write Crc
 		 */
-		if (!g_spi.crc_off) {
+		if (!spi_priv->crc_off) {
 			if (wilc_spi_tx(wilc, crc, 2)) {
 				dev_err(&spi->dev, "Failed data block crc write, bus error...\n");
 				result = N_FAIL;
@@ -1042,15 +1053,19 @@ int wilc_spi_reset(struct wilc *wilc)
 
 static bool wilc_spi_is_init(struct wilc *wilc)
 {
-	return g_spi.is_init;
+	struct wilc_spi *spi_priv = wilc->bus_data;
+
+	return spi_priv->is_init;
 }
 
 static int _wilc_spi_deinit(struct wilc *wilc)
 {
+	struct wilc_spi *spi_priv = wilc->bus_data;
+
 	/*
 	 * TODO:
 	 */
-	g_spi.is_init = false;
+	spi_priv->is_init = false;
 
 	return 1;
 }
@@ -1058,10 +1073,11 @@ static int _wilc_spi_deinit(struct wilc *wilc)
 static int wilc_spi_init(struct wilc *wilc, bool resume)
 {
 	struct spi_device *spi = to_spi_device(wilc->dev);
+	struct wilc_spi *spi_priv = wilc->bus_data;
 	u32 reg;
 	u32 chipid;
 
-	if (g_spi.is_init) {
+	if (spi_priv->is_init) {
 		if (!wilc_spi_read_reg(wilc, 0x1000, &chipid)) {
 			dev_err(&spi->dev, "Fail cmd read chip id...\n");
 			return 0;
@@ -1069,12 +1085,12 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 		return 1;
 	}
 
-	memset(&g_spi, 0, sizeof(struct wilc_spi));
+	memset(spi_priv, 0, sizeof(struct wilc_spi));
 
 	/*
 	 * configure protocol
 	 */
-	g_spi.crc_off = 0;
+	spi_priv->crc_off = 0;
 
 	/*
 	 * TODO: We can remove the CRC trials if there is a definite
@@ -1086,7 +1102,7 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 		 * Read failed. Try with CRC off. This might happen when module
 		 * is removed but chip isn't reset
 		 */
-		g_spi.crc_off = 1;
+		spi_priv->crc_off = 1;
 		dev_err(&spi->dev,
 			"Failed read with CRC on, retrying with CRC off\n");
 		if (!spi_internal_read(wilc, WILC_SPI_PROTOCOL_OFFSET, &reg)) {
@@ -1098,7 +1114,7 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 			return 0;
 		}
 	}
-	if (g_spi.crc_off == 0) {
+	if (spi_priv->crc_off == 0) {
 		reg &= ~0xc; /* disable crc checking */
 		reg &= ~0x70;
 		reg |= (0x5 << 4);
@@ -1108,7 +1124,7 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 				__LINE__);
 			return 0;
 		}
-		g_spi.crc_off = 1;
+		spi_priv->crc_off = 1;
 	}
 
 	/*
@@ -1135,7 +1151,7 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 	}
 
 pass:
-	g_spi.is_init = true;
+	spi_priv->is_init = true;
 	return 1;
 
 fail:
@@ -1174,6 +1190,7 @@ static int wilc_spi_clear_int_ext(struct wilc *wilc, u32 val)
 static int wilc_spi_sync_ext(struct wilc *wilc, int nint)
 {
 	struct spi_device *spi = to_spi_device(wilc->dev);
+	struct wilc_spi *spi_priv = wilc->bus_data;
 	u32 reg;
 	int ret, i;
 
@@ -1182,7 +1199,7 @@ static int wilc_spi_sync_ext(struct wilc *wilc, int nint)
 		return 0;
 	}
 
-	g_spi.nint = nint;
+	spi_priv->nint = nint;
 
 	/*
 	 * interrupt pin mux select

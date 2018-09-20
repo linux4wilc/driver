@@ -1607,8 +1607,9 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	flush_workqueue(wilc->hif_workqueue);
 	destroy_workqueue(wilc->hif_workqueue);
 	wilc->hif_workqueue = NULL;
-	kfree(wilc);
 	wilc_wlan_cfg_deinit(wilc);
+	kfree(wilc->bus_data);
+	kfree(wilc);
 	wilc_debugfs_remove();
 	wilc_sysfs_exit();
 	pr_info("Module_exit Done.\n");
