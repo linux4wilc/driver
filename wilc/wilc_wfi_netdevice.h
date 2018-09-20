@@ -233,6 +233,7 @@ struct wilc {
 	struct workqueue_struct *hif_workqueue;
 
 	struct wilc_cfg cfg;
+	void *bus_data;
 };
 
 struct wilc_wfi_mon_priv {

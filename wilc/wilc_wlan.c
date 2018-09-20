@@ -1970,7 +1970,7 @@ int wilc_wlan_init(struct net_device *dev)
 	
 	PRINT_INFO(vif->ndev, INIT_DBG,"Initializing WILC_Wlan\n");
 
-	if(!wilc->hif_func->hif_is_init()) {
+	if(!wilc->hif_func->hif_is_init(wilc)) {
 		acquire_bus(wilc, ACQUIRE_ONLY , PWR_DEV_SRC_WIFI);
 		if (!wilc->hif_func->hif_init(wilc, false)) {
 			ret = -EIO;

@@ -43,7 +43,6 @@ struct wilc_sdio {
 	bool is_init;
 };
 
-static struct wilc_sdio g_sdio;
 static const struct wilc_hif_func wilc_hif_sdio;
 
 static int sdio_write_reg(struct wilc *wilc, u32 addr, u32 data);
@@ -127,15 +126,18 @@ static int linux_sdio_probe(struct sdio_func *func,
 	struct wilc *wilc;
 	int ret, io_type;
 	static bool init_power;
-
 	int gpio_reset = -1;
 	int gpio_chip_en = -1;
 	int gpio_irq = -1;
-
 	struct device_node *cnp;
+	struct wilc_sdio *sdio_priv;
 
 	cnp = of_get_child_by_name(func->card->host->parent->of_node,
 				   "wilc_sdio");
+
+	sdio_priv = kzalloc(sizeof(*sdio_priv), GFP_KERNEL);
+	if (!sdio_priv)
+		return -ENOMEM;
 
 	if (IS_ENABLED(CONFIG_WILC_HW_OOB_INTR))
 		io_type = HIF_SDIO_GPIO_IRQ;
@@ -145,9 +147,11 @@ static int linux_sdio_probe(struct sdio_func *func,
 	ret = wilc_netdev_init(&wilc, &func->dev, io_type, &wilc_hif_sdio);
 	if (ret) {
 		dev_err(&func->dev, "Couldn't initialize netdev\n");
+		kfree(sdio_priv);
 		return ret;
 	}
 	sdio_set_drvdata(func, wilc);
+	wilc->bus_data = sdio_priv;
 	wilc->dev = &func->dev;
 
 	gpio_reset = of_get_named_gpio_flags(cnp, "gpio_reset", 0, NULL);
@@ -204,7 +208,10 @@ static int linux_sdio_probe(struct sdio_func *func,
 
 static void linux_sdio_remove(struct sdio_func *func)
 {
-	wilc_netdev_cleanup(sdio_get_drvdata(func));
+	struct wilc *wilc = sdio_get_drvdata(func);
+	
+	kfree(wilc->bus_data);
+	wilc_netdev_cleanup(wilc);
 	wilc_bt_deinit();
 }
 
@@ -227,9 +234,11 @@ static int wilc_sdio_reset(struct wilc *wilc)
 	return ret;
 }
 
-static bool sdio_is_init(void)
+static bool sdio_is_init(struct wilc *wilc)
 {
-	return g_sdio.is_init;
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
+
+	return sdio_priv->is_init;
 }
 
 static int wilc_sdio_suspend(struct device *dev)
@@ -464,6 +473,7 @@ fail:
 static int sdio_write_reg(struct wilc *wilc, u32 addr, u32 data)
 {
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
 	int ret;
 
 	cpu_to_le32s(&data);
@@ -498,7 +508,7 @@ static int sdio_write_reg(struct wilc *wilc, u32 addr, u32 data)
 		cmd.increment = 1;
 		cmd.count = 4;
 		cmd.buffer = (u8 *)&data;
-		cmd.block_size = g_sdio.block_size;
+		cmd.block_size = sdio_priv->block_size;
 		ret = wilc_sdio_cmd53(wilc, &cmd);
 		if (ret) {
 			dev_err(&func->dev,
@@ -517,7 +527,8 @@ fail:
 static int sdio_write(struct wilc *wilc, u32 addr, u8 *buf, u32 size)
 {
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
-	u32 block_size = g_sdio.block_size;
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
+	u32 block_size = sdio_priv->block_size;
 	struct sdio_cmd53 cmd;
 	int nblk, nleft, ret;
 
@@ -606,6 +617,7 @@ fail:
 static int sdio_read_reg(struct wilc *wilc, u32 addr, u32 *data)
 {
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
 	int ret;
 
 	if (addr >= 0xf0 && addr <= 0xff) {
@@ -636,7 +648,7 @@ static int sdio_read_reg(struct wilc *wilc, u32 addr, u32 *data)
 		cmd.count = 4;
 		cmd.buffer = (u8 *)data;
 
-		cmd.block_size = g_sdio.block_size;
+		cmd.block_size = sdio_priv->block_size;
 		ret = wilc_sdio_cmd53(wilc, &cmd);
 		if (ret) {
 			dev_err(&func->dev,
@@ -657,7 +669,8 @@ fail:
 static int sdio_read(struct wilc *wilc, u32 addr, u8 *buf, u32 size)
 {
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
-	u32 block_size = g_sdio.block_size;
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
+	u32 block_size = sdio_priv->block_size;
 	struct sdio_cmd53 cmd;
 	int nblk, nleft, ret;
 
@@ -751,7 +764,9 @@ fail:
 
 static int sdio_deinit(struct wilc *wilc)
 {
-	g_sdio.is_init = false;
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
+
+	sdio_priv->is_init = false;
 
 	return 1;
 }
@@ -759,6 +774,7 @@ static int sdio_deinit(struct wilc *wilc)
 static int sdio_init(struct wilc *wilc, bool resume)
 {
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
 	struct sdio_cmd52 cmd;
 	int loop, ret;
 	u32 chipid;
@@ -766,7 +782,7 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	dev_info(&func->dev, "SDIO speed: %d\n",
 		func->card->host->ios.clock);
 	init_waitqueue_head(&sdio_intr_waitqueue);
-	g_sdio.irq_gpio = (wilc->io_type == HIF_SDIO_GPIO_IRQ);
+	sdio_priv->irq_gpio = (wilc->io_type == HIF_SDIO_GPIO_IRQ);
 
 	/**
 	 *      function 0 csa enable
@@ -789,7 +805,7 @@ static int sdio_init(struct wilc *wilc, bool resume)
 		dev_err(&func->dev, "Fail cmd 52, set func 0 block size...\n");
 		goto fail;
 	}
-	g_sdio.block_size = WILC_SDIO_BLOCK_SIZE;
+	sdio_priv->block_size = WILC_SDIO_BLOCK_SIZE;
 
 	/**
 	 *      enable func1 IO
@@ -869,7 +885,7 @@ static int sdio_init(struct wilc *wilc, bool resume)
 		dev_info(&func->dev, "chipid %08x\n", chipid);
 	}
 
-	g_sdio.is_init = true;
+	sdio_priv->is_init = true;
 
 	return 1;
 
@@ -906,12 +922,13 @@ static int sdio_read_size(struct wilc *wilc, u32 *size)
 static int sdio_read_int(struct wilc *wilc, u32 *int_status)
 {
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
 	u32 tmp;
 	struct sdio_cmd52 cmd;
 	u32 irq_flags;
 	int i;
 
-	if (g_sdio.irq_gpio) {
+	if (sdio_priv->irq_gpio) {
 		sdio_read_size(wilc, &tmp);
 
 		cmd.read_write = 0;
@@ -949,7 +966,7 @@ static int sdio_read_int(struct wilc *wilc, u32 *int_status)
 		if (cmd.data & BIT(5))
 			tmp |= INT_4;
 
-		for (i = g_sdio.nint; i < MAX_NUM_INT; i++) {
+		for (i = sdio_priv->nint; i < MAX_NUM_INT; i++) {
 			if ((tmp >> (IRG_FLAGS_OFFSET + i)) & 0x1) {
 				dev_err(&func->dev,
 					"Unexpected interrupt (1) : tmp=%x, data=%x\n",
@@ -968,11 +985,12 @@ static int sdio_read_int(struct wilc *wilc, u32 *int_status)
 static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 {
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
 	int ret;
 	u32 reg = 0;
 
 	if(wilc->chip == WILC_1000) {
-		if(g_sdio.irq_gpio)
+		if(sdio_priv->irq_gpio)
 			reg = val & (BIT(MAX_NUM_INT) - 1);
 
 		/* select VMM table 0 */
@@ -1002,7 +1020,7 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 			}
 		}
 	} else {
-		if(g_sdio.irq_gpio) {
+		if(sdio_priv->irq_gpio) {
 			reg = val & (BIT(MAX_NUM_INT) - 1);
 			if (reg) {
 				struct sdio_cmd52 cmd;
@@ -1059,6 +1077,7 @@ fail:
 static int sdio_sync_ext(struct wilc *wilc, int nint)
 {
 	struct sdio_func *func = dev_to_sdio_func(wilc->dev);
+	struct wilc_sdio *sdio_priv = wilc->bus_data;
 	u32 reg;
 	int ret, i;
 
@@ -1067,7 +1086,7 @@ static int sdio_sync_ext(struct wilc *wilc, int nint)
 		return 0;
 	}
 
-	g_sdio.nint = nint;
+	sdio_priv->nint = nint;
 
 /* WILC3000 only. Was removed in WILC1000 on revision 6200.
  * Might be related to suspend/resume
@@ -1087,7 +1106,7 @@ static int sdio_sync_ext(struct wilc *wilc, int nint)
 		}
 	}
 
-	if (g_sdio.irq_gpio) {
+	if (sdio_priv->irq_gpio) {
 		/**
 		 *      interrupt pin mux select
 		 **/

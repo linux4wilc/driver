@@ -597,7 +597,7 @@ static void wilc_cmd_handle_bt_power_up(char* param)
 	pr_info("AT PWR: bt_power_up\n");
 	bt_init_done=0;
 
-	if(!wilc_bt->initialized && !wilc_bt->hif_func->hif_is_init()) {
+	if(!wilc_bt->initialized && !wilc_bt->hif_func->hif_is_init(wilc_bt)) {
 		acquire_bus(wilc_bt, ACQUIRE_ONLY, PWR_DEV_SRC_BT);
 		if (!wilc_bt->hif_func->hif_init(wilc_bt, false)) {
 			release_bus(wilc_bt, RELEASE_ONLY, PWR_DEV_SRC_BT);

@@ -1040,7 +1040,7 @@ int wilc_spi_reset(struct wilc *wilc)
 	return 1;
 }
 
-static bool wilc_spi_is_init(void)
+static bool wilc_spi_is_init(struct wilc *wilc)
 {
 	return g_spi.is_init;
 }
