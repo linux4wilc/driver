@@ -1611,7 +1611,7 @@ done:
 	kfree(msg);
 }
 
-static s32 host_int_get_assoc_res_info(struct wilc_vif *vif,
+static void host_int_get_assoc_res_info(struct wilc_vif *vif,
 				       u8 *assoc_resp_info,
 				       u32 max_assoc_resp_info_len,
 				       u32 *rcvd_assoc_resp_info_len)
@@ -1629,11 +1629,10 @@ static s32 host_int_get_assoc_res_info(struct wilc_vif *vif,
 	if (result) {
 		*rcvd_assoc_resp_info_len = 0;
 		PRINT_ER(vif->ndev, "Failed to send association response\n");
-		return -EINVAL;
+		return;
 	}
 
 	*rcvd_assoc_resp_info_len = wid.size;
-	return result;
 }
 
 static inline void host_int_free_user_conn_req(struct host_if_drv *hif_drv)
