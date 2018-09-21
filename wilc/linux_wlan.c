@@ -898,7 +898,7 @@ fail:
 	return -1;
 }
 
-static int wlan_deinit_locks(struct net_device *dev)
+static void wlan_deinit_locks(struct net_device *dev)
 {
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wilc = vif->wilc;
@@ -909,8 +909,6 @@ static int wlan_deinit_locks(struct net_device *dev)
 	mutex_destroy(&wilc->rxq_cs);
 	mutex_destroy(&wilc->txq_add_to_head_cs);
 	mutex_destroy(&wilc->cs);
-
-	return 0;
 }
 
 static void wlan_deinitialize_threads(struct net_device *dev)
@@ -993,7 +991,7 @@ static void wilc_wlan_deinitialize(struct net_device *dev)
 	}
 }
 
-static int wlan_init_locks(struct net_device *dev)
+static void wlan_init_locks(struct net_device *dev)
 {
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wl = vif->wilc;
@@ -1010,8 +1008,6 @@ static int wlan_init_locks(struct net_device *dev)
 	init_completion(&wl->sync_event);
 	init_completion(&wl->txq_thread_started);
 	init_completion(&wl->debug_thread_started);
-
-	return 0;
 }
 
 static int wlan_initialize_threads(struct net_device *dev)
