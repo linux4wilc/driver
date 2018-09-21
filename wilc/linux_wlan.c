@@ -505,7 +505,7 @@ void eap_buff_timeout(unsigned long user)
 		PRINT_ER(vif->ndev, "Failed so send buffered eap\n");
 }
 
-int wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
+void wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
 {
 	struct wilc_vif *vif = netdev_priv(wilc_netdev);
 	struct wilc *wilc = vif->wilc;
@@ -522,7 +522,6 @@ int wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
 			wilc->vif[i]->iftype = mode;
 		}
 	}
-	return 0;
 }
 
 int wilc_wlan_get_num_conn_ifcs(struct wilc *wilc)
