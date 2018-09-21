@@ -95,7 +95,7 @@ static void wilc_wlan_txq_add_to_tail(struct net_device *dev, u8 q_num,
 	complete(&wilc->txq_event);
 }
 
-static int wilc_wlan_txq_add_to_head(struct wilc_vif *vif, u8 q_num,
+static void wilc_wlan_txq_add_to_head(struct wilc_vif *vif, u8 q_num,
 				     struct txq_entry_t *tqe)
 {
 	unsigned long flags;
@@ -114,8 +114,6 @@ static int wilc_wlan_txq_add_to_head(struct wilc_vif *vif, u8 q_num,
 	mutex_unlock(&wilc->txq_add_to_head_cs);
 	complete(&wilc->txq_event);
 	PRINT_INFO(vif->ndev, TX_DBG, "Wake up the txq_handler\n");
-
-	return 0;
 }
 
 #define NOT_TCP_ACK			(-1)
@@ -343,11 +341,7 @@ static int wilc_wlan_txq_add_cfg_pkt(struct wilc_vif *vif, u8 *buffer,
 	PRINT_INFO(vif->ndev, TX_DBG,
 		   "Adding the config packet at the Queue tail\n");
 
-	if (wilc_wlan_txq_add_to_head(vif, AC_VO_Q, tqe)) {
-		complete(&wilc->cfg_event);
-		kfree(tqe);
-		return 0;
-	}
+	wilc_wlan_txq_add_to_head(vif, AC_VO_Q, tqe);
 
 	return 1;
 }
