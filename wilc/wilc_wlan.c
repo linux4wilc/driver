@@ -118,7 +118,7 @@ static void wilc_wlan_txq_add_to_head(struct wilc_vif *vif, u8 q_num,
 
 #define NOT_TCP_ACK			(-1)
 
-static inline int add_tcp_session(struct wilc_vif *vif, u32 src_prt,
+static inline void add_tcp_session(struct wilc_vif *vif, u32 src_prt,
 				  u32 dst_prt, u32 seq)
 {
 	struct tcp_ack_filter *f = &vif->ack_filter;
@@ -132,20 +132,18 @@ static inline int add_tcp_session(struct wilc_vif *vif, u32 src_prt,
 		PRINT_INFO(vif->ndev, TCP_ENH, "TCP Session %d to Ack %d\n",
 			   f->tcp_session, seq);
 	}
-	return 0;
 }
 
-static inline int update_tcp_session(struct wilc_vif *vif, u32 index, u32 ack)
+static inline void update_tcp_session(struct wilc_vif *vif, u32 index, u32 ack)
 {
 	struct tcp_ack_filter *f = &vif->ack_filter;
 
 	if (index < 2 * MAX_TCP_SESSION &&
 	    ack > f->ack_session_info[index].bigger_ack_num)
 		f->ack_session_info[index].bigger_ack_num = ack;
-	return 0;
 }
 
-static inline int add_tcp_pending_ack(struct wilc_vif *vif, u32 ack,
+static inline void add_tcp_pending_ack(struct wilc_vif *vif, u32 ack,
 				      u32 session_index,
 				      struct txq_entry_t *txqe)
 {
@@ -159,7 +157,6 @@ static inline int add_tcp_pending_ack(struct wilc_vif *vif, u32 ack,
 		txqe->ack_idx = i;
 		f->pending_acks_idx++;
 	}
-	return 0;
 }
 
 static inline void tcp_process(struct net_device *dev, struct txq_entry_t *tqe)
