@@ -211,7 +211,7 @@ out:
 	spin_unlock_irqrestore(&wilc->txq_spinlock, flags);
 }
 
-static int wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
+static void wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
 {
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wilc = vif->wilc;
@@ -269,8 +269,6 @@ static int wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
 			PRINT_ER(vif->ndev, "completion timedout\n");
 		dropped--;
 	}
-
-	return 1;
 }
 
 static struct net_device *get_if_handler(struct wilc *wilc, u8 *mac_header)

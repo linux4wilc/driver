@@ -1548,6 +1548,7 @@ static void handle_rcvd_ntwrk_info(struct work_struct *work)
 	void *params;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct user_scan_req *scan_req = &hif_drv->usr_scan_req;
+	int ret;
 
 	found = true;
 	PRINT_D(vif->ndev, HOSTINF_DBG, "Handling received network info\n");
@@ -1556,8 +1557,8 @@ static void handle_rcvd_ntwrk_info(struct work_struct *work)
 		goto done;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "State: Scanning, parsing network information received\n");
-	wilc_parse_network_info(vif, rcvd_info->buffer, &info);
-	if (!info || !scan_req->scan_result) {
+	ret = wilc_parse_network_info(vif, rcvd_info->buffer, &info);
+	if (ret || !info || !scan_req->scan_result) {
 		PRINT_ER(vif->ndev, "info or scan result NULL\n");
 		goto done;
 	}
@@ -2987,18 +2988,24 @@ static void handle_get_tx_pwr(struct work_struct *work)
 static void handle_scan_timer(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
+	int ret;
 
 	PRINT_INFO(msg->vif->ndev, HOSTINF_DBG, "handle_scan_timer\n");
-	handle_scan_done(msg->vif, SCAN_EVENT_ABORTED);
+	ret = handle_scan_done(msg->vif, SCAN_EVENT_ABORTED);
+	if (ret)
+		PRINT_ER(msg->vif->ndev, "Failed to handle scan done\n");
 	kfree(msg);
 }
 
 static void handle_remain_on_chan_work(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
+	int ret;
 
 	PRINT_INFO(msg->vif->ndev, HOSTINF_DBG, "handle_remain_on_chan_work\n");
-	handle_remain_on_chan(msg->vif, &msg->body.remain_on_ch);
+	ret = handle_remain_on_chan(msg->vif, &msg->body.remain_on_ch);
+	if (ret)
+		PRINT_ER(msg->vif->ndev, "Failed to handle remain on channel\n");
 	kfree(msg);
 }
 
