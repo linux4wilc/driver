@@ -28,7 +28,7 @@ void clear_during_ip(unsigned long arg);
 #endif
 
 struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc);
-struct host_if_drv * wilc_get_drv_handler_by_ifc(struct wilc *wilc, uint8_t ifc);
+struct host_if_drv *wilc_get_drv_handler_by_ifc(struct wilc *wilc, uint8_t ifc);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 static inline void ether_addr_copy(u8 *dst, const u8 *src)

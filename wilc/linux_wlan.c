@@ -589,7 +589,7 @@ struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc)
 	return wilc->vif[ifc]->ndev;
 }
 
-struct host_if_drv * wilc_get_drv_handler_by_ifc(struct wilc *wilc, uint8_t ifc)
+struct host_if_drv *wilc_get_drv_handler_by_ifc(struct wilc *wilc, uint8_t ifc)
 {
 	return wilc->vif[ifc]->hif_drv;
 }

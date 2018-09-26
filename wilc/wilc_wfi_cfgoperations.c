@@ -261,7 +261,7 @@ void remove_network_from_shadow(unsigned long arg)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	struct wilc_priv *priv = from_timer(priv, t, aging_timer);
 #else
-	struct wilc_priv *priv = (struct wilc_priv*)arg;
+	struct wilc_priv *priv = (struct wilc_priv *)arg;
 #endif
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 	unsigned long now = jiffies;
@@ -1560,7 +1560,7 @@ static inline void wilc_wfi_cfg_parse_ch_attr(struct wilc_vif *vif, u8 *buf,
 	}
 }
 
-static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 * buf,
+static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 *buf,
 					 u32 len, bool p2p_mode)
 {
 	u32 index = 0;
@@ -1585,7 +1585,7 @@ static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 * buf,
 					   op_channel_attr_index);
 }
 
-static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 * buf,
+static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 *buf,
 					 u32 len, bool oper_ch, u8 p2p_mode)
 {
 	u32 index = 0;

@@ -28,7 +28,7 @@ static struct class *chc_dev_class; /* Global variable for the device class */
 static bool device_created;
 int bt_init_done;
 
-typedef void (wilc_cmd_handler)(char*);
+typedef void (wilc_cmd_handler)(char *);
 
 static void wilc_cmd_handle_bt_enable(char *param);
 static void wilc_cmd_handle_bt_power_up(char *param);
