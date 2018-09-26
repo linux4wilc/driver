@@ -44,7 +44,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		wilc_set_power_mgmt(vif, 0, 0);
 
 		/* Start the DuringIPTimer */
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 		vif->during_ip_timer.data = (uint32_t)vif;
 	#endif
 		mod_timer(&vif->during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
@@ -72,7 +72,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		vif->obtaining_ip = true;
 
 		/* Start the DuringIPTimer */
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 		vif->during_ip_timer.data = (uint32_t)vif;
 	#endif
 		mod_timer(&vif->during_ip_timer, (jiffies + msecs_to_jiffies(DURING_IP_TIME_OUT)));
@@ -99,13 +99,13 @@ void store_power_save_current_state(struct wilc_vif *vif, bool val)
 	vif->pwrsave_current_state = val;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 void clear_during_ip(struct timer_list *t)
 #else
 void clear_during_ip(unsigned long arg)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	struct wilc_vif *vif = from_timer(vif, t, during_ip_timer);
 #else
 	struct wilc_vif *vif = (struct wilc_vif *)arg;
@@ -383,7 +383,7 @@ static int init_irq(struct net_device *dev)
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wl = vif->wilc;
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
+#if KERNEL_VERSION(3, 13, 0) < LINUX_VERSION_CODE
 
 	wl->gpio_irq = gpiod_get(wl->dt_dev, "irq", GPIOD_IN);
 	if (IS_ERR(wl->gpio_irq)) {
@@ -453,7 +453,7 @@ static int init_irq(struct net_device *dev)
 	return ret;
 
 free_gpio:
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
+#if KERNEL_VERSION(3, 13, 0) < LINUX_VERSION_CODE
 	gpiod_put(wl->gpio_irq);
 	wl->gpio_irq = NULL;
 #else
@@ -474,7 +474,7 @@ static void deinit_irq(struct net_device *dev)
 		wilc->dev_irq_num = -1;
 	}
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
+#if KERNEL_VERSION(3, 13, 0) < LINUX_VERSION_CODE
 	if (wilc->gpio_irq) {
 		gpiod_put(wilc->gpio_irq);
 		wilc->gpio_irq = NULL;
@@ -518,7 +518,7 @@ void free_eap_buff_params(void *vp)
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 void eap_buff_timeout(struct timer_list *t)
 #else
 void eap_buff_timeout(unsigned long user)
@@ -527,7 +527,7 @@ void eap_buff_timeout(unsigned long user)
     u8 null_bssid[ETH_ALEN] = {0};
     static u8 timeout = 5;
     int status = -1;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
     struct wilc_priv *priv = from_timer(priv, t, eap_buff_timer);
 #else
 	struct wilc_priv *priv = (struct wilc_priv *)user;
@@ -1549,7 +1549,7 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 			priv->buffered_eap->pkt_offset = pkt_offset;
 			memcpy(priv->buffered_eap->buff, buff -
 			       pkt_offset, size + pkt_offset);
-		#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+		#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 			priv->eap_buff_timer.data = (unsigned long) priv;
 		#endif
 			mod_timer(&priv->eap_buff_timer, (jiffies +
@@ -1565,7 +1565,7 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 		skb->dev = vif->ndev;
 		if (skb->dev == NULL)
 			PRINT_ER(vif->ndev, "skb->dev is NULL\n");
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+	#if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
 		skb_put_data(skb, buff_to_send, frame_len);
 	#else
 		memcpy(skb_put(skb, frame_len), buff_to_send, frame_len);
@@ -1778,7 +1778,7 @@ free_wl:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
+#if KERNEL_VERSION(3, 13, 0) < LINUX_VERSION_CODE
 static void wilc_wlan_power(struct wilc *wilc, int power)
 {
 	struct gpio_desc *gpio_reset;

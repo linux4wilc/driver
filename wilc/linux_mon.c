@@ -67,7 +67,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 				"Monitor if : No memory to allocate skb");
 			return;
 		}
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+	#if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
 		skb_put_data(skb, buff, size);
 
 		cb_hdr = skb_push(skb, sizeof(*cb_hdr));
@@ -100,7 +100,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 				"Monitor if : No memory to allocate skb");
 			return;
 		}
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+	#if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
 		skb_put_data(skb, buff, size);
 		hdr = skb_push(skb, sizeof(*hdr));
 	#else

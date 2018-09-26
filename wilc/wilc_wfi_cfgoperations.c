@@ -83,7 +83,7 @@ static const struct wiphy_wowlan_support wowlan_support = {
 	.flags = WIPHY_WOWLAN_ANY
 };
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
+#if KERNEL_VERSION(4, 7, 0) > LINUX_VERSION_CODE
 #define CHAN2G(_channel, _freq, _flags) {	 \
 		.band             = IEEE80211_BAND_2GHZ, \
 		.center_freq      = (_freq),		 \
@@ -210,7 +210,7 @@ static void refresh_scan(struct wilc_priv *priv, bool direct_scan)
 		if (!memcmp("DIRECT-", network_info->ssid, 7) && !direct_scan)
 			continue;
 
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+	#if KERNEL_VERSION(4, 7, 0) <= LINUX_VERSION_CODE
 		freq = ieee80211_channel_to_frequency((s32)network_info->ch,
 						      NL80211_BAND_2GHZ);
 	#else
@@ -221,7 +221,7 @@ static void refresh_scan(struct wilc_priv *priv, bool direct_scan)
 		rssi = get_rssi_avg(network_info);
 		bss = cfg80211_inform_bss(wiphy,
 					  channel,
-				#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+				#if KERNEL_VERSION(3, 18, 0) <= LINUX_VERSION_CODE
 					  CFG80211_BSS_FTYPE_UNKNOWN,
 				#endif
 					  network_info->bssid,
@@ -252,13 +252,13 @@ static void update_scan_time(struct wilc_priv *priv)
 		priv->scanned_shadow[i].time_scan = jiffies;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 void remove_network_from_shadow(struct timer_list *t)
 #else
 void remove_network_from_shadow(unsigned long arg)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	struct wilc_priv *priv = from_timer(priv, t, aging_timer);
 #else
 	struct wilc_priv *priv = (struct wilc_priv *)arg;
@@ -290,7 +290,7 @@ void remove_network_from_shadow(unsigned long arg)
 		   priv->scanned_cnt);
 
 	if (priv->scanned_cnt != 0) {
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 		priv->aging_timer.data = (unsigned long) priv;
 	#endif
 		mod_timer(&priv->aging_timer,
@@ -309,7 +309,7 @@ static int is_network_in_shadow(struct network_info *nw_info,
 
 	if (priv->scanned_cnt == 0) {
 		PRINT_INFO(priv->dev, CFG80211_DBG, "Starting Aging timer\n");
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 		priv->aging_timer.data = (unsigned long) priv;
 	#endif
 		mod_timer(&priv->aging_timer,
@@ -436,7 +436,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 
 			bss = cfg80211_inform_bss(wiphy,
 						  channel,
-					#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+					#if KERNEL_VERSION(3, 18, 0) <= LINUX_VERSION_CODE
 						  CFG80211_BSS_FTYPE_UNKNOWN,
 					#endif
 						  network_info->bssid,
@@ -481,7 +481,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 		mutex_lock(&priv->scan_req_lock);
 
 		if (priv->scan_req) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+#if KERNEL_VERSION(4, 7, 0) <= LINUX_VERSION_CODE
 			struct cfg80211_scan_info info = {
 				.aborted = false,
 			};
@@ -500,7 +500,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 
 		PRINT_INFO(priv->dev, CFG80211_DBG, "Scan Aborted \n");
 		if (priv->scan_req) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+#if KERNEL_VERSION(4, 7, 0) <= LINUX_VERSION_CODE
 			struct cfg80211_scan_info info = {
 				.aborted = false,
 			};
@@ -623,7 +623,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		else if (!wfi_drv->ifc_up && dev == wl->vif[1]->ndev)
 			disconn_info->reason = 1;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
+#if KERNEL_VERSION(4, 2, 0) > LINUX_VERSION_CODE
 		cfg80211_disconnected(dev, disconn_info->reason,
 				      disconn_info->ie, disconn_info->ie_len,
 				      GFP_KERNEL);
@@ -1301,7 +1301,7 @@ static int set_default_key(struct wiphy *wiphy, struct net_device *netdev,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)
+#if KERNEL_VERSION(3, 16, 0) <= LINUX_VERSION_CODE
 static int get_station(struct wiphy *wiphy, struct net_device *dev,
 		       const u8 *mac, struct station_info *sinfo)
 #else
@@ -1333,7 +1333,7 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 			return -ENOENT;
 		}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+#if KERNEL_VERSION(3, 19, 0) <= LINUX_VERSION_CODE
 		sinfo->filled |= BIT(NL80211_STA_INFO_INACTIVE_TIME);
 #else
 		sinfo->filled |= STATION_INFO_INACTIVE_TIME;
@@ -1352,7 +1352,7 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 			return -EBUSY;
 		}
 		wilc_get_statistics(vif, &stats, true);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+#if KERNEL_VERSION(3, 19, 0) <= LINUX_VERSION_CODE
 		sinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL) |
 			      BIT(NL80211_STA_INFO_RX_PACKETS) |
 			      BIT(NL80211_STA_INFO_TX_PACKETS) |
@@ -1683,7 +1683,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 
 	PRINT_D(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n", fc);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+#if KERNEL_VERSION(4, 7, 0) <= LINUX_VERSION_CODE
 	freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
  #else
 	freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
@@ -1827,7 +1827,7 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 			priv->remain_on_ch_params.listen_session_id);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+#if KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE
 static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 					struct p2p_mgmt_data *mgmt_tx,
 					struct cfg80211_mgmt_tx_params *params,
@@ -1839,7 +1839,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 					u8 iftype, u32 buf_len)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+#if KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE
 	const u8 *buf = params->buf;
 	size_t len = params->len;
 #endif
@@ -1890,7 +1890,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+#if KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE
 static int mgmt_tx(struct wiphy *wiphy,
 		   struct wireless_dev *wdev,
 		   struct cfg80211_mgmt_tx_params *params,
@@ -1903,7 +1903,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 		   bool no_cck, bool dont_wait_for_ack, u64 *cookie)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+#if KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE
 	struct ieee80211_channel *chan = params->chan;
 	unsigned int wait = params->wait;
 	const u8 *buf = params->buf;
@@ -1985,7 +1985,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 
 		case PUBLIC_ACT_VENDORSPEC:
 			if (!memcmp(p2p_oui, &buf[ACTION_SUBTYPE_ID + 1], 4))
-			#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+			#if KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE
 				wilc_wfi_cfg_tx_vendor_spec(priv, mgmt_tx,
 							    params,
 							    vif->iftype,
@@ -2107,7 +2107,7 @@ static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 	if (ret)
 		return ret;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
+#if KERNEL_VERSION(3, 19, 0) <= LINUX_VERSION_CODE
 	sinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL);
 #else
 	sinfo->filled |= STATION_INFO_SIGNAL;
@@ -2147,7 +2147,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#if KERNEL_VERSION(4, 11, 0) <= LINUX_VERSION_CODE
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			       enum nl80211_iftype type,
 			       struct vif_params *params)
@@ -2340,7 +2340,7 @@ static int stop_ap(struct wiphy *wiphy, struct net_device *dev)
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)
+#if KERNEL_VERSION(3, 16, 0) <= LINUX_VERSION_CODE
 static int add_station(struct wiphy *wiphy, struct net_device *dev,
 		       const u8 *mac, struct station_parameters *params)
 #else
@@ -2410,10 +2410,10 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+#if KERNEL_VERSION(3, 19, 0) <= LINUX_VERSION_CODE
 static int del_station(struct wiphy *wiphy, struct net_device *dev,
 		       struct station_del_parameters *params)
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)
+#elif KERNEL_VERSION(3, 16, 0) <= LINUX_VERSION_CODE
 static int del_station(struct wiphy *wiphy, struct net_device *dev,
 		       const u8 *mac)
 #else
@@ -2421,7 +2421,7 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 		       u8 *mac)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+#if KERNEL_VERSION(3, 19, 0) <= LINUX_VERSION_CODE
 	const u8 *mac = params->mac;
 #endif
 	int ret = 0;
@@ -2453,7 +2453,7 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)
+#if KERNEL_VERSION(3, 16, 0) <= LINUX_VERSION_CODE
 static int change_station(struct wiphy *wiphy, struct net_device *dev,
 			  const u8 *mac, struct station_parameters *params)
 #else
@@ -2517,20 +2517,20 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
+#if KERNEL_VERSION(4, 12, 0) <= LINUX_VERSION_CODE
 static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 					     const char *name,
 					     unsigned char name_assign_type,
 					     enum nl80211_iftype type,
 					     struct vif_params *params)
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+#elif KERNEL_VERSION(4, 1, 0) <= LINUX_VERSION_CODE
 static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 					     const char *name,
 					     unsigned char name_assign_type,
 					     enum nl80211_iftype type,
 					     u32 *flags,
 					     struct vif_params *params)
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+#elif KERNEL_VERSION(3, 7, 0) <= LINUX_VERSION_CODE
 static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 					     const char *name,
 					     enum nl80211_iftype type,
@@ -2732,7 +2732,7 @@ static struct wireless_dev *wilc_wfi_cfg_alloc(struct net_device *net)
 	wilc_band_2ghz.ht_cap.ampdu_factor = IEEE80211_HT_MAX_AMPDU_8K;
 	wilc_band_2ghz.ht_cap.ampdu_density = IEEE80211_HT_MPDU_DENSITY_NONE;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+#if KERNEL_VERSION(4, 7, 0) <= LINUX_VERSION_CODE
 	wdev->wiphy->bands[NL80211_BAND_2GHZ] = &wilc_band_2ghz;
 #else
 	wdev->wiphy->bands[IEEE80211_BAND_2GHZ] = &wilc_band_2ghz;
@@ -2762,7 +2762,7 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net,
 	priv = wdev_priv(wdev);
 	priv->wdev = wdev;
 	wdev->wiphy->max_scan_ssids = MAX_NUM_PROBED_SSID;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
+#if KERNEL_VERSION(3, 11, 0) <= LINUX_VERSION_CODE
 	wdev->wiphy->wowlan = &wowlan_support;
 #else
 	wdev->wiphy->wowlan = wowlan_support;
@@ -2800,8 +2800,7 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net,
 		wiphy_free(wdev->wiphy);
 		kfree(wdev);
 		return NULL;
-	}
-	else {
+	} else {
 		PRINT_INFO(net, CFG80211_DBG, "Successful Registering\n");
 	}
 
@@ -2817,7 +2816,7 @@ int wilc_init_host_int(struct net_device *net)
 
 	PRINT_INFO(net, INIT_DBG, "Host[%p][%p]\n", net, net->ieee80211_ptr);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	timer_setup(&vif->during_ip_timer, clear_during_ip, 0);
 	#endif

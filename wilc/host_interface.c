@@ -310,7 +310,7 @@ void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len
 	int j;
 
 	if (ch_list_len > 0) {
-		for (i = 0;i < priv->scanned_cnt;) {
+		for (i = 0; i < priv->scanned_cnt;) {
 			for (ch_index = 0; ch_index < ch_list_len; ch_index++)
 				if (priv->scanned_shadow[i].ch == (ch_freq_list[ch_index] + 1))
 					break;
@@ -2713,7 +2713,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 error:
 
 	hif_drv->remain_on_ch_timer_vif = vif;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 	hif_drv->remain_on_ch_timer.data = (unsigned long)hif_drv;
 #endif
 	mod_timer(&hif_drv->remain_on_ch_timer,
@@ -2817,13 +2817,13 @@ free_msg:
 	kfree(msg);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 static void listen_timer_cb(struct timer_list *t)
 #else
 static void listen_timer_cb(unsigned long arg)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	struct host_if_drv *hif_drv = from_timer(hif_drv, t,
 						      remain_on_ch_timer);
 #else
@@ -3049,13 +3049,13 @@ static void handle_set_antenna_mode(struct work_struct *work)
 	kfree(msg);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 static void timer_scan_cb(struct timer_list *t)
 #else
 static void timer_scan_cb(unsigned long arg)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	struct host_if_drv *hif_drv = from_timer(hif_drv, t, scan_timer);
 #else
 	struct host_if_drv *hif_drv = (struct host_if_drv *)arg;
@@ -3073,13 +3073,13 @@ static void timer_scan_cb(unsigned long arg)
 		kfree(msg);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 static void timer_connect_cb(struct timer_list *t)
 #else
 static void timer_connect_cb(unsigned long arg)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	struct host_if_drv *hif_drv = from_timer(hif_drv, t, connect_timer);
 #else
 	struct host_if_drv *hif_drv = (struct host_if_drv *)arg;
@@ -3567,7 +3567,7 @@ int wilc_set_join_req(struct wilc_vif *vif, u8 *bssid, const u8 *ssid,
 		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		goto free_ies;
 	}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 	hif_drv->connect_timer.data = (unsigned long)hif_drv;
 #endif
 	hif_drv->connect_timer_vif = vif;
@@ -3833,7 +3833,7 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	}
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, ">> Starting the SCAN timer\n");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 	hif_drv->scan_timer.data = (unsigned long)hif_drv;
 #endif
 	hif_drv->scan_timer_vif = vif;
@@ -3877,13 +3877,13 @@ int wilc_hif_set_cfg(struct wilc_vif *vif,
 	return result;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 static void get_periodic_rssi(struct timer_list *t)
 #else
 static void get_periodic_rssi(unsigned long arg)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	struct wilc_vif *vif = from_timer(vif, t, periodic_rssi);
 #else
 	struct wilc_vif *vif = (struct wilc_vif *)arg;
@@ -3930,14 +3930,14 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 	if (wilc->clients_count == 0)
 		mutex_init(&hif_deinit_lock);
 
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+	#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 		timer_setup(&vif->periodic_rssi, get_periodic_rssi, 0);
 	#else
 		setup_timer(&vif->periodic_rssi, get_periodic_rssi, (unsigned long)vif);
 	#endif
 		mod_timer(&vif->periodic_rssi, jiffies + msecs_to_jiffies(5000));
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	timer_setup(&hif_drv->scan_timer, timer_scan_cb, 0);
 	timer_setup(&hif_drv->connect_timer, timer_connect_cb, 0);
 	timer_setup(&hif_drv->remain_on_ch_timer, listen_timer_cb, 0);
