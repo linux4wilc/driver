@@ -205,7 +205,7 @@ static int wilc_sdio_suspend(struct device *dev)
 
 	chip_wakeup(wilc, 0);
 
-	if (mutex_is_locked(&wilc->hif_cs)){
+	if (mutex_is_locked(&wilc->hif_cs)) {
 		mutex_unlock(&wilc->hif_cs);
 	}
 

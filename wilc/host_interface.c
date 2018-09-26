@@ -316,8 +316,8 @@ void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len
 					break;
 
 			/* filter only un-matched channels */
-			if (ch_index == ch_list_len){
-				if (priv->scanned_shadow[i].ies){
+			if (ch_index == ch_list_len) {
+				if (priv->scanned_shadow[i].ies) {
 					kfree(priv->scanned_shadow[i].ies);
 					priv->scanned_shadow[i].ies = NULL;
 				}
@@ -354,7 +354,7 @@ static void handle_send_buffered_eap(struct work_struct *work)
 	if (hif_buff_eap->eap_buf_param)
 		hif_buff_eap->eap_buf_param(hif_buff_eap->user_arg);
 
-	if(hif_buff_eap->buff != NULL){
+	if(hif_buff_eap->buff != NULL) {
 		kfree(hif_buff_eap->buff);
 		hif_buff_eap->buff = NULL;
 	}
@@ -968,7 +968,7 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 		return result;
 	}
 
-	if(evt == SCAN_EVENT_DONE){
+	if(evt == SCAN_EVENT_DONE) {
 		if (memcmp(hif_drv->assoc_bssid, null_bssid, ETH_ALEN) == 0) {
 			hif_drv->hif_state = HOST_IF_IDLE;
 		} else {
@@ -3107,7 +3107,7 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 	int result;
 	struct host_if_msg *msg;
 
-	if (!vif || !frmw_to_linux || !eap_buf_param ){
+	if (!vif || !frmw_to_linux || !eap_buf_param ) {
 		return -EFAULT;
 	}
 	msg = wilc_alloc_work(vif, handle_send_buffered_eap, false);

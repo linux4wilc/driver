@@ -375,7 +375,7 @@ static void ac_q_limit(struct wilc *wilc, u8 ac, u16 *q_limit)
 	else
 		end_index = AC_BUFFER_SIZE - 1;
 
-	for (i = 0; i < NQUEUES; i++){
+	for (i = 0; i < NQUEUES; i++) {
 		if(!sum)
 			q_limit[i] = 1;
 		else
@@ -489,7 +489,7 @@ int wilc_wlan_txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
 	u8 q_num;
 	u16 q_limit[NQUEUES] = {0, 0, 0, 0};
 
-	if(!vif){
+	if(!vif) {
 		pr_info("%s vif is NULL\n", __func__);
 		return -1;
 	}
@@ -693,7 +693,7 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 				to_host_from_fw_bit = BIT(0);
 			}
 
-			while(trials--){
+			while(trials--) {
 				ret = wilc->hif_func->hif_read_reg(wilc, to_host_from_fw_reg, &reg);
 				if(!ret) goto _fail_;
 				if((reg & to_host_from_fw_bit) == 0)
@@ -1014,7 +1014,7 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 			PRINT_ER(vif->ndev, "fail read reg vmm_tbl_entry..\n");
 			break;
 		}
-		if ((reg & 0x1) == 0){
+		if ((reg & 0x1) == 0) {
 			ac_pkt_count(reg, ac_fw_count);
 			ac_acm_bit(wilc, reg);
 			break;
@@ -1822,7 +1822,7 @@ int wilc_send_config_pkt(struct wilc_vif *vif, u8 mode, struct wid *wids,
 	int i;
 	int ret = 0;
 
-	if(wait_for_recovery){
+	if(wait_for_recovery) {
 		PRINT_INFO(vif->ndev, CORECONFIG_DBG,
 			   "Host interface is suspended\n");
 		while(wait_for_recovery)
@@ -1935,7 +1935,7 @@ u32 wilc_get_chipid(struct wilc *wilc, bool update)
 				chipid = 0;
 				return chipid;
 			}
-			if(tempchipid < 0x1003a0){
+			if(tempchipid < 0x1003a0) {
 				pr_err("WILC1002 isn't suported %x\n", chipid);
 				chipid = 0;
 				return chipid;

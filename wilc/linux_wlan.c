@@ -155,7 +155,7 @@ static int debug_thread(void *arg)
 
 	complete(&wl->debug_thread_started);
 
-	while(1){
+	while(1) {
 		if (wl->initialized) {
 			if (wait_for_completion_timeout(&wl->debug_thread_started,
 							msecs_to_jiffies(6000))) {
@@ -168,7 +168,7 @@ static int debug_thread(void *arg)
 			if (debug_running) {
 				PRINT_INFO(dev, GENERIC_DBG,
 					   "*** Debug Thread Running ***\n");
-				if(cfg_packet_timeout >= 5){
+				if(cfg_packet_timeout >= 5) {
 					PRINT_INFO(dev, GENERIC_DBG,
 						   "<Recover>\n");
 					cfg_packet_timeout = 0;
@@ -564,7 +564,7 @@ void wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
 
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "set bssid on[%p]\n", wilc_netdev);
-	for (i = 0; i <= wilc->vif_num; i++){
+	for (i = 0; i <= wilc->vif_num; i++) {
 		if (wilc_netdev == wilc->vif[i]->ndev) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
 				   "set bssid [%x][%x][%x]\n", bssid[0],
@@ -1224,7 +1224,7 @@ static int wilc_mac_open(struct net_device *ndev)
 	if(wl->open_ifcs == 0)
 		wilc_bt_power_up(wl, PWR_DEV_SRC_WIFI);
 
-	if(!recovery_on){
+	if(!recovery_on) {
 		ret = wilc_init_host_int(ndev);
 		if (ret < 0) {
 			PRINT_ER(ndev, "Failed to initialize host interface\n");
