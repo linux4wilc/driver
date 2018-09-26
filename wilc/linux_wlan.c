@@ -534,20 +534,20 @@ void eap_buff_timeout(unsigned long user)
 #endif
     struct wilc_vif *vif = netdev_priv(priv->dev);
 
-    if (!(memcmp(priv->associated_bss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
-            mod_timer(&priv->eap_buff_timer, (jiffies + msecs_to_jiffies(10)));
-            return;
+	if (!(memcmp(priv->associated_bss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
+		mod_timer(&priv->eap_buff_timer, (jiffies + msecs_to_jiffies(10)));
+		return;
     }
     del_timer(&priv->eap_buff_timer);
     timeout = 5;
 
     status = wilc_send_buffered_eap(vif,
-                                    wilc_frmw_to_linux,
-                                    free_eap_buff_params,
-                                    priv->buffered_eap->buff,
-                                    priv->buffered_eap->size,
-                                    priv->buffered_eap->pkt_offset,
-                                    (void *)priv);
+				    wilc_frmw_to_linux,
+				    free_eap_buff_params,
+				    priv->buffered_eap->buff,
+				    priv->buffered_eap->size,
+				    priv->buffered_eap->pkt_offset,
+				    (void *)priv);
 	if (status)
 		PRINT_ER(vif->ndev, "Failed so send buffered eap\n");
 }
@@ -1553,12 +1553,12 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 			priv->eap_buff_timer.data = (unsigned long) priv;
 		#endif
 			mod_timer(&priv->eap_buff_timer, (jiffies +
-                                      msecs_to_jiffies(10)));
+				  msecs_to_jiffies(10)));
 			return;
 		}
 		skb = dev_alloc_skb(frame_len);
 		if (!skb) {
-       	 		PRINT_ER(vif->ndev, "Low memory - packet droped\n");
+			PRINT_ER(vif->ndev, "Low memory - packet droped\n");
 			return;
 		}
 
@@ -1734,7 +1734,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 			goto free_ndev;
 		}
 
- 		SET_NETDEV_DEV(ndev, dev);
+		SET_NETDEV_DEV(ndev, dev);
 
 		vif->ndev->ieee80211_ptr = wdev;
 		vif->ndev->ml_priv = vif;

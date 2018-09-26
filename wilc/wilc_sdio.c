@@ -1045,7 +1045,7 @@ static int sdio_sync_ext(struct wilc *wilc, int nint)
 /* WILC3000 only. Was removed in WILC1000 on revision 6200.
  * Might be related to suspend/resume
  */
- 	if (wilc->chip == WILC_3000) {
+	if (wilc->chip == WILC_3000) {
 		/**
 		 *      Disable power sequencer
 		 **/

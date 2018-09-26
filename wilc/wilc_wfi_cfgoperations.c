@@ -945,7 +945,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 
 	case NL80211_AUTHTYPE_SHARED_KEY:
 		auth_type = SHARED_KEY;
-   		PRINT_INFO(vif->ndev, CFG80211_DBG, "In SHARED KEY\n");
+		PRINT_INFO(vif->ndev, CFG80211_DBG, "In SHARED KEY\n");
 		break;
 
 	default:
@@ -1645,7 +1645,8 @@ static void wilc_wfi_cfg_parse_rx_vendor_spec(struct wilc_priv *priv, u8 *buff,
 		for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < size; i++) {
 			if (buff[i] == P2PELEM_ATTR_ID &&
 			    !(memcmp(p2p_oui, &buff[i + 2], 4))) {
-			    	bool p2p_mode = vif->attr_sysfs.p2p_mode;
+				bool p2p_mode = vif->attr_sysfs.p2p_mode;
+
 				wilc_wfi_cfg_parse_rx_action(vif, &buff[i + 6],
 							     size - (i + 6),
 							     p2p_mode);
@@ -2265,7 +2266,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		if (wl->initialized) {
 		vif->monitor_flag = 1;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-			 		 MONITOR_MODE, vif->ifc_id, false);
+					 MONITOR_MODE, vif->ifc_id, false);
 
 		wilc_set_operation_mode(vif, MONITOR_MODE);
 		wilc_set_power_mgmt(vif_1, 0, 0);

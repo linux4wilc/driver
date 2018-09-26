@@ -1277,9 +1277,9 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 				wilc_mac_indicate(wilc);
 			}
 		} else if (pkt_offset & IS_MANAGMEMENT) {
-			 pkt_offset &= ~(IS_MANAGMEMENT |
-					 IS_MANAGMEMENT_CALLBACK |
-					 IS_MGMT_STATUS_SUCCES);
+			pkt_offset &= ~(IS_MANAGMEMENT |
+					IS_MANAGMEMENT_CALLBACK |
+					IS_MGMT_STATUS_SUCCES);
 			 buff_ptr += HOST_HDR_OFFSET;
 			 wilc_wfi_mgmt_rx(wilc, buff_ptr, pkt_len);
 		} else {
@@ -1295,13 +1295,11 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 			 vif = netdev_priv(wilc_netdev);
 
 			 if (vif->iftype == MONITOR_MODE)
-			 /* packet received on monitor interface */
-			 wilc_wfi_monitor_rx(vif, buffer, size);
+				/* packet received on monitor interface */
+				wilc_wfi_monitor_rx(vif, buffer, size);
 			 else if (pkt_len > 0)
-				 wilc_frmw_to_linux(vif, buff_ptr,
-							pkt_len,
-							pkt_offset,
-							PKT_STATUS_NEW);
+				wilc_frmw_to_linux(vif, buff_ptr, pkt_len,
+						   pkt_offset, PKT_STATUS_NEW);
 		}
 
 		offset += tp_len;

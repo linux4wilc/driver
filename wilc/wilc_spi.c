@@ -227,18 +227,18 @@ MODULE_LICENSE("GPL");
 
 static int spi_data_rsp(struct wilc *wilc, u8 cmd)
 {
-    struct spi_device *spi = to_spi_device(wilc->dev);
-    struct wilc_spi *spi_priv = wilc->bus_data;
-    u8 len;
-    u8 rsp[3];
-    int result = N_OK;
+	struct spi_device *spi = to_spi_device(wilc->dev);
+	struct wilc_spi *spi_priv = wilc->bus_data;
+	u8 len;
+	u8 rsp[3];
+	int result = N_OK;
 
-    if (!spi_priv->crc_off)
-            len = 2;
-    else
-            len = 3;
+	if (!spi_priv->crc_off)
+		len = 2;
+	else
+		len = 3;
 
-    if (wilc_spi_rx(wilc, &rsp[0], len)) {
+	if (wilc_spi_rx(wilc, &rsp[0], len)) {
 		dev_err(&spi->dev, "Failed bus error...\n");
 		result = N_FAIL;
 		goto fail;
