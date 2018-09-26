@@ -109,7 +109,7 @@ void clear_during_ip(unsigned long arg)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-	struct wilc_vif *vif= from_timer(vif, t, during_ip_timer);
+	struct wilc_vif *vif = from_timer(vif, t, during_ip_timer);
 #else
 	struct wilc_vif *vif = (struct wilc_vif *)arg;
 #endif
@@ -250,7 +250,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 	struct wilc_vif *vif;
 	u8 null_ip[4] = {0};
 
-	if (!dev_iface || !dev_iface->ifa_dev ||!dev_iface->ifa_dev->dev) {
+	if (!dev_iface || !dev_iface->ifa_dev || !dev_iface->ifa_dev->dev) {
 		pr_err("dev_iface = NULL\n");
 		return NOTIFY_DONE;
 	}
@@ -263,7 +263,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		return NOTIFY_DONE;
 	}
 
-	if (!dev->ieee80211_ptr|| !dev->ieee80211_ptr->wiphy) {
+	if (!dev->ieee80211_ptr || !dev->ieee80211_ptr->wiphy) {
 		pr_err("No Wireless registerd\n");
 		return NOTIFY_DONE;
 	}

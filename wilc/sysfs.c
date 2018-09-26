@@ -34,7 +34,7 @@ static ssize_t wilc_sysfs_store(struct kobject *kobj, struct kobj_attribute *att
 	int attr_val;
 	int i;
 
-	for (i=0; i< NUM_CONCURRENT_IFC; i++) {
+	for (i = 0; i < NUM_CONCURRENT_IFC; i++) {
 		if (kstrtoint(buf, 10, &attr_val))
 			PRINT_ER(vif[i]->ndev, "Failed to convert p2p_mode string");
 		if (strcmp(attr->attr.name, "p2p_mode") == 0) {
@@ -96,11 +96,11 @@ void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2)
 		return;
 	}
 
-	for (i=0; i< NUM_CONCURRENT_IFC; i++) {
+	for (i = 0; i < NUM_CONCURRENT_IFC; i++) {
 		/* By default p2p mode is Group Owner */
 		vif[i]->attr_sysfs.p2p_mode = 1;
 		vif[i]->attr_sysfs.ant_swtch_mode = ANT_SWTCH_INVALID_GPIO_CTRL;
-		vif[i]->attr_sysfs.antenna1 =0xFF;
+		vif[i]->attr_sysfs.antenna1 = 0xFF;
 		vif[i]->attr_sysfs.antenna2 = 0xFF;
 	}	
 	retval = sysfs_create_group(wilc_kobj, &attr_group);
@@ -109,7 +109,7 @@ void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2)
 
 void wilc_sysfs_exit(void)
 {
-	device_created=0;
+	device_created = 0;
 	sysfs_remove_group(wilc_kobj, &attr_group);
 	kobject_put(wilc_kobj);
 }

@@ -26,7 +26,7 @@ static struct cdev str_chc_dev; /* Global variable for the character */
 struct device *dev;
 static struct class *chc_dev_class; /* Global variable for the device class */
 static bool device_created;
-int bt_init_done=0;
+int bt_init_done = 0;
 
 typedef void (wilc_cmd_handler)(char*);
 
@@ -209,7 +209,7 @@ static void wilc_cmd_handle_wilc_cca_threshold(char* param)
 
 int wilc_bt_power_up(struct wilc *wilc, int source)
 {
-	int count=0;
+	int count = 0;
 	int ret;
 	int reg;
 
@@ -228,24 +228,24 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 	{
 		/*Bug 215*/
 		/*Avoid overlapping between BT and Wifi intialization*/
-		if ((wilc->power_status[PWR_DEV_SRC_WIFI]==true))
+		if ((wilc->power_status[PWR_DEV_SRC_WIFI] == true))
 		{
 			while (!wilc->initialized)
 			{
 				msleep(100);
-				if (++count>20)
+				if (++count > 20)
 				{
 					pr_warn("Wifi took too much time to initialize \n");
 					break;
 				}
 			}
 		}
-		else if ((wilc->power_status[PWR_DEV_SRC_BT]==true))
+		else if ((wilc->power_status[PWR_DEV_SRC_BT] == true))
 		{
 			while (!bt_init_done)
 			{
 				msleep(200);
-				if (++count>30)
+				if (++count > 30)
 				{
 					pr_warn("BT has taken too much time to initialize \n");
 					break;
@@ -400,7 +400,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 			return ret;
 		}
-		reg &= ~ BIT(29);
+		reg &= ~BIT(29);
 		ret = wilc->hif_func->hif_write_reg(wilc, WILC_PWR_SEQ_MISC_CTRL, reg);
 		if (!ret) {
 			pr_err("[wilc start]: fail write reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
@@ -410,7 +410,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 
 		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 
-		bt_init_done=0;
+		bt_init_done = 0;
 	}
 
 	mutex_lock(&wilc->cs);
@@ -595,7 +595,7 @@ static void wilc_bt_start(struct wilc *wilc)
 static void wilc_cmd_handle_bt_power_up(char* param)
 {
 	pr_info("AT PWR: bt_power_up\n");
-	bt_init_done=0;
+	bt_init_done = 0;
 
 	if (!wilc_bt->initialized && !wilc_bt->hif_func->hif_is_init(wilc_bt)) {
 		acquire_bus(wilc_bt, ACQUIRE_ONLY, PWR_DEV_SRC_BT);
@@ -621,7 +621,7 @@ static void wilc_cmd_handle_bt_fw_chip_wake_up(char* param)
 
 static void wilc_cmd_handle_bt_fw_chip_allow_sleep(char* param)
 {
-	bt_init_done=1;
+	bt_init_done = 1;
 	chip_allow_sleep(wilc_bt, PWR_DEV_SRC_BT);
 }
 

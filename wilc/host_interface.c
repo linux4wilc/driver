@@ -311,7 +311,7 @@ void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len
 
 	if (ch_list_len > 0) {
 		for (i = 0;i < priv->scanned_cnt;) {
-			for (ch_index=0;ch_index < ch_list_len;ch_index++) 				
+			for (ch_index = 0; ch_index < ch_list_len; ch_index++) 				
 				if (priv->scanned_shadow[i].ch == (ch_freq_list[ch_index] + 1))
 					break;
 
@@ -325,7 +325,7 @@ void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len
 				kfree(priv->scanned_shadow[i].join_params);
 				priv->scanned_shadow[i].join_params = NULL;
 
-				for (j=i;(j<priv->scanned_cnt-1);j++)
+				for (j = i; (j < priv->scanned_cnt-1); j++)
 					priv->scanned_shadow[j] = priv->scanned_shadow[j+1];
 
 				priv->scanned_cnt--;
@@ -3884,7 +3884,7 @@ static void get_periodic_rssi(unsigned long arg)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-	struct wilc_vif *vif= from_timer(vif, t, periodic_rssi);
+	struct wilc_vif *vif = from_timer(vif, t, periodic_rssi);
 #else
 	struct wilc_vif *vif = (struct wilc_vif *)arg;
 #endif

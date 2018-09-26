@@ -2640,7 +2640,7 @@ static int get_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
 	/* If firmware is not started, return. */
 	if (!wl->initialized)
 		return -EIO;
-	*dbm=0;
+	*dbm = 0;
 	ret = wilc_get_tx_power(vif, (u8 *)dbm);
 	if (ret)
 		PRINT_ER(vif->ndev, "Failed to get tx power\n");
