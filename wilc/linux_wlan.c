@@ -689,7 +689,7 @@ static int wilc_wlan_get_firmware(struct net_device *dev)
 		goto fail;
 	}
 
-	PRINT_INFO (vif->ndev, INIT_DBG, "WLAN firmware: %s\n", firmware);
+	PRINT_INFO(vif->ndev, INIT_DBG, "WLAN firmware: %s\n", firmware);
 	if (request_firmware(&wilc_firmware, firmware, wilc->dev) != 0) {
 		PRINT_ER(dev, "%s - firmware not available\n", firmware);
 		ret = -1;
