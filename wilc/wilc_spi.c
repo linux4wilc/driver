@@ -244,7 +244,7 @@ static int spi_data_rsp(struct wilc *wilc, u8 cmd)
 		goto fail;
 	}
 
-	if((rsp[len-1] != 0) || (rsp[len-2] != 0xC3)) {
+	if ((rsp[len-1] != 0) || (rsp[len-2] != 0xC3)) {
 		dev_err(&spi->dev, "Failed data response read, %x %x %x\n",
 			rsp[0], rsp[1], rsp[2]);
 		result = N_FAIL;
@@ -269,7 +269,7 @@ static int wilc_spi_tx(struct wilc *wilc, u8 *b, u32 len)
 		};
 		char *r_buffer = kzalloc(len, GFP_KERNEL);
 
-		if(! r_buffer) {
+		if (! r_buffer) {
 			dev_err(&spi->dev,
 				"Failed to allocate memory for r_buffer\n");
 			return -ENOMEM;
@@ -313,7 +313,7 @@ static int wilc_spi_rx(struct wilc *wilc, u8 *rb, u32 rlen)
 		};
 		char *t_buffer = kzalloc(rlen, GFP_KERNEL);
 
-		if(! t_buffer) {
+		if (! t_buffer) {
 			dev_err(&spi->dev, "Failed to allocate memory for t_buffer\n");
 			return -ENOMEM;
 		}
@@ -799,7 +799,7 @@ fail:
 		dev_err(&spi->dev, "Reset and retry %d %x\n", retry, adr);
 		msleep(1);
 		retry--;
-		if(retry)
+		if (retry)
 			goto retry;
 	}
 	return result;
@@ -822,13 +822,13 @@ retry:
 	le32_to_cpus(data);
 
 fail:
-	if(result != N_OK) {
+	if (result != N_OK) {
 		msleep(1);
 		wilc_spi_reset(wilc);
 		dev_err(&spi->dev, "Reset and retry %d %x\n", retry, adr);
 		msleep(1);
 		retry--;
-		if(retry)
+		if (retry)
 			goto retry;
 	}
 	return result;
@@ -873,7 +873,7 @@ fail:
 			"Reset and retry %d %x %d\n", retry, addr, data);
 		msleep(1);
 		retry--;
-		if(retry)
+		if (retry)
 			goto _RETRY_;
 	}
 	return result;
@@ -924,7 +924,7 @@ fail:
 			"Reset and retry %d %x %d\n", retry, addr, size);
 		msleep(1);
 		retry--;
-		if(retry)
+		if (retry)
 			goto retry;
 	}
 	return result;
@@ -957,13 +957,13 @@ retry:
 	le32_to_cpus(data);
 
 fail:
-	if(result != N_OK) {
+	if (result != N_OK) {
 		msleep(1);
 		wilc_spi_reset(wilc);
 		dev_warn(&spi->dev, "Reset and retry %d %x\n", retry, addr);
 		msleep(1);
 		retry--;
-		if(retry)
+		if (retry)
 			goto retry;
 	}
 	return result;
@@ -986,14 +986,14 @@ retry:
 	}
 
 fail:
-	if(result != N_OK) {
+	if (result != N_OK) {
 		msleep(1);
 		wilc_spi_reset(wilc);
 		dev_warn(&spi->dev, "Reset and retry %d %x %d\n", retry, addr,
 			 size);
 		msleep(1);
 		retry--;
-		if(retry)
+		if (retry)
 			goto retry;
 	}
 	return result;
@@ -1102,10 +1102,10 @@ static int wilc_spi_init(struct wilc *wilc, bool resume)
 
 	if (!resume) {
 		chipid = wilc_get_chipid(wilc, true);
-		if(is_wilc3000(chipid)) {
+		if (is_wilc3000(chipid)) {
 			wilc->chip = WILC_3000;
 			goto pass;
-		} else if(is_wilc1000(chipid)) {
+		} else if (is_wilc1000(chipid)) {
 			wilc->chip = WILC_1000;
 			goto pass;
 		} else {

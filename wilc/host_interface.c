@@ -309,10 +309,10 @@ void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len
 	int ch_index;
 	int j;
 
-	if(ch_list_len > 0) {
-		for(i = 0;i < priv->scanned_cnt;) {
-			for(ch_index=0;ch_index < ch_list_len;ch_index++) 				
-				if(priv->scanned_shadow[i].ch == (ch_freq_list[ch_index] + 1))
+	if (ch_list_len > 0) {
+		for (i = 0;i < priv->scanned_cnt;) {
+			for (ch_index=0;ch_index < ch_list_len;ch_index++) 				
+				if (priv->scanned_shadow[i].ch == (ch_freq_list[ch_index] + 1))
 					break;
 
 			/* filter only un-matched channels */
@@ -325,7 +325,7 @@ void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len
 				kfree(priv->scanned_shadow[i].join_params);
 				priv->scanned_shadow[i].join_params = NULL;
 
-				for(j=i;(j<priv->scanned_cnt-1);j++)
+				for (j=i;(j<priv->scanned_cnt-1);j++)
 					priv->scanned_shadow[j] = priv->scanned_shadow[j+1];
 
 				priv->scanned_cnt--;
@@ -354,7 +354,7 @@ static void handle_send_buffered_eap(struct work_struct *work)
 	if (hif_buff_eap->eap_buf_param)
 		hif_buff_eap->eap_buf_param(hif_buff_eap->user_arg);
 
-	if(hif_buff_eap->buff != NULL) {
+	if (hif_buff_eap->buff != NULL) {
 		kfree(hif_buff_eap->buff);
 		hif_buff_eap->buff = NULL;
 	}
@@ -843,7 +843,7 @@ static void handle_scan(struct work_struct *work)
 			goto error;
 		}
 	}
-	if(vif->connecting) {
+	if (vif->connecting) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
 		result = -EBUSY;
 		goto error;
@@ -968,7 +968,7 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 		return result;
 	}
 
-	if(evt == SCAN_EVENT_DONE) {
+	if (evt == SCAN_EVENT_DONE) {
 		if (memcmp(hif_drv->assoc_bssid, null_bssid, ETH_ALEN) == 0) {
 			hif_drv->hif_state = HOST_IF_IDLE;
 		} else {
@@ -2676,7 +2676,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 		}
 	}
 
-	if(vif->connecting) {
+	if (vif->connecting) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "[handle_scan]: Don't do scan in (CONNECTING) state\n");
 		result = -EBUSY;
 		goto error;
@@ -3044,7 +3044,7 @@ static void handle_set_antenna_mode(struct work_struct *work)
 
 	ret = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
 				   wilc_get_vif_idx(vif));
-	if(ret)
+	if (ret)
 		PRINT_ER(vif->ndev, "Failed to set antenna mode\n");
 	kfree(msg);
 }
@@ -3737,7 +3737,7 @@ int wilc_get_rssi(struct wilc_vif *vif, s8 *rssi_level)
 	} else {
 		wait_for_completion(&msg->work_comp);
 
-		if(*msg->body.data == INVALID_RSSI)
+		if (*msg->body.data == INVALID_RSSI)
 			result = -EFAULT;
 		else
 			*rssi_level = *msg->body.data;
@@ -4473,7 +4473,7 @@ int wilc_set_power_mgmt(struct wilc_vif *vif, bool enabled, u32 timeout)
 	msg->body.pwr_mgmt_info.enabled = enabled;
 	msg->body.pwr_mgmt_info.timeout = timeout;
 
-	if(!vif->wilc->hif_workqueue)
+	if (!vif->wilc->hif_workqueue)
 		return 0;
 
 	result = wilc_enqueue_work(msg);
@@ -4552,14 +4552,14 @@ int wilc_get_tx_power(struct wilc_vif *vif, u8 *tx_power)
 
 bool is_valid_gpio(struct wilc_vif *vif, u8 gpio)
 {
-	switch(vif->wilc->chip) {
+	switch (vif->wilc->chip) {
 	case WILC_1000:
-		if(gpio == 0 || gpio == 1 || gpio == 4 || gpio == 6)
+		if (gpio == 0 || gpio == 1 || gpio == 4 || gpio == 6)
 			return true;
 		else
 			return false;
 	case WILC_3000:
-		if(gpio == 0 || gpio == 3 || gpio == 4 ||
+		if (gpio == 0 || gpio == 3 || gpio == 4 ||
 			(gpio >= 17 && gpio <= 20))
 			return true;
 		else
@@ -4584,7 +4584,7 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 	msg->body.set_ant.mode = mode;
 	attr_syfs_p = &vif->attr_sysfs;
 
-	if(attr_syfs_p->ant_swtch_mode == ANT_SWTCH_INVALID_GPIO_CTRL) {
+	if (attr_syfs_p->ant_swtch_mode == ANT_SWTCH_INVALID_GPIO_CTRL) {
 		PRINT_ER(vif->ndev, "Ant switch GPIO mode is invalid.\n");
 		PRINT_ER(vif->ndev, "Set it using /sys/wilc/ant_swtch_mode\n");
 		return WILC_FAIL;
@@ -4610,7 +4610,7 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 
 	msg->body.set_ant.gpio_mode = attr_syfs_p->ant_swtch_mode;
 	ret = wilc_enqueue_work(msg);
-	if(ret) {
+	if (ret) {
 		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 		return -EINVAL;
@@ -4627,7 +4627,7 @@ int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger)
 	msg->body.wow_trigger.wowlan_trigger = wowlan_trigger;
 
 	result = wilc_enqueue_work(msg);
-	if(result) {
+	if (result) {
 		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		kfree(msg);
 	}

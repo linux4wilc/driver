@@ -87,7 +87,7 @@ int wilc_debugfs_init(void)
 	struct wilc_debugfs_info_t *info;
 
 	wilc_dir = debugfs_create_dir("wilc", NULL);
-	if(wilc_dir == NULL) {
+	if (wilc_dir == NULL) {
 		pr_err("Error creating debugfs\n");
 		return -EFAULT;
 	}

@@ -828,9 +828,9 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	 **/
 	if (!resume) {
 		chipid = wilc_get_chipid(wilc, true);
-		if(is_wilc3000(chipid)) {
+		if (is_wilc3000(chipid)) {
 			wilc->chip = WILC_3000;
-		} else if(is_wilc1000(chipid)) {
+		} else if (is_wilc1000(chipid)) {
 			wilc->chip = WILC_1000;
 		} else {
 			dev_err(&func->dev, "Unsupported chipid: %x\n", chipid);
@@ -889,7 +889,7 @@ static int sdio_read_int(struct wilc *wilc, u32 *int_status)
 		cmd.function = 1;
 		cmd.raw = 0;
 		cmd.data = 0;
-		if(wilc->chip == WILC_1000) {
+		if (wilc->chip == WILC_1000) {
 			cmd.address = 0xf7;
 			wilc_sdio_cmd52(wilc, &cmd);
 			irq_flags = cmd.data & 0x1f;
@@ -943,8 +943,8 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 	int ret;
 	u32 reg = 0;
 
-	if(wilc->chip == WILC_1000) {
-		if(sdio_priv->irq_gpio)
+	if (wilc->chip == WILC_1000) {
+		if (sdio_priv->irq_gpio)
 			reg = val & (BIT(MAX_NUM_INT) - 1);
 
 		/* select VMM table 0 */
@@ -974,7 +974,7 @@ static int sdio_clear_int_ext(struct wilc *wilc, u32 val)
 			}
 		}
 	} else {
-		if(sdio_priv->irq_gpio) {
+		if (sdio_priv->irq_gpio) {
 			reg = val & (BIT(MAX_NUM_INT) - 1);
 			if (reg) {
 				struct sdio_cmd52 cmd;
@@ -1045,7 +1045,7 @@ static int sdio_sync_ext(struct wilc *wilc, int nint)
 /* WILC3000 only. Was removed in WILC1000 on revision 6200.
  * Might be related to suspend/resume
  */
- 	if(wilc->chip == WILC_3000) {
+ 	if (wilc->chip == WILC_3000) {
 		/**
 		 *      Disable power sequencer
 		 **/

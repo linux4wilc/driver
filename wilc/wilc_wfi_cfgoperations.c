@@ -1569,7 +1569,7 @@ static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 * buf,
 
 	while (index < len) {
 		if (buf[index] == GO_INTENT_ATTR_ID) {
-			if(!p2p_mode)
+			if (!p2p_mode)
 				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x0f << 1);
 			else
 				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x00 << 1);
@@ -1594,7 +1594,7 @@ static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 * buf,
 
 	while (index < len) {
 		if (buf[index] == GO_INTENT_ATTR_ID) {
-			if(!p2p_mode)
+			if (!p2p_mode)
 				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x00 << 1);
 			else
 				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x0f << 1);
@@ -2104,7 +2104,7 @@ static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 
 	ret = wilc_get_rssi(vif, &sinfo->signal);
 
-	if(ret)
+	if (ret)
 		return ret;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0))
@@ -2582,9 +2582,9 @@ static int wilc_suspend(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
 {
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 
-	if(!wow)
+	if (!wow)
 		PRINT_INFO(priv->dev, GENERIC_DBG, "No wake up triggers defined\n");
-	else if(wow->any == 0)
+	else if (wow->any == 0)
 		PRINT_INFO(priv->dev, GENERIC_DBG,
 			   "The only supported wake up trigger (any) is not set\n");
 

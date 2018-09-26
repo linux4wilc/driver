@@ -101,7 +101,7 @@ static ssize_t wilc_bt_dev_write(struct file *f, const char __user *buff,
 
 	cmd_buff = kmalloc(sizeof(char) * len, GFP_KERNEL);
 
-	if(copy_from_user(cmd_buff, buff, len))
+	if (copy_from_user(cmd_buff, buff, len))
 		return -EIO;
 
 	if (len > 0) {
@@ -165,12 +165,12 @@ static void wilc_cmd_handle_wilc_cca_threshold(char* param)
 	unsigned int carr_thrshold_frac, noise_thrshold_frac, carr_thrshold_int,
 		noise_thrshold_int, reg;
 
-	if(param == NULL) {
+	if (param == NULL) {
 		pr_err("Invalid parameter\n");
 		return;
 	}
 
-	if(sscanf(param, " %d %d", &noise_thrshold, &carrier_thrshold) != 2) {
+	if (sscanf(param, " %d %d", &noise_thrshold, &carrier_thrshold) != 2) {
 		pr_err("Failed to parse input parameters. Usage:\n echo CCA_THRESHOLD "
 			"NOISE_THRESHOLD CARRIER_THRESHOLD > /dev/at_pwr_dev\n"
 			"where threshold values are in dB * 10\ne.g."
@@ -183,13 +183,13 @@ static void wilc_cmd_handle_wilc_cca_threshold(char* param)
 		noise_thrshold, carrier_thrshold);
 
 	carr_thrshold_int = carrier_thrshold/10;
-	if(carrier_thrshold < 0)
+	if (carrier_thrshold < 0)
 		carr_thrshold_frac = (carr_thrshold_int * 10) - carrier_thrshold;
 	else
 		carr_thrshold_frac = carrier_thrshold - (carr_thrshold_int * 10);
 
 	noise_thrshold_int = noise_thrshold/10;
-	if(noise_thrshold < 0)
+	if (noise_thrshold < 0)
 		noise_thrshold_frac = (noise_thrshold_int * 10) - noise_thrshold;
 	else
 		noise_thrshold_frac = noise_thrshold - (noise_thrshold_int * 10);
@@ -228,24 +228,24 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 	{
 		/*Bug 215*/
 		/*Avoid overlapping between BT and Wifi intialization*/
-		if((wilc->power_status[PWR_DEV_SRC_WIFI]==true))
+		if ((wilc->power_status[PWR_DEV_SRC_WIFI]==true))
 		{
-			while(!wilc->initialized)
+			while (!wilc->initialized)
 			{
 				msleep(100);
-				if(++count>20)
+				if (++count>20)
 				{
 					pr_warn("Wifi took too much time to initialize \n");
 					break;
 				}
 			}
 		}
-		else if((wilc->power_status[PWR_DEV_SRC_BT]==true))
+		else if ((wilc->power_status[PWR_DEV_SRC_BT]==true))
 		{
-			while(!bt_init_done)
+			while (!bt_init_done)
 			{
 				msleep(200);
-				if(++count>30)
+				if (++count>30)
 				{
 					pr_warn("BT has taken too much time to initialize \n");
 					break;
@@ -267,11 +267,11 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 	wilc->power_status[source] = true;
 	mutex_unlock(&wilc->cs);
 
-	if(source == PWR_DEV_SRC_BT)
+	if (source == PWR_DEV_SRC_BT)
 	{
 		/*TicketId1092*/
 		/*If WiFi is off, force BT*/
-		if(wilc->power_status[PWR_DEV_SRC_WIFI] == false)
+		if (wilc->power_status[PWR_DEV_SRC_WIFI] == false)
 		{
 			acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_BT);
 
@@ -334,7 +334,7 @@ fail:
 
 int wilc_bt_power_down(struct wilc *wilc, int source)
 {
-	if(source == PWR_DEV_SRC_BT)
+	if (source == PWR_DEV_SRC_BT)
 	{
 		int ret;
 		u32 reg;
@@ -597,7 +597,7 @@ static void wilc_cmd_handle_bt_power_up(char* param)
 	pr_info("AT PWR: bt_power_up\n");
 	bt_init_done=0;
 
-	if(!wilc_bt->initialized && !wilc_bt->hif_func->hif_is_init(wilc_bt)) {
+	if (!wilc_bt->initialized && !wilc_bt->hif_func->hif_is_init(wilc_bt)) {
 		acquire_bus(wilc_bt, ACQUIRE_ONLY, PWR_DEV_SRC_BT);
 		if (!wilc_bt->hif_func->hif_init(wilc_bt, false)) {
 			release_bus(wilc_bt, RELEASE_ONLY, PWR_DEV_SRC_BT);

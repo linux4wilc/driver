@@ -30,7 +30,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 
 	priv = wdev_priv(vif->ndev->ieee80211_ptr);
 
-	switch(state)
+	switch (state)
 	{
 	case IP_STATE_OBTAINING:
 
@@ -60,7 +60,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		vif->obtaining_ip = false;
 
 		/* Recover PS previous state */
-		if(vif->wilc->enable_ps == true)
+		if (vif->wilc->enable_ps == true)
 		{
 			wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 		}
@@ -94,7 +94,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 
 void store_power_save_current_state(struct wilc_vif *vif, bool val)
 {
-	if(g_ignore_PS_state)
+	if (g_ignore_PS_state)
 	{
 		g_ignore_PS_state = false;
 		return;
@@ -121,7 +121,7 @@ void clear_during_ip(unsigned long arg)
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
 
 	/* Recover PS previous state */
-	if(vif->wilc->enable_ps == true)
+	if (vif->wilc->enable_ps == true)
 	{
 		wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 	}
@@ -146,16 +146,16 @@ static int debug_thread(void *arg)
 	struct host_if_drv *hif_drv = (struct host_if_drv *)priv->hif_drv;
 	int i = 0;
 
-	if(!vif)
+	if (!vif)
 		return -1;
 
 	wl = vif->wilc;
-	if(!wl)
+	if (!wl)
 		return -1;
 
 	complete(&wl->debug_thread_started);
 
-	while(1) {
+	while (1) {
 		if (wl->initialized) {
 			if (wait_for_completion_timeout(&wl->debug_thread_started,
 							msecs_to_jiffies(6000))) {
@@ -168,7 +168,7 @@ static int debug_thread(void *arg)
 			if (debug_running) {
 				PRINT_INFO(dev, GENERIC_DBG,
 					   "*** Debug Thread Running ***\n");
-				if(cfg_packet_timeout >= 5) {
+				if (cfg_packet_timeout >= 5) {
 					PRINT_INFO(dev, GENERIC_DBG,
 						   "<Recover>\n");
 					cfg_packet_timeout = 0;
@@ -185,7 +185,7 @@ static int debug_thread(void *arg)
 							PRINT_WRN(vif->ndev, GENERIC_DBG,
 								  "Couldn't restart interface %d again\n", i);
 					}
-					if(hif_drv->hif_state == HOST_IF_CONNECTED) {
+					if (hif_drv->hif_state == HOST_IF_CONNECTED) {
 						struct disconnect_info strDisconnectNotifInfo;
 
 						PRINT_INFO(vif->ndev, GENERIC_DBG, "notify the upper layer with the wlan Disconnection\n");
@@ -408,7 +408,7 @@ static int init_irq(struct net_device *dev)
 	}
 
 	wl->dev_irq_num = gpiod_to_irq(wl->gpio_irq);
-	if(wl->dev_irq_num < 0) {
+	if (wl->dev_irq_num < 0) {
 		PRINT_ER(dev, "could not the IRQ \n");
 		goto free_gpio;
 	}
@@ -512,8 +512,8 @@ void free_eap_buff_params(void *vp)
 
 	priv = (struct wilc_priv *)vp;
 
-	if(priv->buffered_eap) {
-		if(priv->buffered_eap->buff) {
+	if (priv->buffered_eap) {
+		if (priv->buffered_eap->buff) {
 			kfree(priv->buffered_eap->buff);
 			priv->buffered_eap->buff = NULL;
 		}
@@ -649,7 +649,7 @@ static int linux_wlan_txq_task(void *vp)
 					/*This gives faster chance for reserved SK buffers to be freed*/
 					set_current_state(TASK_INTERRUPTIBLE);
 					timeout = schedule_timeout(timeout);
-					} while(/*timeout*/0);
+					} while (/*timeout*/0);
 				backoff_weight += TX_BACKOFF_WEIGHT_INCR_STEP;
 				if (backoff_weight > TX_BACKOFF_WEIGHT_MAX)
 					backoff_weight = TX_BACKOFF_WEIGHT_MAX;
@@ -1025,7 +1025,7 @@ static void wilc_wlan_deinitialize(struct net_device *dev)
 		deinit_irq(dev);
 
 		ret = wilc_wlan_stop(wl);
-		if(ret == 0)
+		if (ret == 0)
 			PRINT_ER(dev, "failed in wlan_stop\n");
 
 		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing WILC Wlan\n");
@@ -1082,7 +1082,7 @@ static int wlan_initialize_threads(struct net_device *dev)
 			   "Creating kthread for Debugging\n");
 		wilc->debug_thread = kthread_run(debug_thread, (void *)dev,
 						 "WILC_DEBUG");
-		if(IS_ERR(wilc->debug_thread)) {
+		if (IS_ERR(wilc->debug_thread)) {
 			PRINT_ER(dev, "couldn't create debug thread\n");
 			wilc->close = 1;
 			kthread_stop(wilc->txq_thread);
@@ -1221,10 +1221,10 @@ static int wilc_mac_open(struct net_device *ndev)
 
 	PRINT_INFO(ndev, INIT_DBG, "MAC OPEN[%p] %s\n", ndev, ndev->name);
 
-	if(wl->open_ifcs == 0)
+	if (wl->open_ifcs == 0)
 		wilc_bt_power_up(wl, PWR_DEV_SRC_WIFI);
 
-	if(!recovery_on) {
+	if (!recovery_on) {
 		ret = wilc_init_host_int(ndev);
 		if (ret < 0) {
 			PRINT_ER(ndev, "Failed to initialize host interface\n");
@@ -1236,15 +1236,15 @@ static int wilc_mac_open(struct net_device *ndev)
 	ret = wilc_wlan_initialize(ndev, vif);
 	if (ret < 0) {
 		PRINT_ER(ndev, "Failed to initialize wilc\n");
-		if(!recovery_on)
+		if (!recovery_on)
 			wilc_deinit_host_int(ndev);
 		return ret;
 	}
 
 	wait_for_recovery = 0;
-	if(!(memcmp(ndev->name, IFC_0, 5)))
+	if (!(memcmp(ndev->name, IFC_0, 5)))
 		vif->ifc_id = WLAN_IFC;
-	else if(!(memcmp(ndev->name, IFC_1, 4)))
+	else if (!(memcmp(ndev->name, IFC_1, 4)))
 		vif->ifc_id = P2P_IFC;
 	else
 	{
@@ -1495,7 +1495,7 @@ static int wilc_mac_close(struct net_device *ndev)
 	if (vif->ndev) {
 		netif_stop_queue(vif->ndev);
 
-	if(!recovery_on)
+	if (!recovery_on)
 		wilc_deinit_host_int(vif->ndev);
 	}
 
@@ -1528,15 +1528,15 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 		frame_len = size;
 		buff_to_send = buff;
 
-		if(status == PKT_STATUS_NEW && buff_to_send[12] == 0x88 &&
+		if (status == PKT_STATUS_NEW && buff_to_send[12] == 0x88 &&
 		   buff_to_send[13] == 0x8e &&
 		   (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) &&
 		   !memcmp(priv->associated_bss, null_bssid, ETH_ALEN)) {
-			if(!priv->buffered_eap) {
+			if (!priv->buffered_eap) {
 				priv->buffered_eap = kmalloc(sizeof(struct
 								    wilc_buffered_eap),
 							     GFP_ATOMIC);
-				if(priv->buffered_eap) {
+				if (priv->buffered_eap) {
 					priv->buffered_eap->buff = NULL;
 					priv->buffered_eap->size = 0;
 					priv->buffered_eap->pkt_offset = 0;
@@ -1632,7 +1632,7 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 					wilc_mac_close(wilc->vif[i]->ndev);
 
 		for (i = 0; i < NUM_CONCURRENT_IFC; i++) {
-			if(wilc->vif[i] && wilc->vif[i]->ndev) {
+			if (wilc->vif[i] && wilc->vif[i]->ndev) {
 				PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG,
 					   "Unregistering netdev %p\n",
 					   wilc->vif[i]->ndev);
@@ -1693,7 +1693,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	*wilc = wl;
 	wl->io_type = io_type;
 	wl->hif_func = ops;
-	for(i = 0; i < NQUEUES; i++)
+	for (i = 0; i < NQUEUES; i++)
 		INIT_LIST_HEAD(&wl->txq[i].txq_head.list);
 
 	INIT_LIST_HEAD(&wl->rxq_head.list);
