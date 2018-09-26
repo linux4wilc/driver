@@ -311,7 +311,7 @@ static void wilc_wlan_parse_info_frame(struct wilc *wl, u8 *info)
 				break;
 			}
 			i++;
-		}while (1);
+		} while (1);
 	}
 }
 
