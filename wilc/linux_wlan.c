@@ -30,8 +30,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 
 	priv = wdev_priv(vif->ndev->ieee80211_ptr);
 
-	switch (state)
-	{
+	switch (state) {
 	case IP_STATE_OBTAINING:
 
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "Obtaining an IP, Disable (Scan-Set PowerSave)\n");
@@ -60,8 +59,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		vif->obtaining_ip = false;
 
 		/* Recover PS previous state */
-		if (vif->wilc->enable_ps == true)
-		{
+		if (vif->wilc->enable_ps == true) {
 			wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 		}
 
@@ -94,8 +92,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 
 void store_power_save_current_state(struct wilc_vif *vif, bool val)
 {
-	if (g_ignore_PS_state)
-	{
+	if (g_ignore_PS_state) {
 		g_ignore_PS_state = false;
 		return;
 	}
@@ -121,8 +118,7 @@ void clear_during_ip(unsigned long arg)
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
 
 	/* Recover PS previous state */
-	if (vif->wilc->enable_ps == true)
-	{
+	if (vif->wilc->enable_ps == true) {
 		wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
 	}
 }
@@ -1242,12 +1238,11 @@ static int wilc_mac_open(struct net_device *ndev)
 	}
 
 	wait_for_recovery = 0;
-	if (!(memcmp(ndev->name, IFC_0, 5)))
+	if (!(memcmp(ndev->name, IFC_0, 5))) {
 		vif->ifc_id = WLAN_IFC;
-	else if (!(memcmp(ndev->name, IFC_1, 4)))
+	} else if (!(memcmp(ndev->name, IFC_1, 4))) {
 		vif->ifc_id = P2P_IFC;
-	else
-	{
+	} else {
 		PRINT_ER(vif->ndev, "Unknown interface name\n");
 		wilc_deinit_host_int(ndev);
 		wilc_wlan_deinitialize(ndev);

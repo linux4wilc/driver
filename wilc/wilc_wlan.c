@@ -705,8 +705,7 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 			/* Clear bit 1 */
 			ret = wilc->hif_func->hif_read_reg(wilc, wakeup_reg, &reg);
 			if (!ret) goto _fail_;
-			if (reg & wakeup_bit)
-			{
+			if (reg & wakeup_bit) {
 				reg &= ~wakeup_bit;
 				ret = wilc->hif_func->hif_write_reg(wilc, wakeup_reg, reg);
 				if (!ret) goto _fail_;
@@ -714,8 +713,7 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 
 			ret = wilc->hif_func->hif_read_reg(wilc, from_host_to_fw_reg, &reg);
 			if (!ret) goto _fail_;
-			if (reg & from_host_to_fw_bit)
-			{
+			if (reg & from_host_to_fw_bit) {
 				reg &= ~from_host_to_fw_bit;
 				ret = wilc->hif_func->hif_write_reg(wilc, from_host_to_fw_reg, reg);
 				if (!ret) goto _fail_;

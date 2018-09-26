@@ -2128,8 +2128,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	}
 
 	/* Can't set PS during obtaining IP */
-	if (vif->obtaining_ip == true)
-	{
+	if (vif->obtaining_ip == true) {
 		PRINT_ER(dev, "Device obtaining IP, Power Managment will be handled after IP Obtained\n");
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "Save the Current state of the PS = %d\n", enabled);

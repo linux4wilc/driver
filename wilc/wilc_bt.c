@@ -223,30 +223,22 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 	if (wilc->power_status[source] == true) {
 		pr_err("power up request for already powered up source %s\n",
 			 (source == PWR_DEV_SRC_WIFI ? "Wifi" : "BT"));
-		}
-	else
-	{
+	} else {
 		/*Bug 215*/
 		/*Avoid overlapping between BT and Wifi intialization*/
-		if ((wilc->power_status[PWR_DEV_SRC_WIFI] == true))
-		{
-			while (!wilc->initialized)
-			{
+		if ((wilc->power_status[PWR_DEV_SRC_WIFI] == true)) {
+			while (!wilc->initialized) {
 				msleep(100);
-				if (++count > 20)
-				{
+				if (++count > 20) {
 					pr_warn("Wifi took too much time to initialize \n");
 					break;
 				}
 			}
 		}
-		else if ((wilc->power_status[PWR_DEV_SRC_BT] == true))
-		{
-			while (!bt_init_done)
-			{
+		else if ((wilc->power_status[PWR_DEV_SRC_BT] == true)) {
+			while (!bt_init_done) {
 				msleep(200);
-				if (++count > 30)
-				{
+				if (++count > 30) {
 					pr_warn("BT has taken too much time to initialize \n");
 					break;
 				}
@@ -267,12 +259,10 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 	wilc->power_status[source] = true;
 	mutex_unlock(&wilc->cs);
 
-	if (source == PWR_DEV_SRC_BT)
-	{
+	if (source == PWR_DEV_SRC_BT) {
 		/*TicketId1092*/
 		/*If WiFi is off, force BT*/
-		if (wilc->power_status[PWR_DEV_SRC_WIFI] == false)
-		{
+		if (wilc->power_status[PWR_DEV_SRC_WIFI] == false) {
 			acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_BT);
 
 			/*TicketId1115*/
@@ -334,8 +324,7 @@ fail:
 
 int wilc_bt_power_down(struct wilc *wilc, int source)
 {
-	if (source == PWR_DEV_SRC_BT)
-	{
+	if (source == PWR_DEV_SRC_BT) {
 		int ret;
 		u32 reg;
 
