@@ -91,7 +91,7 @@ static const struct wiphy_wowlan_support wowlan_support = {
 		.flags            = (_flags),		 \
 		.max_antenna_gain = 0,			 \
 		.max_power        = 30,			 \
-}				
+}
 #else
 #define CHAN2G(_channel, _freq, _flags) {	 \
 		.band             = NL80211_BAND_2GHZ, \
@@ -271,7 +271,7 @@ void remove_network_from_shadow(unsigned long arg)
 		if (!time_after(now, priv->scanned_shadow[i].time_scan +
 				(unsigned long)(SCAN_RESULT_EXPIRE)))
 			continue;
-	
+
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Network expired in ScanShadow: %s\n",
 			   priv->scanned_shadow[i].ssid);
@@ -424,7 +424,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 					 "Discovered networks exceeded the max limit\n");
 				return;
 			}
-			
+
 			PRINT_INFO(priv->dev, CFG80211_DBG,
 				    "Network %s found\n",
 				    network_info->ssid);
@@ -658,7 +658,7 @@ static int set_channel(struct wiphy *wiphy,
 	return result;
 }
 
-static inline int wilc_wfi_cfg_alloc_fill_ssid(struct wilc_vif *vif, 
+static inline int wilc_wfi_cfg_alloc_fill_ssid(struct wilc_vif *vif,
 			     struct cfg80211_scan_request *request,
 			     struct hidden_network *ntwk)
 {
@@ -852,11 +852,11 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 				   ret);
 		goto out_error;
 	}
-	
+
 	if (ether_addr_equal_unaligned(vif->bssid, nw_info->bssid)) {
 		ret = -EALREADY;
 		goto out_error;
-	}	
+	}
 
 	memset(priv->wep_key, 0, sizeof(priv->wep_key));
 	memset(priv->wep_key_len, 0, sizeof(priv->wep_key_len));
@@ -885,7 +885,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 			for (i = 0; i < sme->key_len; i++)
 				PRINT_D(vif->ndev, CORECONFIG_DBG,
 				"WEP Key Value[%d] = %d\n", i, sme->key[i]);
-		
+
 			priv->wep_key_len[sme->key_idx] = sme->key_len;
 			memcpy(priv->wep_key[sme->key_idx], sme->key,
 			       sme->key_len);
@@ -977,7 +977,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 				nw_info->join_params);
 	if (ret) {
 		u8 null_bssid[ETH_ALEN] = {0};
-		
+
 		PRINT_ER(dev, "wilc_set_join_req(): Error(%d)\n", ret);
 		ret = -ENOENT;
 		wilc_wlan_set_bssid(dev, null_bssid, STATION_MODE);
@@ -1256,7 +1256,7 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 			   "Removing WEP key with index = %d\n",
 			   key_index);
 		ret = wilc_remove_wep_key(vif, key_index);
-	} 
+	}
 
 	return ret;
 }
@@ -1707,7 +1707,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 
 		switch (buff[ACTION_SUBTYPE_ID]) {
 		case GAS_INITIAL_REQ:
-			PRINT_D(vif->ndev, GENERIC_DBG, 
+			PRINT_D(vif->ndev, GENERIC_DBG,
 				   "GAS INITIAL REQ %x\n",
 				   buff[ACTION_SUBTYPE_ID]);
 			break;
@@ -1730,7 +1730,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 			break;
 
 		default:
-			PRINT_WRN(dev, GENERIC_DBG, 
+			PRINT_WRN(dev, GENERIC_DBG,
 				   "Not handled action frame type:%x\n",
 				   buff[ACTION_SUBTYPE_ID]);
 			break;
@@ -1861,7 +1861,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 						     subtype == P2P_INV_RSP))
 		return;
 
-	PRINT_INFO(vif->ndev, GENERIC_DBG, 
+	PRINT_INFO(vif->ndev, GENERIC_DBG,
 		   "LOCAL WILL BE GO LocaRand=%02x RecvRand %02x\n",
 		   priv->p2p.local_random, priv->p2p.recv_random);
 	for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < len; i++) {
@@ -1872,7 +1872,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 
 			if (subtype == P2P_INV_REQ || subtype == P2P_INV_RSP)
 				oper_ch = true;
-			
+
 			wilc_wfi_cfg_parse_tx_action(vif, tx_buff,
 						     len - (i + 6), oper_ch,
 						     vif->attr_sysfs.p2p_mode);
@@ -1963,7 +1963,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 	if (buf[ACTION_CAT_ID] == PUB_ACTION_ATTR_ID) {
 		if (buf[ACTION_SUBTYPE_ID] != PUBLIC_ACT_VENDORSPEC ||
 		    buf[P2P_PUB_ACTION_SUBTYPE] != GO_NEG_CONF) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG, 
+			PRINT_INFO(vif->ndev, GENERIC_DBG,
 				   "Setting channel: %d\n",
 				   chan->hw_value);
 			wilc_set_mac_chnl_num(vif,
@@ -2136,7 +2136,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 
 		/* Save the current status of the PS */
 		store_power_save_current_state(vif, enabled);
-			
+
 		return 0;
 	}
 
@@ -2154,7 +2154,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			       struct vif_params *params)
 #else
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
-			       enum nl80211_iftype type, u32 *flags, 
+			       enum nl80211_iftype type, u32 *flags,
 			       struct vif_params *params)
 #endif
 {
@@ -2170,7 +2170,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		wilc_wfi_mon = NULL;
 		vif->monitor_flag = 0;
 	}
-	
+
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 		   "In Change virtual interface function\n");
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG,
@@ -2432,7 +2432,7 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 
 	if (!(vif->iftype == AP_MODE || vif->iftype == GO_MODE))
 		return ret;
-	
+
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Deleting station\n");
 
 	info = &priv->assoc_stainfo;

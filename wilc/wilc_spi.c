@@ -151,7 +151,7 @@ static int wilc_bus_probe(struct spi_device *spi)
 static int wilc_bus_remove(struct spi_device *spi)
 {
 	struct wilc *wilc = spi_get_drvdata(spi);
-	
+
 	wilc_netdev_cleanup(wilc);
 	wilc_bt_deinit();
 	return 0;
@@ -228,7 +228,7 @@ MODULE_LICENSE("GPL");
 static int spi_data_rsp(struct wilc *wilc, u8 cmd)
 {
     struct spi_device *spi = to_spi_device(wilc->dev);
-    struct wilc_spi *spi_priv = wilc->bus_data; 
+    struct wilc_spi *spi_priv = wilc->bus_data;
     u8 len;
     u8 rsp[3];
     int result = N_OK;

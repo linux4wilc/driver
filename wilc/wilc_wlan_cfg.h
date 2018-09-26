@@ -50,7 +50,6 @@ struct wilc_cfg {
        struct wilc_cfg_str_vals *str_vals;
        struct wilc_cfg_bin *bin;
        struct wilc_bin_vals *bin_vals;
-       
 };
 
 struct wilc;

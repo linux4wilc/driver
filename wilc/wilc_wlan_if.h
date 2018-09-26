@@ -378,7 +378,7 @@ enum {
 	WID_ACK_POLICY			= 0x0011,
 
 	/*
-	 *  Set coex null frames transmission mode 
+	 *  Set coex null frames transmission mode
 	 * --------------------------------------------------------------
  	 *  Configuration :   Enable	Disable
 	 *  Values to set :       1			0

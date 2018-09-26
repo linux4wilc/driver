@@ -255,22 +255,22 @@ static void wilc_wlan_parse_response_frame(struct wilc *wl, u8 *info,
 					uint16_t i = 0;
 
 					/*
-					 * Compute the Checksum of received 
+					 * Compute the Checksum of received
 					 * data field
 					 */
 					for (i = 0; i < length; i++)
 						checksum += info[4 + i];
-					/* 
-					 * Verify the checksum of recieved BIN 
+					/*
+					 * Verify the checksum of recieved BIN
 					 * DATA
 					 */
 					if (checksum == info[4 + length]) {
 						memcpy(wl->cfg.bin[i].bin, &info[2], length + 2);
 						/*
 						 * value length + data length +
-						 * checksum 
+						 * checksum
 						 */
-						len = 2 + length + 1;   
+						len = 2 + length + 1;
 						break;
 					} else {
 						PRINT_ER(vif->ndev,
@@ -298,7 +298,7 @@ static void wilc_wlan_parse_info_frame(struct wilc *wl, u8 *info)
 
 	len = info[2];
 	PRINT_D(vif->ndev, GENERIC_DBG, "Status Len = %d Id= %d\n", len, wid);
-	
+
 	if (len == 1 && wid == WID_STATUS) {
 		int i = 0;
 
@@ -443,9 +443,9 @@ int wilc_wlan_cfg_get_wid_value(struct wilc *wl, u16 wid, u8 *buffer,
 				break;
 
 			if (wl->cfg.bin[i].id == wid) {
-				uint32_t size = wl->cfg.bin[i].bin[0] | 
+				uint32_t size = wl->cfg.bin[i].bin[0] |
 					     (wl->cfg.bin[i].bin[1]<<8);
-				if (buffer_size >= size) {					
+				if (buffer_size >= size) {
 					memcpy(buffer, &wl->cfg.bin[i].bin[2],
 						size);
 					ret = size;
@@ -569,7 +569,7 @@ int wilc_wlan_cfg_init(struct wilc *wl)
 	wl->cfg.bin[i].id = WID_ANTENNA_SELECTION;
 	wl->cfg.bin[i].bin = bin_vals->antenna_param;
 	i++;
-	
+
 	wl->cfg.bin[i].id = WID_NIL;
 	wl->cfg.bin[i].bin = NULL;
 
@@ -596,7 +596,7 @@ void wilc_wlan_cfg_deinit(struct wilc *wl)
 	kfree(wl->cfg.hw);
 	kfree(wl->cfg.w);
 	kfree(wl->cfg.s);
-	kfree(wl->cfg.str_vals);	
+	kfree(wl->cfg.str_vals);
 	kfree(wl->cfg.bin);
 	kfree(wl->cfg.bin_vals);
 }

@@ -163,7 +163,7 @@ static int linux_sdio_probe(struct sdio_func *func,
 static void linux_sdio_remove(struct sdio_func *func)
 {
 	struct wilc *wilc = sdio_get_drvdata(func);
-	
+
 	wilc_netdev_cleanup(wilc);
 	wilc_bt_deinit();
 }

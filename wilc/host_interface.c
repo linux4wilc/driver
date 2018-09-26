@@ -22,7 +22,7 @@
 #define WILC_SUCCESS 		0	/* Generic success */
 
 /* Negative numbers to indicate failures */
-#define	WILC_FAIL		-100	/* Generic Fail */		
+#define	WILC_FAIL		-100	/* Generic Fail*/
 #define	WILC_BUSY		-101	/* Busy with another operation*/
 #define	WILC_INVALID_ARGUMENT	-102	/* A given argument is invalid*/
 #define	WILC_INVALID_STATE	-103	/* An API request would violate the Driver state machine (i.e. to start PID while not camped)*/
@@ -311,7 +311,7 @@ void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len
 
 	if (ch_list_len > 0) {
 		for (i = 0;i < priv->scanned_cnt;) {
-			for (ch_index = 0; ch_index < ch_list_len; ch_index++) 				
+			for (ch_index = 0; ch_index < ch_list_len; ch_index++)
 				if (priv->scanned_shadow[i].ch == (ch_freq_list[ch_index] + 1))
 					break;
 
@@ -507,7 +507,7 @@ static void handle_cfg_param(struct work_struct *work)
 	int i = 0;
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting CFG params\n");
-	
+
 	mutex_lock(&hif_drv->cfg_values_lock);
 
 	if (param->flag & BSS_TYPE) {
@@ -919,13 +919,13 @@ static void handle_scan(struct work_struct *work)
 	wid_list[index].val = (s8 *)&scan_info->src;
 	index++;
 
-    /* 
-     * Remove APs from shadow scan list which are 
-     * not in the requested scan channels list 
+    /*
+     * Remove APs from shadow scan list which are
+     * not in the requested scan channels list
      */
 	filter_shadow_scan(priv, scan_info->ch_freq_list,
 			   scan_info->ch_list_len);
-	
+
 	result = wilc_send_config_pkt(vif, SET_CFG, wid_list,
 				      index,
 				      wilc_get_vif_idx(vif));
@@ -975,7 +975,7 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 			hif_drv->hif_state = HOST_IF_CONNECTED;
 		}
 	} else if (evt == SCAN_EVENT_ABORTED) {
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "Abort running scan\n");		
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "Abort running scan\n");
 		abort_running_scan = 1;
 		wid.id = WID_ABORT_RUNNING_SCAN;
 		wid.type = WID_CHAR;
@@ -1670,7 +1670,7 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 			assoc_resp_info_len);
 		if (assoc_resp_info_len != 0) {
 			s32 err = 0;
-			PRINT_INFO(vif->ndev, HOSTINF_DBG, 
+			PRINT_INFO(vif->ndev, HOSTINF_DBG,
 				   "Parsing association response\n");
 			err = wilc_parse_assoc_resp_info(hif_drv->assoc_resp,
 							 assoc_resp_info_len,
@@ -1741,7 +1741,7 @@ static inline void host_int_handle_disconnect(struct wilc_vif *vif)
 	memset(&disconn_info, 0, sizeof(struct disconnect_info));
 
 	if (hif_drv->usr_scan_req.scan_result) {
-		PRINT_INFO(vif->ndev, HOSTINF_DBG, 
+		PRINT_INFO(vif->ndev, HOSTINF_DBG,
 			   "\n\n<< Abort the running OBSS Scan >>\n\n");
 		del_timer(&hif_drv->scan_timer);
 		handle_scan_done(vif, SCAN_EVENT_ABORTED);
@@ -1810,7 +1810,7 @@ static void handle_rcvd_gnrl_async_info(struct work_struct *work)
 		mac_status  = rcvd_info->buffer[7];
 		mac_status_reason_code = rcvd_info->buffer[8];
 		mac_status_additional_info = rcvd_info->buffer[9];
-		PRINT_INFO(vif->ndev, HOSTINF_DBG, 
+		PRINT_INFO(vif->ndev, HOSTINF_DBG,
 			   "Recieved MAC status= %d Reason= %d Info = %d\n",
 			   mac_status, mac_status_reason_code,
 			   mac_status_additional_info);
@@ -1889,7 +1889,7 @@ static void handle_key(struct work_struct *work)
 	case WEP:
 
 		if (hif_key->action & ADDKEY_AP) {
-			PRINT_INFO(vif->ndev, HOSTINF_DBG, 
+			PRINT_INFO(vif->ndev, HOSTINF_DBG,
 				   "Handling WEP key index: %d\n",
 				   hif_key->attr.wep.index);
 			wid_list[0].id = WID_11I_MODE;
@@ -1926,7 +1926,7 @@ static void handle_key(struct work_struct *work)
 						      wilc_get_vif_idx(vif));
 			kfree(key_buf);
 		} else if (hif_key->action & ADDKEY) {
-			PRINT_INFO(vif->ndev, HOSTINF_DBG, 
+			PRINT_INFO(vif->ndev, HOSTINF_DBG,
 				   "Handling WEP key\n");
 			key_buf = kmalloc(hif_key->attr.wep.key_len + 2,
 					  GFP_KERNEL);
@@ -2129,7 +2129,7 @@ static void handle_disconnect(struct work_struct *work)
 		PRINT_ER(vif->ndev, "hif driver is NULL\n");
 		goto out;
 	}
-	
+
 	if (hif_drv_wlan != NULL)	{
 		if (hif_drv_wlan->hif_state == HOST_IF_SCANNING) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG, "Abort Scan before disconnecting. WLAN_IFC is in state [%d]\n",
@@ -2634,7 +2634,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 		PRINT_ER(vif->ndev, "Driver is null\n");
 		return -EFAULT;
 	}
-	
+
 	if (!hif_drv->remain_on_ch_pending) {
 		hif_drv->remain_on_ch.arg = hif_remain_ch->arg;
 		hif_drv->remain_on_ch.expired = hif_remain_ch->expired;
@@ -2711,7 +2711,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 
 	hif_drv->hif_state = HOST_IF_P2P_LISTEN;
 error:
-	
+
 	hif_drv->remain_on_ch_timer_vif = vif;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 	hif_drv->remain_on_ch_timer.data = (unsigned long)hif_drv;
@@ -3223,7 +3223,7 @@ int wilc_add_wep_key_bss_sta(struct wilc_vif *vif, const u8 *key, u8 len,
 		PRINT_ER(vif->ndev, "enqueue work failed\n");
 		goto free_key;
 	}
-		
+
 	wait_for_completion(&msg->work_comp);
 
 free_key:
@@ -3655,10 +3655,10 @@ int wilc_set_wfi_drv_handler(struct wilc_vif *vif, int index, u8 mode,
 		kfree(msg);
 		return result;
 	}
-	
+
 	if (is_sync)
 		wait_for_completion(&msg->work_comp);
-	
+
 	return result;
 }
 
@@ -3922,7 +3922,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 			hif_drv->driver_handler_id = i + 1;
 			break;
 		}
-	
+
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	vif->obtaining_ip = false;
 #endif
@@ -3985,7 +3985,7 @@ int wilc_deinit(struct wilc_vif *vif)
 	mutex_lock(&hif_deinit_lock);
 
 	terminated_handle = hif_drv;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, 
+	PRINT_INFO(vif->ndev, HOSTINF_DBG,
 		   "De-initializing host interface for client %d\n",
 		   vif->wilc->clients_count);
 
@@ -4590,7 +4590,7 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 		return WILC_FAIL;
 	}
 
-	if (is_valid_gpio(vif, attr_syfs_p->antenna1)) { 
+	if (is_valid_gpio(vif, attr_syfs_p->antenna1)) {
 		msg->body.set_ant.antenna1 = attr_syfs_p->antenna1;
 	} else {
 		PRINT_ER(vif->ndev, "Invalid GPIO%d\n", attr_syfs_p->antenna1);
@@ -4602,7 +4602,7 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 			is_valid_gpio(vif, attr_syfs_p->antenna2)) {
 			msg->body.set_ant.antenna2 = attr_syfs_p->antenna2;
 		} else {
-			PRINT_ER(vif->ndev, "Invalid GPIO %d\n", 
+			PRINT_ER(vif->ndev, "Invalid GPIO %d\n",
 				 attr_syfs_p->antenna2);
 			return WILC_FAIL;
 		}

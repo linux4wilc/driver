@@ -386,7 +386,7 @@ static int init_irq(struct net_device *dev)
 	int ret = 0;
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wl = vif->wilc;
-	
+
 #if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
 
 	wl->gpio_irq = gpiod_get(wl->dt_dev, "irq", GPIOD_IN);
@@ -490,7 +490,7 @@ static void deinit_irq(struct net_device *dev)
 	}
 
 #endif
-	
+
 }
 
 void wilc_mac_indicate(struct wilc *wilc)
@@ -1302,7 +1302,7 @@ static int wilc_set_mac_addr(struct net_device *dev, void *p)
 		PRINT_INFO(vif->ndev, INIT_DBG, "Invalid MAC address \n");
 		return -EINVAL;
 	}
-	
+
 	for (i = 0; i <= wilc->vif_num; i++) {
 		wilc_get_mac_address(wilc->vif[i], mac_addr);
 		if (ether_addr_equal(addr->sa_data, mac_addr)) {
@@ -1315,7 +1315,7 @@ static int wilc_set_mac_addr(struct net_device *dev, void *p)
 			}
 		}
 	}
-	
+
 	/* configure new MAC address */
 	result = wilc_set_mac_address(vif, (u8 *)addr->sa_data);
 	ether_addr_copy(vif->bssid, addr->sa_data);
@@ -1323,7 +1323,7 @@ static int wilc_set_mac_addr(struct net_device *dev, void *p)
 
 	return result;
 }
-	
+
 static void wilc_set_multicast_list(struct net_device *dev)
 {
 	struct netdev_hw_addr *ha;
@@ -1354,7 +1354,7 @@ static void wilc_set_multicast_list(struct net_device *dev)
 		wilc_setup_multicast_filter(vif, true, 0, NULL);
 		return;
 	}
-	
+
 	mc_list = kmalloc(dev->mc.count * ETH_ALEN, GFP_KERNEL);
 	if (!mc_list)
 		return;
@@ -1370,7 +1370,7 @@ static void wilc_set_multicast_list(struct net_device *dev)
 	res = wilc_setup_multicast_filter(vif, true, dev->mc.count, mc_list);
 	if (res)
 		kfree(mc_list);
-	
+
 }
 
 static void linux_wlan_tx_complete(void *priv, int status)
@@ -1685,10 +1685,10 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	if (!wl)
 		return -ENOMEM;
 
-	ret = wilc_wlan_cfg_init(wl); 
+	ret = wilc_wlan_cfg_init(wl);
 	if (ret)
 		goto free_wl;
-		
+
 	wilc_debugfs_init();
 	*wilc = wl;
 	wl->io_type = io_type;

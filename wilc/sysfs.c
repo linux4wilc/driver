@@ -83,7 +83,7 @@ void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2)
 {
 	int retval;
 	int i;
-	
+
 	vif[0] = vif1;
 	vif[1] = vif2;
 
@@ -102,7 +102,7 @@ void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2)
 		vif[i]->attr_sysfs.ant_swtch_mode = ANT_SWTCH_INVALID_GPIO_CTRL;
 		vif[i]->attr_sysfs.antenna1 = 0xFF;
 		vif[i]->attr_sysfs.antenna2 = 0xFF;
-	}	
+	}
 	retval = sysfs_create_group(wilc_kobj, &attr_group);
 	device_created = 1;
 }

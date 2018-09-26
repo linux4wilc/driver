@@ -105,9 +105,9 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		hdr = skb_push(skb, sizeof(*hdr));
 	#else
 		memcpy(skb_put(skb, size), buff, size);
-		hdr = (struct wilc_wfi_radiotap_hdr *)skb_push(skb, 
+		hdr = (struct wilc_wfi_radiotap_hdr *)skb_push(skb,
 							       sizeof(*hdr));
-	#endif	
+	#endif
 		memset(hdr, 0, sizeof(*hdr));
 		hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
 		hdr->hdr.it_len = cpu_to_le16(sizeof(*hdr));
@@ -142,7 +142,7 @@ static void mgmt_tx_complete(void *priv, int status)
 
 	if (status == 1) {
 		if (buf[0] == 0x10 || buf[0] == 0xb0)
-		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG, 
+		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
 			   "Packet sent Size = %d Add = %p.\n",
 			   pv_data->size, pv_data->buff);
 	} else {
