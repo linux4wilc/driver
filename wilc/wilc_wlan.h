@@ -153,7 +153,6 @@ static inline bool is_wilc3000(u32 id)
 #define GPIO_NUM_CHIP_EN	94
 #define GPIO_NUM_RESET		60
 
-
 #define NQUEUES			4
 #define VO_AC_COUNT_POS		25
 #define VO_AC_ACM_STAT_POS	24

@@ -7,7 +7,6 @@
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
-#include <linux/of_gpio.h>
 #include <linux/module.h>
 
 #include "wilc_wfi_netdevice.h"
@@ -126,15 +125,7 @@ static int linux_sdio_probe(struct sdio_func *func,
 	struct wilc *wilc;
 	int ret, io_type;
 	static bool init_power;
-	int gpio_reset = -1;
-	int gpio_chip_en = -1;
-	int gpio_irq = -1;
-	struct device_node *cnp;
 	struct wilc_sdio *sdio_priv;
-
-	cnp = of_get_child_by_name(func->card->host->parent->of_node,
-				   "wilc_sdio");
-
 	sdio_priv = kzalloc(sizeof(*sdio_priv), GFP_KERNEL);
 	if (!sdio_priv)
 		return -ENOMEM;
@@ -153,44 +144,7 @@ static int linux_sdio_probe(struct sdio_func *func,
 	sdio_set_drvdata(func, wilc);
 	wilc->bus_data = sdio_priv;
 	wilc->dev = &func->dev;
-
-	gpio_reset = of_get_named_gpio_flags(cnp, "gpio_reset", 0, NULL);
-	if (gpio_reset < 0) {
-		ret = gpio_reset;
-		gpio_reset = GPIO_NUM_RESET;
-		dev_warn(wilc->dev, 
-			 "WILC setting default Reset GPIO to %d. Got %d\r\n",
-			 gpio_reset, ret);
-	} else {
-		dev_info(wilc->dev, "WILC got %d for gpio_reset\r\n",
-			 gpio_reset);
-	}
-
-	gpio_chip_en = of_get_named_gpio_flags(cnp, "gpio_chip_en", 0, NULL);
-	if (gpio_chip_en < 0) {
-		ret = gpio_chip_en;
-		gpio_chip_en = GPIO_NUM_CHIP_EN;
-		dev_warn(wilc->dev,
-			 "WILC setting default Chip Enable GPIO to %d. Got %d\r\n",
-			 gpio_chip_en, ret);
-	} else {
-		dev_info(wilc->dev, "WILC got %d for gpio_chip_en\r\n",
-			 gpio_chip_en);
-	}
-
-	gpio_irq = of_get_named_gpio_flags(cnp, "gpio_irq", 0, NULL);
-	if (gpio_irq < 0) {
-		ret = gpio_irq;
-		gpio_irq = GPIO_NUM;
-		dev_warn(wilc->dev, "WILC setting default IRQ GPIO to %d. Got %d\r\n",
-			 gpio_irq, ret);
-	} else {
-		dev_info(wilc->dev, "WILC got %d for gpio_irq\r\n", gpio_irq);
-	}
-
-	wilc->gpio_irq = gpio_irq;
-	wilc->gpio_chip_en = gpio_chip_en;
-	wilc->gpio_reset = gpio_reset;
+	wilc->dt_dev = &func->card->dev;
 
 	if (!init_power) {
 		wilc_wlan_power_on_sequence(wilc);

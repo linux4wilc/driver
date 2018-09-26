@@ -12,6 +12,13 @@
 #include <net/cfg80211.h>
 #include <net/ieee80211_radiotap.h>
 #include <linux/if_arp.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+#include <linux/gpio/consumer.h>
+#else
+#include <linux/of_gpio.h>
+#include <linux/gpio.h>
+#endif
 
 #include "host_interface.h"
 #include "wilc_wlan.h"
@@ -185,9 +192,11 @@ struct wilc {
 	const struct wilc_hif_func *hif_func;
 	int io_type;
 	s8 mac_status;
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+	struct gpio_desc *gpio_irq;
+#else
 	int gpio_irq;
-	int gpio_reset;
-	int gpio_chip_en;
+#endif
 	bool initialized;
 	int dev_irq_num;
 	int close;
@@ -229,6 +238,7 @@ struct wilc {
 	const struct firmware *firmware;
 
 	struct device *dev;
+	struct device *dt_dev;
 
 	bool enable_ps;
 	enum wilc_chip_type chip;

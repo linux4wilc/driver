@@ -5,7 +5,6 @@
 */
 
 #include <linux/spi/spi.h>
-#include <linux/of_gpio.h>
 #include <linux/module.h>
 
 #include "wilc_wfi_netdevice.h"
@@ -115,9 +114,6 @@ static int wilc_bus_probe(struct spi_device *spi)
 	static bool init_power;
 	struct wilc *wilc;
 	struct device *dev = &spi->dev;
-	int gpio_reset = -1;
-	int gpio_chip_en = -1;
-	int gpio_irq = -1;
 	struct wilc_spi *spi_priv;
 
 	dev_info(&spi->dev, "spiModalias: %s, spiMax-Speed: %d\n",
@@ -136,37 +132,8 @@ static int wilc_bus_probe(struct spi_device *spi)
 	spi_set_drvdata(spi, wilc);
 	wilc->dev = &spi->dev;
 	wilc->bus_data = spi_priv;
+	wilc->dt_dev = &spi->dev;
 
-	gpio_reset = of_get_named_gpio_flags(dev->of_node, "gpio_reset", 0, NULL);
-	if (gpio_reset < 0) {
-		ret = gpio_reset;
-		gpio_reset = GPIO_NUM_RESET;
-		dev_warn(dev, "WILC setting default Reset GPIO to %d.  Got %d\r\n", gpio_reset, ret);
-	} else {
-		dev_info(dev, "WILC got %d for gpio_reset\r\n", gpio_reset);
-	}
-
-	gpio_chip_en = of_get_named_gpio_flags(dev->of_node, "gpio_chip_en", 0, NULL);
-	if (gpio_chip_en < 0) {
-		ret = gpio_chip_en;
-		gpio_chip_en = GPIO_NUM_CHIP_EN;
-		dev_warn(dev, "WILC setting default Chip Enable GPIO to %d.  Got %d\r\n", gpio_chip_en, ret);
-	} else {
-		dev_info(dev, "WILC got %d for gpio_chip_en\r\n", gpio_chip_en);
-	}
-
-	gpio_irq = of_get_named_gpio_flags(dev->of_node, "gpio_irq", 0, NULL);
-	if (gpio_irq < 0) {
-		ret = gpio_irq;
-		gpio_irq = GPIO_NUM;
-		dev_warn(dev, "WILC setting default IRQ GPIO to %d.  Got %d\r\n", gpio_irq, ret);
-	} else {
-		dev_info(dev, "WILC got %d for gpio_irq\r\n", gpio_irq);
-	}
-
-	wilc->gpio_irq = gpio_irq;
-	wilc->gpio_chip_en = gpio_chip_en;
-	wilc->gpio_reset = gpio_reset;
 
 	if (!init_power) {
 		wilc_wlan_power_on_sequence(wilc);
@@ -207,7 +174,7 @@ static int wilc_spi_suspend(struct device *dev)
 	chip_allow_sleep(wilc, 0);
 	mutex_lock(&wilc->hif_cs);
 
- 	return 0 ;
+	return 0 ;
 }
 
 static int wilc_spi_resume(struct device *dev)
@@ -244,7 +211,7 @@ MODULE_DEVICE_TABLE(of, wilc_of_match);
 static const struct dev_pm_ops wilc_spi_pm_ops = {
      .suspend = wilc_spi_suspend,
      .resume    = wilc_spi_resume,
-    	};
+};
 
 static struct spi_driver wilc_spi_driver = {
 	.driver = {

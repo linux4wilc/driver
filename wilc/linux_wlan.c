@@ -5,7 +5,6 @@
 */
 
 #include <linux/irq.h>
-#include <linux/gpio.h>
 #include <linux/kthread.h>
 #include <linux/firmware.h>
 #include <linux/init.h>
@@ -387,47 +386,85 @@ static int init_irq(struct net_device *dev)
 	int ret = 0;
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wl = vif->wilc;
+	
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+
+	wl->gpio_irq = gpiod_get(wl->dt_dev, "irq", GPIOD_IN);
+	if (IS_ERR(wl->gpio_irq)) {
+		dev_warn(wl->dev, "failed to get IRQ GPIO, load default\r\n");
+		wl->gpio_irq = gpio_to_desc(GPIO_NUM);
+		if (!wl->gpio_irq) {
+			dev_warn(wl->dev, "failed to load default irq\r\n");
+			return -1;
+		}
+	} else {
+		dev_info(wl->dev, "got gpio_irq successfully\r\n");
+	}
+
+	ret = gpiod_direction_input(wl->gpio_irq);
+	if (ret) {
+		PRINT_ER(dev, "could not obtain gpio for WILC_INTR\n");
+		return ret;
+	}
+
+	wl->dev_irq_num = gpiod_to_irq(wl->gpio_irq);
+	if(wl->dev_irq_num < 0) {
+		PRINT_ER(dev, "could not the IRQ \n");
+		goto free_gpio;
+	}
+#else
+	wl->gpio_irq = of_get_named_gpio_flags(wl->dt_dev->of_node, "irq-gpios", 0, NULL);
+	if (wl->gpio_irq < 0) {
+		wl->gpio_irq = GPIO_NUM;
+		dev_warn(wl->dev, "failed to get IRQ GPIO, load default\r\n");
+	}
 
 	if ((gpio_request(wl->gpio_irq, "WILC_INTR") == 0) &&
 	    (gpio_direction_input(wl->gpio_irq) == 0)) {
 		wl->dev_irq_num = gpio_to_irq(wl->gpio_irq);
 	} else {
-		ret = -1;
-		PRINT_ER(dev, "could not obtain gpio for WILC_INTR\n");
+		dev_err(wl->dev, "could not obtain gpio for WILC_INTR\n");
+		wl->gpio_irq = 0;
+		return -1;
 	}
 
-	if (wl->io_type == HIF_SPI || 
+#endif
+
+	if (wl->io_type == HIF_SPI ||
 		wl->io_type == HIF_SDIO_GPIO_IRQ) {
-		if (ret != -1 && request_threaded_irq(wl->dev_irq_num,
+		if (request_threaded_irq(wl->dev_irq_num,
 						      isr_uh_routine,
 						      isr_bh_routine,
 						      IRQF_TRIGGER_LOW | IRQF_ONESHOT|IRQF_NO_SUSPEND,
 						      "WILC_IRQ", wl) < 0) {
-			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n", wl->gpio_irq);
-			gpio_free(wl->gpio_irq);
-			ret = -1;
+			PRINT_ER(dev, "Failed to request IRQ\n");
+			goto free_gpio;
 		}
 	} else {
-		if (ret != -1 && request_irq(wl->dev_irq_num,
+		if (request_irq(wl->dev_irq_num,
 					     host_wakeup_isr,
 					     IRQF_TRIGGER_FALLING |
 					     IRQF_NO_SUSPEND,
 					     "WILC_IRQ", wl) < 0) {
-			PRINT_ER(dev, "Failed to request IRQ GPIO: %d\n",
-				 wl->gpio_irq);
-			gpio_free(wl->gpio_irq);
-			ret = -1;
+			PRINT_ER(dev, "Failed to request IRQ\n");
+			goto free_gpio;
 		}
 	}
 
-	if(ret >=0) {
-		PRINT_INFO(dev, GENERIC_DBG,
-			   "IRQ request succeeded IRQ-NUM= %d on GPIO: %d\n",
-			   wl->dev_irq_num, wl->gpio_irq);
-		enable_irq_wake(wl->dev_irq_num);
-	}
-
+	PRINT_INFO(dev, GENERIC_DBG, "IRQ request succeeded IRQ-NUM= %d\n",
+		   wl->dev_irq_num);
+	enable_irq_wake(wl->dev_irq_num);
 	return ret;
+
+free_gpio:
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+	gpiod_put(wl->gpio_irq);
+	wl->gpio_irq = NULL;
+#else
+	gpio_free(wl->gpio_irq);
+	wl->gpio_irq = 0;
+#endif
+	return -1;
 }
 
 static void deinit_irq(struct net_device *dev)
@@ -436,10 +473,24 @@ static void deinit_irq(struct net_device *dev)
 	struct wilc *wilc = vif->wilc;
 
 	/* Deinitialize IRQ */
-	if (wilc->dev_irq_num) {
+	if (wilc->dev_irq_num > 0) {
 		free_irq(wilc->dev_irq_num, wilc);
-		gpio_free(wilc->gpio_irq);
+		wilc->dev_irq_num = -1;
 	}
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+	if (wilc->gpio_irq) {
+		gpiod_put(wilc->gpio_irq);
+		wilc->gpio_irq = NULL;
+	}
+#else
+	if (wilc->gpio_irq > 0) {
+		gpio_free(wilc->gpio_irq);
+		wilc->gpio_irq = 0;
+	}
+
+#endif
+	
 }
 
 void wilc_mac_indicate(struct wilc *wilc)
@@ -1063,7 +1114,7 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			goto fail_locks;
 		}
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "WILC Initialization done\n");
-		if (wl->gpio_irq >= 0 && init_irq(dev)) {
+		if (init_irq(dev)) {
 			ret = -EIO;
 			goto fail_locks;
 		}
@@ -1130,8 +1181,7 @@ fail_irq_enable:
 		if (wl->io_type == HIF_SDIO)
 			wl->hif_func->disable_interrupt(wl);
 fail_irq_init:
-		if (wl->dev_irq_num)
-			deinit_irq(dev);
+		deinit_irq(dev);
 
 		wlan_deinitialize_threads(dev);
 fail_wilc_wlan:
@@ -1712,7 +1762,6 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	wilc_sysfs_init(wl->vif[0], wl->vif[1]);
 
 	return 0;
-
 free_ndev:
 	for (; i >= 0; i--) {
 		if (wl->vif[i]) {
@@ -1734,28 +1783,94 @@ free_wl:
 	return ret;
 }
 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
 static void wilc_wlan_power(struct wilc *wilc, int power)
 {
+	struct gpio_desc *gpio_reset;
+	struct gpio_desc *gpio_chip_en;
+
 	pr_info("wifi_pm : %d \n", power);
-	if (gpio_request(wilc->gpio_chip_en, "CHIP_EN") == 0 &&
-	    gpio_request(wilc->gpio_reset, "RESET") == 0) {
-		gpio_direction_output(wilc->gpio_chip_en, 0);
-		gpio_direction_output(wilc->gpio_reset, 0);
-		if (power) {
-			gpio_set_value(wilc->gpio_chip_en, 1);
-			mdelay(5);
-			gpio_set_value(wilc->gpio_reset, 1);
-		} else {
-			gpio_set_value(wilc->gpio_reset, 0);
-			gpio_set_value(wilc->gpio_chip_en, 0);
+
+	gpio_reset = gpiod_get(wilc->dt_dev, "reset", GPIOD_ASIS);
+	if (IS_ERR(gpio_reset)) {
+		dev_warn(wilc->dev,"failed to get Reset GPIO, try default\r\n");
+		gpio_reset = gpio_to_desc(GPIO_NUM_RESET);
+		if (!gpio_reset) {
+			dev_warn(wilc->dev,
+				 "failed to get default Reset GPIO\r\n");
+			return;
 		}
-		gpio_free(wilc->gpio_chip_en);
-		gpio_free(wilc->gpio_reset);
+	} else {
+		dev_info(wilc->dev, "succesfully got gpio_reset\r\n");
+	}
+
+	gpio_chip_en = gpiod_get(wilc->dt_dev, "chip_en", GPIOD_ASIS);
+	if (IS_ERR(gpio_chip_en)) {
+		gpio_chip_en = gpio_to_desc(GPIO_NUM_CHIP_EN);
+		if (!gpio_chip_en) {
+			dev_warn(wilc->dev,
+				 "failed to get default chip_en GPIO\r\n");
+			gpiod_put(gpio_reset);
+			return;
+		}
+	} else {
+		dev_info(wilc->dev, "succesfully got gpio_chip_en\r\n");
+	}
+
+	if (power) {
+		gpiod_direction_output(gpio_chip_en, 1);
+		mdelay(5);
+		gpiod_direction_output(gpio_reset, 1);
+	} else {
+		gpiod_direction_output(gpio_reset, 0);
+		gpiod_direction_output(gpio_chip_en, 0);
+	}
+	gpiod_put(gpio_chip_en);
+	gpiod_put(gpio_reset);
+}
+#else
+static void wilc_wlan_power(struct wilc *wilc, int power)
+{
+	int gpio_reset;
+	int gpio_chip_en;
+
+	pr_info("wifi_pm : %d \n", power);
+
+	gpio_reset = of_get_named_gpio_flags(wilc->dt_dev->of_node, "reset-gpios", 0, NULL);
+
+	if (gpio_reset < 0) {
+		gpio_reset = GPIO_NUM_RESET;
+		pr_info("wifi_pm : load default reset GPIO\n", power);
+	}
+
+	gpio_chip_en = of_get_named_gpio_flags(wilc->dt_dev->of_node, "chip_en-gpios", 0, NULL);
+
+	if (gpio_chip_en < 0) {
+		pr_info("wifi_pm : load default chip_en GPIO\n", power);
+		gpio_reset = GPIO_NUM_CHIP_EN;
+	}
+
+	if (gpio_request(gpio_chip_en, "CHIP_EN") == 0 &&
+	    gpio_request(gpio_reset, "RESET") == 0) {
+		gpio_direction_output(gpio_chip_en, 0);
+		gpio_direction_output(gpio_reset, 0);
+		if (power) {
+			gpio_set_value(gpio_chip_en, 1);
+			mdelay(5);
+			gpio_set_value(gpio_reset, 1);
+		} else {
+			gpio_set_value(gpio_reset, 0);
+			gpio_set_value(gpio_chip_en, 0);
+		}
+		gpio_free(gpio_chip_en);
+		gpio_free(gpio_reset);
 	} else {
 		dev_err(wilc->dev,
 			"Error requesting GPIOs for CHIP_EN and RESET");
 	}
+
 }
+#endif
 
 void wilc_wlan_power_on_sequence(struct wilc *wilc)
 {
