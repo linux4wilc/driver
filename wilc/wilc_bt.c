@@ -285,7 +285,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 			reg &= ~BIT(30);
 			ret = wilc->hif_func->hif_write_reg(wilc, WILC_COE_AUTO_PS_ON_NULL_PKT, reg);
 			if (!ret) {
-				pr_err( "[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_ON_NULL_PKT);
+				pr_err("[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_ON_NULL_PKT);
 				goto fail;
 			}
 
@@ -299,7 +299,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 			reg &= ~BIT(30);
 			ret = wilc->hif_func->hif_write_reg(wilc, WILC_COE_AUTO_PS_OFF_NULL_PKT, reg);
 			if (!ret) {
-				pr_err( "[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_OFF_NULL_PKT);
+				pr_err("[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_OFF_NULL_PKT);
 				goto fail;
 			}
 
@@ -311,13 +311,13 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 
 		ret = wilc->hif_func->hif_read_reg(wilc, WILC_PWR_SEQ_MISC_CTRL, &reg);
 		if (!ret) {
-			pr_err( "[wilc start]: fail read reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
+			pr_err("[wilc start]: fail read reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
 			goto fail;
 		}
 		reg |= BIT(29);
 		ret = wilc->hif_func->hif_write_reg(wilc, WILC_PWR_SEQ_MISC_CTRL, reg);
 		if (!ret) {
-			pr_err( "[wilc start]: fail write reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
+			pr_err("[wilc start]: fail write reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
 			goto fail;
 		}
 
@@ -373,7 +373,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		reg &= ~BIT(30);
 		ret = wilc->hif_func->hif_write_reg(wilc, WILC_COE_AUTO_PS_ON_NULL_PKT, reg);
 		if (!ret) {
-			pr_err( "[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_ON_NULL_PKT);
+			pr_err("[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_ON_NULL_PKT);
 			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 			return ret;
 		}
@@ -389,21 +389,21 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		reg &= ~BIT(30);
 		ret = wilc->hif_func->hif_write_reg(wilc, WILC_COE_AUTO_PS_OFF_NULL_PKT, reg);
 		if (!ret) {
-			pr_err( "[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_OFF_NULL_PKT);
+			pr_err("[wilc start]: fail write reg %x ...\n", WILC_COE_AUTO_PS_OFF_NULL_PKT);
 			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 			return ret;
 		}
 		// Disable BT wakeup
 		ret = wilc->hif_func->hif_read_reg(wilc, WILC_PWR_SEQ_MISC_CTRL, &reg);
 		if (!ret) {
-			pr_err( "[wilc start]: fail read reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
+			pr_err("[wilc start]: fail read reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
 			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 			return ret;
 		}
 		reg &= ~ BIT(29);
 		ret = wilc->hif_func->hif_write_reg(wilc, WILC_PWR_SEQ_MISC_CTRL, reg);
 		if (!ret) {
-			pr_err( "[wilc start]: fail write reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
+			pr_err("[wilc start]: fail write reg %x ...\n", WILC_PWR_SEQ_MISC_CTRL);
 			release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 			return ret;
 		}
