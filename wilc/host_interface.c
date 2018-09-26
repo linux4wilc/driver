@@ -969,11 +969,10 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 	}
 
 	if (evt == SCAN_EVENT_DONE) {
-		if (memcmp(hif_drv->assoc_bssid, null_bssid, ETH_ALEN) == 0) {
+		if (memcmp(hif_drv->assoc_bssid, null_bssid, ETH_ALEN) == 0)
 			hif_drv->hif_state = HOST_IF_IDLE;
-		} else {
+		else
 			hif_drv->hif_state = HOST_IF_CONNECTED;
-		}
 	} else if (evt == SCAN_EVENT_ABORTED) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "Abort running scan\n");
 		abort_running_scan = 1;
@@ -3107,9 +3106,9 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 	int result;
 	struct host_if_msg *msg;
 
-	if (!vif || !frmw_to_linux || !eap_buf_param) {
+	if (!vif || !frmw_to_linux || !eap_buf_param)
 		return -EFAULT;
-	}
+
 	msg = wilc_alloc_work(vif, handle_send_buffered_eap, false);
 	if (IS_ERR(msg))
 		return PTR_ERR(msg);

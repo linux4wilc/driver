@@ -797,9 +797,9 @@ void chip_wakeup_wilc1000(struct wilc *wilc, int source)
 			pr_err("Bus error (5).%d %x\n", ret, clk_status_val);
 			goto _fail_;
 		}
-		if (clk_status_val & clk_status_bit) {
+		if (clk_status_val & clk_status_bit)
 			break;
-		}
+
 		//nm_bsp_sleep(2);
 		trials++;
 		if (trials > WAKUP_TRAILS_TIMEOUT) {

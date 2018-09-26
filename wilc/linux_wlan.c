@@ -59,9 +59,8 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		vif->obtaining_ip = false;
 
 		/* Recover PS previous state */
-		if (vif->wilc->enable_ps == true) {
+		if (vif->wilc->enable_ps == true)
 			wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
-		}
 
 		del_timer(&vif->during_ip_timer);
 
@@ -118,9 +117,8 @@ void clear_during_ip(unsigned long arg)
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
 
 	/* Recover PS previous state */
-	if (vif->wilc->enable_ps == true) {
+	if (vif->wilc->enable_ps == true)
 		wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
-	}
 }
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
