@@ -25,16 +25,20 @@
 extern atomic_t WILC_DEBUG_REGION;
 
 #define PRINT_D(netdev, region, format, ...)	do { if (atomic_read(&WILC_DEBUG_REGION)&(region))\
-	netdev_dbg(netdev, "DBG [%s: %d] "format, __FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+	netdev_dbg(netdev, "DBG [%s: %d] "format, __FUNCTION__, __LINE__, ##__VA_ARGS__); } \
+	while (0)
 
 #define PRINT_INFO(netdev, region, format, ...) do { if (atomic_read(&WILC_DEBUG_REGION)&(region))\
-	netdev_info(netdev, "INFO [%s]"format, __FUNCTION__, ##__VA_ARGS__); } while (0)
+	netdev_info(netdev, "INFO [%s]"format, __FUNCTION__, ##__VA_ARGS__); } \
+	while (0)
 
 #define PRINT_WRN(netdev, region, format, ...) do { if (atomic_read(&WILC_DEBUG_REGION)&(region))\
-	netdev_warn(netdev, "WRN [%s: %d]"format, __FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+	netdev_warn(netdev, "WRN [%s: %d]"format, __FUNCTION__, __LINE__, ##__VA_ARGS__); } \
+	while (0)
 
 #define PRINT_ER(netdev, format, ...) do { netdev_err(netdev, "ERR [%s: %d] "format,\
-	__FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+	__FUNCTION__, __LINE__, ##__VA_ARGS__); } \
+	while (0)
 
 int wilc_debugfs_init(void);
 void wilc_debugfs_remove(void);
