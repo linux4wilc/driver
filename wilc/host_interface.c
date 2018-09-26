@@ -14,12 +14,12 @@
 
 #define FALSE_FRMWR_CHANNEL			100
 
-#define REAL_JOIN_REQ 				0
+#define REAL_JOIN_REQ				0
 
 #define INVALID_RSSI				100
 
 /* Generic success will return 0 */
-#define WILC_SUCCESS 		0	/* Generic success */
+#define WILC_SUCCESS		0	/* Generic success */
 
 /* Negative numbers to indicate failures */
 #define	WILC_FAIL		-100	/* Generic Fail*/

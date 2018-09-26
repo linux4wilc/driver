@@ -96,7 +96,7 @@ static u8 crc7(u8 crc, const u8 *buffer, u32 len)
 #define N_RESET					-1
 #define N_RETRY					-2
 
-#define SPI_RESP_RETRY_COUNT 			(10)
+#define SPI_RESP_RETRY_COUNT			(10)
 #define SPI_RETRY_COUNT				(10)
 #define DATA_PKT_SZ_256				256
 #define DATA_PKT_SZ_512				512
@@ -209,8 +209,8 @@ static const struct of_device_id wilc_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, wilc_of_match);
 static const struct dev_pm_ops wilc_spi_pm_ops = {
-     .suspend = wilc_spi_suspend,
-     .resume    = wilc_spi_resume,
+	.suspend = wilc_spi_suspend,
+	.resume = wilc_spi_resume,
 };
 
 static struct spi_driver wilc_spi_driver = {

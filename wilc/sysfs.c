@@ -76,7 +76,7 @@ static struct attribute *wilc_attrs[] = {
 };
 
 static struct attribute_group attr_group = {
-   .attrs = wilc_attrs,
+	.attrs = wilc_attrs,
 };
 
 void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2)

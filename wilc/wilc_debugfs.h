@@ -9,17 +9,17 @@
 
 #include <linux/kern_levels.h>
 
-#define GENERIC_DBG	  		BIT(0)
-#define HOSTAPD_DBG       	BIT(1)
-#define HOSTINF_DBG	  		BIT(2)
-#define CORECONFIG_DBG  	BIT(3)
-#define CFG80211_DBG      	BIT(4)
-#define INT_DBG		  		BIT(5)
-#define TX_DBG		 		BIT(6)
-#define RX_DBG		 		BIT(7)
-#define TCP_ENH	  			BIT(8)
-#define INIT_DBG	  	  	BIT(9)
-#define PWRDEV_DBG	  		BIT(10)
+#define GENERIC_DBG		BIT(0)
+#define HOSTAPD_DBG		BIT(1)
+#define HOSTINF_DBG		BIT(2)
+#define CORECONFIG_DBG		BIT(3)
+#define CFG80211_DBG		BIT(4)
+#define INT_DBG			BIT(5)
+#define TX_DBG			BIT(6)
+#define RX_DBG			BIT(7)
+#define TCP_ENH			BIT(8)
+#define INIT_DBG		BIT(9)
+#define PWRDEV_DBG		BIT(10)
 #define DBG_REGION_ALL		(BIT(11)-1)
 
 extern atomic_t WILC_DEBUG_REGION;
