@@ -1813,7 +1813,7 @@ int wilc_wlan_cfg_get_val(struct wilc *wl, u16 wid, u8 *buffer, u32 buffer_size)
 {
 	return wilc_wlan_cfg_get_wid_value(wl, wid, buffer, buffer_size);
 }
-unsigned int cfg_packet_timeout = 0;
+unsigned int cfg_packet_timeout;
 extern int wait_for_recovery;
 int wilc_send_config_pkt(struct wilc_vif *vif, u8 mode, struct wid *wids,
 			 u32 count, u32 drv)

@@ -21,7 +21,7 @@
 #include "wilc_wfi_cfgoperations.h"
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-bool g_ignore_PS_state = false;
+bool g_ignore_PS_state;
 #define DURING_IP_TIME_OUT		15000
 
 void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
@@ -133,9 +133,9 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 static int wilc_mac_open(struct net_device *ndev);
 static int wilc_mac_close(struct net_device *ndev);
 
-int debug_running = false;
-int recovery_on = 0;
-int wait_for_recovery = 0;
+int debug_running;
+int recovery_on;
+int wait_for_recovery;
 static int debug_thread(void *arg)
 {
 	struct net_device *dev = arg;
