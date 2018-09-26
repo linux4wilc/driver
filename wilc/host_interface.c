@@ -3107,7 +3107,7 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 	int result;
 	struct host_if_msg *msg;
 
-	if (!vif || !frmw_to_linux || !eap_buf_param ) {
+	if (!vif || !frmw_to_linux || !eap_buf_param) {
 		return -EFAULT;
 	}
 	msg = wilc_alloc_work(vif, handle_send_buffered_eap, false);

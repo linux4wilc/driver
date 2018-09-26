@@ -1546,7 +1546,7 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 					return;
 				}
 			} else {
-				kfree(priv->buffered_eap->buff );
+				kfree(priv->buffered_eap->buff);
 			}
 			priv->buffered_eap->buff = kmalloc(size + pkt_offset,
 							   GFP_ATOMIC);
