@@ -1010,7 +1010,7 @@ int wilc_spi_reset(struct wilc *wilc)
 	struct spi_device *spi = to_spi_device(wilc->dev);
 	int result = N_OK;
 
-	result = spi_cmd_complete(wilc, CMD_RESET, 0, 0 , 0, 0);
+	result = spi_cmd_complete(wilc, CMD_RESET, 0, 0, 0, 0);
 	if (result != N_OK) {
 		dev_err(&spi->dev, "Failed cmd reset \n");
 		return 0;

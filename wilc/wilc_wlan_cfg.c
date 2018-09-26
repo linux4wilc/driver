@@ -258,7 +258,7 @@ static void wilc_wlan_parse_response_frame(struct wilc *wl, u8 *info,
 					 * Compute the Checksum of received 
 					 * data field
 					 */
-					for (i = 0;i < length;i++)
+					for (i = 0; i < length; i++)
 						checksum += info[4 + i];
 					/* 
 					 * Verify the checksum of recieved BIN 

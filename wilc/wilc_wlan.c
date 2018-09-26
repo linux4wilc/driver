@@ -805,13 +805,13 @@ void chip_wakeup_wilc1000(struct wilc *wilc, int source)
 	if (wilc_get_chipid(wilc, false) < 0x1002b0) {
 		uint32_t val32;
 		/* Enable PALDO back right after wakeup */
-		wilc->hif_func->hif_read_reg(wilc, 0x1e1c , &val32);
+		wilc->hif_func->hif_read_reg(wilc, 0x1e1c, &val32);
 		val32 |= BIT(6);
-		wilc->hif_func->hif_write_reg(wilc, 0x1e1c , val32);
+		wilc->hif_func->hif_write_reg(wilc, 0x1e1c, val32);
 
-		wilc->hif_func->hif_read_reg(wilc, 0x1e9c , &val32);
+		wilc->hif_func->hif_read_reg(wilc, 0x1e9c, &val32);
 		val32 |= BIT(6);
-		wilc->hif_func->hif_write_reg(wilc, 0x1e9c , val32);
+		wilc->hif_func->hif_write_reg(wilc, 0x1e9c, val32);
 	}
 	/*workaround sometimes spi fail to read clock regs after reading/writing clockless registers*/
 	reset_bus(wilc);
@@ -1960,7 +1960,7 @@ int wilc_wlan_init(struct net_device *dev)
 	PRINT_INFO(vif->ndev, INIT_DBG, "Initializing WILC_Wlan\n");
 
 	if (!wilc->hif_func->hif_is_init(wilc)) {
-		acquire_bus(wilc, ACQUIRE_ONLY , PWR_DEV_SRC_WIFI);
+		acquire_bus(wilc, ACQUIRE_ONLY, PWR_DEV_SRC_WIFI);
 		if (!wilc->hif_func->hif_init(wilc, false)) {
 			ret = -EIO;
 			release_bus(wilc, RELEASE_ONLY, PWR_DEV_SRC_WIFI);
