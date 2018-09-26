@@ -13,7 +13,7 @@
 #include <net/ieee80211_radiotap.h>
 #include <linux/if_arp.h>
 #include <linux/version.h>
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
 #include <linux/gpio/consumer.h>
 #else
 #include <linux/of_gpio.h>
@@ -192,7 +192,7 @@ struct wilc {
 	const struct wilc_hif_func *hif_func;
 	int io_type;
 	s8 mac_status;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
 	struct gpio_desc *gpio_irq;
 #else
 	int gpio_irq;

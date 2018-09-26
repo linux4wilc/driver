@@ -67,7 +67,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 				"Monitor if : No memory to allocate skb");
 			return;
 		}
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 		skb_put_data(skb, buff, size);
 
 		cb_hdr = skb_push(skb, sizeof(*cb_hdr));
@@ -100,7 +100,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 				"Monitor if : No memory to allocate skb");
 			return;
 		}
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 		skb_put_data(skb, buff, size);
 		hdr = skb_push(skb, sizeof(*hdr));
 	#else
@@ -115,7 +115,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 			"Radiotap len %d\n", hdr->hdr.it_len);
 		hdr->hdr.it_present = cpu_to_le32
 				(1 << IEEE80211_RADIOTAP_RATE); /* | */
-		PRINT_D(vif->ndev, HOSTAPD_DBG,"Presentflags %d\n",
+		PRINT_D(vif->ndev, HOSTAPD_DBG, "Presentflags %d\n",
 			hdr->hdr.it_present);
 		hdr->rate = 5;
 	}
@@ -148,7 +148,7 @@ static void mgmt_tx_complete(void *priv, int status)
 	} else {
 		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
 			   "Couldn't send packet Size = %d Add = %p.\n",
-			   pv_data->size,pv_data->buff);
+			   pv_data->size, pv_data->buff);
 	}
 	/*
 	 * in case of fully hosting mode, the freeing will be done
@@ -215,9 +215,9 @@ static netdev_tx_t wilc_wfi_mon_xmit(struct sk_buff *skb,
 
 	skb->dev = mon_priv->real_ndev;
 
-	PRINT_D(dev, HOSTAPD_DBG,"Skipping the radiotap header\n");
-	PRINT_D(dev, HOSTAPD_DBG,"SKB netdevice name = %s\n", skb->dev->name);
-	PRINT_D(dev, HOSTAPD_DBG,"MONITOR real dev name = %s\n",
+	PRINT_D(dev, HOSTAPD_DBG, "Skipping the radiotap header\n");
+	PRINT_D(dev, HOSTAPD_DBG, "SKB netdevice name = %s\n", skb->dev->name);
+	PRINT_D(dev, HOSTAPD_DBG, "MONITOR real dev name = %s\n",
 		mon_priv->real_ndev->name);
 	memcpy(srcadd, &skb->data[10], 6);
 	memcpy(bssid, &skb->data[16], 6);

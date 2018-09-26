@@ -26,7 +26,7 @@ void wilc_mgmt_frame_register(struct wiphy *wiphy, struct wireless_dev *wdev,
 void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2);
 void wilc_sysfs_exit(void);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 void remove_network_from_shadow(struct timer_list *t);
 #else
 void remove_network_from_shadow(unsigned long arg);

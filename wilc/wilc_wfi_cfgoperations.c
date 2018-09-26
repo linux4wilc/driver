@@ -210,7 +210,7 @@ static void refresh_scan(struct wilc_priv *priv, bool direct_scan)
 		if (!memcmp("DIRECT-", network_info->ssid, 7) && !direct_scan)
 			continue;
 
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 		freq = ieee80211_channel_to_frequency((s32)network_info->ch,
 						      NL80211_BAND_2GHZ);
 	#else
@@ -221,7 +221,7 @@ static void refresh_scan(struct wilc_priv *priv, bool direct_scan)
 		rssi = get_rssi_avg(network_info);
 		bss = cfg80211_inform_bss(wiphy,
 					  channel,
-				#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)
+				#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 					  CFG80211_BSS_FTYPE_UNKNOWN,
 				#endif
 					  network_info->bssid,
@@ -252,13 +252,13 @@ static void update_scan_time(struct wilc_priv *priv)
 		priv->scanned_shadow[i].time_scan = jiffies;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 void remove_network_from_shadow(struct timer_list *t)
 #else
 void remove_network_from_shadow(unsigned long arg)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	struct wilc_priv *priv = from_timer(priv, t, aging_timer);
 #else
 	struct wilc_priv *priv = (struct wilc_priv*)arg;
@@ -290,7 +290,7 @@ void remove_network_from_shadow(unsigned long arg)
 		   priv->scanned_cnt);
 
 	if (priv->scanned_cnt != 0) {
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 		priv->aging_timer.data = (unsigned long) priv;
 	#endif
 		mod_timer(&priv->aging_timer,
@@ -310,7 +310,7 @@ static int is_network_in_shadow(struct network_info *nw_info,
 
 	if (priv->scanned_cnt == 0) {
 		PRINT_INFO(priv->dev, CFG80211_DBG, "Starting Aging timer\n");
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 		priv->aging_timer.data = (unsigned long) priv;
 	#endif
 		mod_timer(&priv->aging_timer,
@@ -437,7 +437,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 
 			bss = cfg80211_inform_bss(wiphy,
 						  channel,
-					#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)
+					#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 						  CFG80211_BSS_FTYPE_UNKNOWN,
 					#endif
 						  network_info->bssid,
@@ -482,7 +482,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 		mutex_lock(&priv->scan_req_lock);
 
 		if (priv->scan_req) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 			struct cfg80211_scan_info info = {
 				.aborted = false,
 			};
@@ -501,7 +501,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 
 		PRINT_INFO(priv->dev, CFG80211_DBG, "Scan Aborted \n");
 		if (priv->scan_req) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 			struct cfg80211_scan_info info = {
 				.aborted = false,
 			};
@@ -624,7 +624,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		else if (!wfi_drv->ifc_up && dev == wl->vif[1]->ndev)
 			disconn_info->reason = 1;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
 		cfg80211_disconnected(dev, disconn_info->reason,
 				      disconn_info->ie, disconn_info->ie_len,
 				      GFP_KERNEL);
@@ -792,7 +792,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Connecting to SSID [%s] on netdev [%p] host if [%x]\n",
-		   sme->ssid,dev, (u32)priv->hif_drv);
+		   sme->ssid, dev, (u32)priv->hif_drv);
 	if (!(strncmp(sme->ssid, "DIRECT-", 7))) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Connected to Direct network,OBSS disabled\n");
@@ -932,7 +932,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		}
 	}
 
-	PRINT_INFO(vif->ndev, CFG80211_DBG,"Adding key with cipher group %x\n",
+	PRINT_INFO(vif->ndev, CFG80211_DBG, "Adding key with cipher group %x\n",
 		   cipher_group);
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Authentication Type = %d\n",
@@ -1092,9 +1092,9 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Adding key with cipher suite = %x\n", params->cipher);
-	PRINT_INFO(vif->ndev, CFG80211_DBG,"%x %x %d\n",(u32)wiphy,
+	PRINT_INFO(vif->ndev, CFG80211_DBG, "%x %x %d\n", (u32)wiphy,
 		   (u32)netdev, key_index);
-	PRINT_INFO(vif->ndev, CFG80211_DBG,"key %x %x %x\n",params->key[0],
+	PRINT_INFO(vif->ndev, CFG80211_DBG, "key %x %x %x\n", params->key[0],
 		   params->key[1],
 		   params->key[2]);
 	switch (params->cipher) {
@@ -1302,7 +1302,7 @@ static int set_default_key(struct wiphy *wiphy, struct net_device *netdev,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)
 static int get_station(struct wiphy *wiphy, struct net_device *dev,
 		       const u8 *mac, struct station_info *sinfo)
 #else
@@ -1374,13 +1374,13 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 
 		if (stats.link_speed > TCP_ACK_FILTER_LINK_SPEED_THRESH &&
 		    stats.link_speed != DEFAULT_LINK_SPEED)
-			wilc_enable_tcp_ack_filter(vif,true);
+			wilc_enable_tcp_ack_filter(vif, true);
 		else if (stats.link_speed != DEFAULT_LINK_SPEED)
 			wilc_enable_tcp_ack_filter(vif, false);
 
 		PRINT_INFO(vif->ndev, CORECONFIG_DBG,
-			   "*** stats[%d][%d][%d][%d][%d]\n",sinfo->signal,
-			   sinfo->rx_packets,sinfo->tx_packets,
+			   "*** stats[%d][%d][%d][%d][%d]\n", sinfo->signal,
+			   sinfo->rx_packets, sinfo->tx_packets,
 			   sinfo->tx_failed, sinfo->txrate.legacy);
 	}
 	return 0;
@@ -1586,7 +1586,7 @@ static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 * buf,
 }
 
 static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 * buf,
-					 u32 len,bool oper_ch, u8 p2p_mode)
+					 u32 len, bool oper_ch, u8 p2p_mode)
 {
 	u32 index = 0;
 	u8 op_channel_attr_index = 0;
@@ -1683,7 +1683,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 
 	PRINT_D(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n", fc);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 	freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
  #else
 	freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
@@ -1827,7 +1827,7 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 			priv->remain_on_ch_params.listen_session_id);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 					struct p2p_mgmt_data *mgmt_tx,
 					struct cfg80211_mgmt_tx_params *params,
@@ -1839,7 +1839,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 					u8 iftype, u32 buf_len)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 	const u8 *buf = params->buf;
 	size_t len = params->len;
 #endif
@@ -1890,7 +1890,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 static int mgmt_tx(struct wiphy *wiphy,
 		   struct wireless_dev *wdev,
 		   struct cfg80211_mgmt_tx_params *params,
@@ -1903,7 +1903,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 		   bool no_cck, bool dont_wait_for_ack, u64 *cookie)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 	struct ieee80211_channel *chan = params->chan;
 	unsigned int wait = params->wait;
 	const u8 *buf = params->buf;
@@ -1985,7 +1985,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 
 		case PUBLIC_ACT_VENDORSPEC:
 			if (!memcmp(p2p_oui, &buf[ACTION_SUBTYPE_ID + 1], 4))
-			#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
+			#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 				wilc_wfi_cfg_tx_vendor_spec(priv, mgmt_tx,
 							    params,
 							    vif->iftype,
@@ -2059,7 +2059,7 @@ void wilc_mgmt_frame_register(struct wiphy *wiphy, struct wireless_dev *wdev,
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG,
 		   "Frame registering Frame Type: %x: Boolean: %d\n",
-		   frame_type,reg);
+		   frame_type, reg);
 	switch (frame_type) {
 	case PROBE_REQ:
 		vif->frame_reg[0].type = frame_type;
@@ -2148,7 +2148,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			       enum nl80211_iftype type,
 			       struct vif_params *params)
@@ -2289,18 +2289,18 @@ static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 	struct cfg80211_beacon_data *beacon = &settings->beacon;
 	int ret;
 
-	PRINT_INFO(vif->ndev, HOSTAPD_DBG,"Starting ap\n");
+	PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Starting ap\n");
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Interval= %d\n DTIM period= %d\n Head length= %d Tail length= %d\n",
 		   settings->beacon_interval, settings->dtim_period,
-		   beacon->head_len,beacon->tail_len);
+		   beacon->head_len, beacon->tail_len);
 	ret = set_channel(wiphy, &settings->chandef);
 
 	if (ret != 0)
 		PRINT_ER(dev, "Error in setting channel\n");
 
-	wilc_wlan_set_bssid(dev,dev->dev_addr,AP_MODE);
+	wilc_wlan_set_bssid(dev, dev->dev_addr, AP_MODE);
 	wilc_set_power_mgmt(vif, 0, 0);
 
 	return wilc_add_beacon(vif, settings->beacon_interval,
@@ -2341,7 +2341,7 @@ static int stop_ap(struct wiphy *wiphy, struct net_device *dev)
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0)
 static int add_station(struct wiphy *wiphy, struct net_device *dev,
 		       const u8 *mac, struct station_parameters *params)
 #else
@@ -2606,7 +2606,7 @@ static void wilc_set_wakeup(struct wiphy *wiphy, bool enabled)
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "cfg set wake up = %d\n", enabled);
-	host_int_set_wowlan_trigger(vif,(u8)enabled);
+	host_int_set_wowlan_trigger(vif, (u8)enabled);
 }
 
 static int set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
@@ -2656,7 +2656,7 @@ static int set_antenna(struct wiphy *wiphy, u32 tx_ant, u32 rx_ant)
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
-	PRINT_INFO(vif->ndev, CFG80211_DBG,"Select antenna mode %d\n",tx_ant);
+	PRINT_INFO(vif->ndev, CFG80211_DBG, "Select antenna mode %d\n", tx_ant);
 	if (!tx_ant || !rx_ant)
 		return -EINVAL;
 
@@ -2763,7 +2763,7 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net,
 	priv = wdev_priv(wdev);
 	priv->wdev = wdev;
 	wdev->wiphy->max_scan_ssids = MAX_NUM_PROBED_SSID;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
 	wdev->wiphy->wowlan = &wowlan_support;
 #else
 	wdev->wiphy->wowlan = wowlan_support;
@@ -2817,7 +2817,7 @@ int wilc_init_host_int(struct net_device *net)
 
 	PRINT_INFO(net, INIT_DBG, "Host[%p][%p]\n", net, net->ieee80211_ptr);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	timer_setup(&vif->during_ip_timer, clear_during_ip, 0);
 	#endif

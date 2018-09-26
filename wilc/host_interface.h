@@ -361,7 +361,7 @@ int wilc_edit_station(struct wilc_vif *vif,
 		      struct add_sta_param *sta_param);
 int wilc_set_power_mgmt(struct wilc_vif *vif, bool enabled, u32 timeout);
 int wilc_setup_multicast_filter(struct wilc_vif *vif, bool enabled,
-				u32 count,u8 *mc_list);
+				u32 count, u8 *mc_list);
 int wilc_remain_on_channel(struct wilc_vif *vif, u32 session_id,
 			   u32 duration, u16 chan,
 			   wilc_remain_on_chan_expired expired,

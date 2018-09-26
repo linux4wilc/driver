@@ -21,7 +21,7 @@
 
 void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state);
 void store_power_save_current_state(struct wilc_vif *vif, bool val);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 void clear_during_ip(struct timer_list *t);
 #else
 void clear_during_ip(unsigned long arg);
@@ -30,7 +30,7 @@ void clear_during_ip(unsigned long arg);
 struct net_device* wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc);
 struct host_if_drv * wilc_get_drv_handler_by_ifc(struct wilc *wilc, uint8_t ifc);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 static inline void ether_addr_copy(u8 *dst, const u8 *src)
 {
 #if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
@@ -54,6 +54,6 @@ static inline bool ether_addr_equal_unaligned(const u8 *addr1, const u8 *addr2)
 	return memcmp(addr1, addr2, ETH_ALEN) == 0;
 #endif
 }
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0) */
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0) */
 
 #endif /* WILC_LINUX_WLAN_H */

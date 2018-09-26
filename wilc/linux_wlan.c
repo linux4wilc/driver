@@ -45,7 +45,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		wilc_set_power_mgmt(vif, 0, 0);
 
 		/* Start the DuringIPTimer */
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 		vif->during_ip_timer.data = (uint32_t)vif;
 	#endif
 		mod_timer(&vif->during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
@@ -74,7 +74,7 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 		vif->obtaining_ip = true;
 
 		/* Start the DuringIPTimer */
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 		vif->during_ip_timer.data = (uint32_t)vif;
 	#endif
 		mod_timer(&vif->during_ip_timer, (jiffies + msecs_to_jiffies(DURING_IP_TIME_OUT)));
@@ -102,13 +102,13 @@ void store_power_save_current_state(struct wilc_vif *vif, bool val)
 	vif->pwrsave_current_state = val;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 void clear_during_ip(struct timer_list *t)
 #else
 void clear_during_ip(unsigned long arg)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	struct wilc_vif *vif= from_timer(vif, t, during_ip_timer);
 #else
 	struct wilc_vif *vif = (struct wilc_vif *)arg;
@@ -283,7 +283,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 	switch (event) {
 	case NETDEV_UP:
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "dev_state_ev_handler event=NETDEV_UP %p\n",dev);
+			   "dev_state_ev_handler event=NETDEV_UP %p\n", dev);
 		PRINT_D(vif->ndev, GENERIC_DBG,
 			"\n =========== IP Address Obtained ============\n\n");
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
@@ -303,7 +303,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 
 	case NETDEV_DOWN:
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "dev_state_ev_handler event=NETDEV_DOWN %p\n",dev);
+			   "dev_state_ev_handler event=NETDEV_DOWN %p\n", dev);
 		PRINT_D(vif->ndev, GENERIC_DBG,
 			"\n =========== IP Address Released ============\n\n");
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
@@ -387,7 +387,7 @@ static int init_irq(struct net_device *dev)
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wl = vif->wilc;
 	
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
 
 	wl->gpio_irq = gpiod_get(wl->dt_dev, "irq", GPIOD_IN);
 	if (IS_ERR(wl->gpio_irq)) {
@@ -457,7 +457,7 @@ static int init_irq(struct net_device *dev)
 	return ret;
 
 free_gpio:
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
 	gpiod_put(wl->gpio_irq);
 	wl->gpio_irq = NULL;
 #else
@@ -478,7 +478,7 @@ static void deinit_irq(struct net_device *dev)
 		wilc->dev_irq_num = -1;
 	}
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
 	if (wilc->gpio_irq) {
 		gpiod_put(wilc->gpio_irq);
 		wilc->gpio_irq = NULL;
@@ -522,7 +522,7 @@ void free_eap_buff_params(void *vp)
 	}
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 void eap_buff_timeout(struct timer_list *t)
 #else
 void eap_buff_timeout(unsigned long user)
@@ -531,7 +531,7 @@ void eap_buff_timeout(unsigned long user)
     u8 null_bssid[ETH_ALEN] = {0};
     static u8 timeout = 5;
     int status = -1;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
     struct wilc_priv *priv = from_timer(priv, t, eap_buff_timer);
 #else
 	struct wilc_priv *priv = (struct wilc_priv *)user;
@@ -539,7 +539,7 @@ void eap_buff_timeout(unsigned long user)
     struct wilc_vif *vif = netdev_priv(priv->dev);
 
     if (!(memcmp(priv->associated_bss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
-            mod_timer(&priv->eap_buff_timer,(jiffies + msecs_to_jiffies(10)));
+            mod_timer(&priv->eap_buff_timer, (jiffies + msecs_to_jiffies(10)));
             return;
     }
     del_timer(&priv->eap_buff_timer);
@@ -980,7 +980,7 @@ static void wlan_deinitialize_threads(struct net_device *dev)
 	}
 
 	wl->close = 1;
-	PRINT_INFO(vif->ndev, INIT_DBG,"Deinitializing Threads\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing Threads\n");
 
 	complete(&wl->txq_event);
 
@@ -1080,7 +1080,7 @@ static int wlan_initialize_threads(struct net_device *dev)
 	if (!debug_running) {
 		PRINT_INFO(vif->ndev, INIT_DBG,
 			   "Creating kthread for Debugging\n");
-		wilc->debug_thread = kthread_run(debug_thread,(void *)dev,
+		wilc->debug_thread = kthread_run(debug_thread, (void *)dev,
 						 "WILC_DEBUG");
 		if(IS_ERR(wilc->debug_thread)) {
 			PRINT_ER(dev, "couldn't create debug thread\n");
@@ -1219,7 +1219,7 @@ static int wilc_mac_open(struct net_device *ndev)
 		return -ENODEV;
 	}
 
-	PRINT_INFO(ndev, INIT_DBG, "MAC OPEN[%p] %s\n",ndev, ndev->name);
+	PRINT_INFO(ndev, INIT_DBG, "MAC OPEN[%p] %s\n", ndev, ndev->name);
 
 	if(wl->open_ifcs == 0)
 		wilc_bt_power_up(wl, PWR_DEV_SRC_WIFI);
@@ -1232,7 +1232,7 @@ static int wilc_mac_open(struct net_device *ndev)
 		}
 	}
 
-	PRINT_INFO(vif->ndev, INIT_DBG,"*** re-init ***\n");
+	PRINT_INFO(vif->ndev, INIT_DBG, "*** re-init ***\n");
 	ret = wilc_wlan_initialize(ndev, vif);
 	if (ret < 0) {
 		PRINT_ER(ndev, "Failed to initialize wilc\n");
@@ -1299,7 +1299,7 @@ static int wilc_set_mac_addr(struct net_device *dev, void *p)
 	int i;
 
 	if (!is_valid_ether_addr(addr->sa_data)) {
-		PRINT_INFO(vif->ndev, INIT_DBG,"Invalid MAC address \n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Invalid MAC address \n");
 		return -EINVAL;
 	}
 	
@@ -1317,7 +1317,7 @@ static int wilc_set_mac_addr(struct net_device *dev, void *p)
 	}
 	
 	/* configure new MAC address */
-	result = wilc_set_mac_address(vif,(u8 *)addr->sa_data);
+	result = wilc_set_mac_address(vif, (u8 *)addr->sa_data);
 	ether_addr_copy(vif->bssid, addr->sa_data);
 	ether_addr_copy(vif->ndev->dev_addr, vif->bssid);
 
@@ -1333,7 +1333,7 @@ static void wilc_set_multicast_list(struct net_device *dev)
 	int res;
 
 	PRINT_INFO(vif->ndev, INIT_DBG,
-		   "Setting mcast List with count = %d. \n",dev->mc.count);
+		   "Setting mcast List with count = %d. \n", dev->mc.count);
 	if (dev->flags & IFF_PROMISC) {
 		PRINT_INFO(vif->ndev, INIT_DBG,
 			   "Set promiscuous mode ON retrive all pkts\n");
@@ -1380,11 +1380,11 @@ static void linux_wlan_tx_complete(void *priv, int status)
 	if (status == 1)
 		PRINT_INFO(pv_data->vif->ndev, TX_DBG,
 			  "Packet sentSize= %d Add= %p SKB= %p\n",
-			  pv_data->size,pv_data->buff, pv_data->skb);
+			  pv_data->size, pv_data->buff, pv_data->skb);
 	else
 		PRINT_INFO(pv_data->vif->ndev, TX_DBG,
 			   "Couldn't send pkt Size= %d Add= %p SKB= %p\n",
-			   pv_data->size,pv_data->buff, pv_data->skb);
+			   pv_data->size, pv_data->buff, pv_data->skb);
 	dev_kfree_skb(pv_data->skb);
 	kfree(pv_data);
 }
@@ -1420,7 +1420,7 @@ netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 
 	eth_h = (struct ethhdr *)(skb->data);
 	if (eth_h->h_proto == (0x8e88))
-		PRINT_INFO(ndev,TX_DBG, " EAPOL transmitted\n");
+		PRINT_INFO(ndev, TX_DBG, " EAPOL transmitted\n");
 
 	ih = (struct iphdr *)(skb->data + sizeof(struct ethhdr));
 
@@ -1431,8 +1431,8 @@ netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 			   "DHCP Message transmitted, type:%x %x %x\n",
 			   udp_buf[248], udp_buf[249], udp_buf[250]);
 
-	PRINT_D(vif->ndev, TX_DBG,"Sending pkt Size= %d Add= %p SKB= %p\n",
-		tx_data->size,tx_data->buff,tx_data->skb);
+	PRINT_D(vif->ndev, TX_DBG, "Sending pkt Size= %d Add= %p SKB= %p\n",
+		tx_data->size, tx_data->buff, tx_data->skb);
 	PRINT_D(vif->ndev, TX_DBG, "Adding tx pkt to TX Queue\n");
 	vif->netstats.tx_packets++;
 	vif->netstats.tx_bytes += tx_data->size;
@@ -1488,7 +1488,7 @@ static int wilc_mac_close(struct net_device *ndev)
 	if (wl->open_ifcs > 0) {
 		wl->open_ifcs--;
 	} else {
-		PRINT_ER(ndev,"MAC close called with no opened interfaces\n");
+		PRINT_ER(ndev, "MAC close called with no opened interfaces\n");
 		return 0;
 	}
 
@@ -1554,10 +1554,10 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 			priv->buffered_eap->pkt_offset = pkt_offset;
 			memcpy(priv->buffered_eap->buff, buff -
 			       pkt_offset, size + pkt_offset);
-		#if LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0)
+		#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 			priv->eap_buff_timer.data = (unsigned long) priv;
 		#endif
-			mod_timer(&priv->eap_buff_timer,(jiffies +
+			mod_timer(&priv->eap_buff_timer, (jiffies +
                                       msecs_to_jiffies(10))) ;
 			return;
 		}
@@ -1570,7 +1570,7 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 		skb->dev = vif->ndev;
 		if (skb->dev == NULL)
 			PRINT_ER(vif->ndev, "skb->dev is NULL\n");
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
 		skb_put_data(skb, buff_to_send, frame_len);
 	#else
 		memcpy(skb_put(skb, frame_len), buff_to_send, frame_len);
@@ -1783,7 +1783,7 @@ free_wl:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)
 static void wilc_wlan_power(struct wilc *wilc, int power)
 {
 	struct gpio_desc *gpio_reset;
@@ -1793,7 +1793,7 @@ static void wilc_wlan_power(struct wilc *wilc, int power)
 
 	gpio_reset = gpiod_get(wilc->dt_dev, "reset", GPIOD_ASIS);
 	if (IS_ERR(gpio_reset)) {
-		dev_warn(wilc->dev,"failed to get Reset GPIO, try default\r\n");
+		dev_warn(wilc->dev, "failed to get Reset GPIO, try default\r\n");
 		gpio_reset = gpio_to_desc(GPIO_NUM_RESET);
 		if (!gpio_reset) {
 			dev_warn(wilc->dev,

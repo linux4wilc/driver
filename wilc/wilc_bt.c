@@ -273,7 +273,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 		/*If WiFi is off, force BT*/
 		if(wilc->power_status[PWR_DEV_SRC_WIFI] == false)
 		{
-			acquire_bus(wilc, ACQUIRE_AND_WAKEUP,PWR_DEV_SRC_BT);
+			acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_BT);
 
 			/*TicketId1115*/
 			/*Disable awake coex null frames*/
@@ -470,7 +470,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	ret = wilc->hif_func->hif_write_reg(wilc, 0x4f0000, 0x71);
 	if (!ret) {
 		pr_err("[wilc start]: fail write reg 0x4f0000 ...\n");
-		release_bus(wilc,RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
+		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 		goto fail_1;
 	}
 

@@ -180,7 +180,7 @@ static void wilc_wlan_parse_response_frame(struct wilc *wl, u8 *info,
 		i = 0;
 		wid = info[0] | (info[1] << 8);
 
-		PRINT_D(vif->ndev, GENERIC_DBG,"Processing response for %d\n",
+		PRINT_D(vif->ndev, GENERIC_DBG, "Processing response for %d\n",
 			wid);
 		switch (GET_WID_TYPE(wid)) {
 		case WID_CHAR:
@@ -297,7 +297,7 @@ static void wilc_wlan_parse_info_frame(struct wilc *wl, u8 *info)
 	wid = info[0] | (info[1] << 8);
 
 	len = info[2];
-	PRINT_D(vif->ndev, GENERIC_DBG,"Status Len = %d Id= %d\n", len, wid);
+	PRINT_D(vif->ndev, GENERIC_DBG, "Status Len = %d Id= %d\n", len, wid);
 	
 	if (len == 1 && wid == WID_STATUS) {
 		int i = 0;
@@ -492,7 +492,7 @@ void wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 		rsp->type = WILC_CFG_RSP_STATUS;
 		rsp->seq_no = msg_id;
 		/*call host interface info parse as well*/
-		PRINT_D(wilc->vif[0]->ndev, RX_DBG,"Info message received\n");
+		PRINT_D(wilc->vif[0]->ndev, RX_DBG, "Info message received\n");
 		wilc_gnrl_async_info_received(wilc, frame - 4, size + 4);
 		break;
 
@@ -501,7 +501,7 @@ void wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 		break;
 
 	case 'S':
-		PRINT_D(wilc->vif[0]->ndev, RX_DBG,"Scan Notification Received\n");
+		PRINT_D(wilc->vif[0]->ndev, RX_DBG, "Scan Notification Received\n");
 		wilc_scan_complete_received(wilc, frame - 4, size + 4);
 		break;
 
