@@ -295,8 +295,7 @@ void remove_network_from_shadow(unsigned long arg)
 	#endif
 		mod_timer(&priv->aging_timer,
 			  jiffies + msecs_to_jiffies(AGING_TIME));
-	}
-	else {
+	} else {
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "No need to restart Aging timer\n");
 	}
@@ -2802,8 +2801,9 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net,
 		kfree(wdev);
 		return NULL;
 	}
-	else
+	else {
 		PRINT_INFO(net, CFG80211_DBG, "Successful Registering\n");
+	}
 
 	priv->dev = net;
 	return wdev;

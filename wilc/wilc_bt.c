@@ -234,8 +234,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 					break;
 				}
 			}
-		}
-		else if ((wilc->power_status[PWR_DEV_SRC_BT] == true)) {
+		} else if ((wilc->power_status[PWR_DEV_SRC_BT] == true)) {
 			while (!bt_init_done) {
 				msleep(200);
 				if (++count > 30) {
