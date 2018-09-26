@@ -263,7 +263,7 @@ void remove_network_from_shadow(unsigned long arg)
 #else
 	struct wilc_priv *priv = (struct wilc_priv*)arg;
 #endif
-	struct wilc_vif* vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(priv->dev);
 	unsigned long now = jiffies;
 	int i, j;
 

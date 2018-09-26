@@ -30,13 +30,13 @@ int bt_init_done = 0;
 
 typedef void (wilc_cmd_handler)(char*);
 
-static void wilc_cmd_handle_bt_enable(char* param);
-static void wilc_cmd_handle_bt_power_up(char* param);
-static void wilc_cmd_handle_bt_power_down(char* param);
-static void wilc_cmd_handle_bt_fw_chip_wake_up(char* param);
-static void wilc_cmd_handle_bt_fw_chip_allow_sleep(char* param);
-static void wilc_cmd_handle_bt_download_fw(char* param);
-static void wilc_cmd_handle_wilc_cca_threshold(char* param);
+static void wilc_cmd_handle_bt_enable(char *param);
+static void wilc_cmd_handle_bt_power_up(char *param);
+static void wilc_cmd_handle_bt_power_down(char *param);
+static void wilc_cmd_handle_bt_fw_chip_wake_up(char *param);
+static void wilc_cmd_handle_bt_fw_chip_allow_sleep(char *param);
+static void wilc_cmd_handle_bt_download_fw(char *param);
+static void wilc_cmd_handle_wilc_cca_threshold(char *param);
 
 int wilc_bt_power_up(struct wilc *, int source);
 int wilc_bt_power_down(struct wilc *, int source);
@@ -159,7 +159,7 @@ static void wilc_bt_create_device(void)
 	device_created = 1;
 }
 
-static void wilc_cmd_handle_wilc_cca_threshold(char* param)
+static void wilc_cmd_handle_wilc_cca_threshold(char *param)
 {
 	int carrier_thrshold, noise_thrshold;
 	unsigned int carr_thrshold_frac, noise_thrshold_frac, carr_thrshold_int,
@@ -592,7 +592,7 @@ static void wilc_bt_start(struct wilc *wilc)
 	release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_BT);
 }
 
-static void wilc_cmd_handle_bt_power_up(char* param)
+static void wilc_cmd_handle_bt_power_up(char *param)
 {
 	pr_info("AT PWR: bt_power_up\n");
 	bt_init_done = 0;
@@ -609,23 +609,23 @@ static void wilc_cmd_handle_bt_power_up(char* param)
 	wilc_bt_power_up(wilc_bt, PWR_DEV_SRC_BT);
 }
 
-static void wilc_cmd_handle_bt_power_down(char* param)
+static void wilc_cmd_handle_bt_power_down(char *param)
 {
 	wilc_bt_power_down(wilc_bt, PWR_DEV_SRC_BT);
 }
 
-static void wilc_cmd_handle_bt_fw_chip_wake_up(char* param)
+static void wilc_cmd_handle_bt_fw_chip_wake_up(char *param)
 {
 	chip_wakeup(wilc_bt, PWR_DEV_SRC_BT);
 }
 
-static void wilc_cmd_handle_bt_fw_chip_allow_sleep(char* param)
+static void wilc_cmd_handle_bt_fw_chip_allow_sleep(char *param)
 {
 	bt_init_done = 1;
 	chip_allow_sleep(wilc_bt, PWR_DEV_SRC_BT);
 }
 
-static void wilc_cmd_handle_bt_download_fw(char* param)
+static void wilc_cmd_handle_bt_download_fw(char *param)
 {
 	pr_info("AT PWR: bt_download_fw\n");
 
@@ -633,7 +633,7 @@ static void wilc_cmd_handle_bt_download_fw(char* param)
 	wilc_bt_start(wilc_bt);
 }
 
-static void wilc_cmd_handle_bt_enable(char* param)
+static void wilc_cmd_handle_bt_enable(char *param)
 {
 	wilc_bt_power_up(wilc_bt, PWR_DEV_SRC_BT);
 	wilc_bt_firmware_download(wilc_bt);

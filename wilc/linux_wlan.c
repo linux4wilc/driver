@@ -333,7 +333,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 }
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
-void linux_wlan_disable_irq(struct wilc* wilc, int wait)
+void linux_wlan_disable_irq(struct wilc *wilc, int wait)
 {
 	if (wait) {
 		PRINT_INFO(wilc->vif[0]->ndev, INT_DBG, "Disabling IRQ ...\n");
@@ -588,7 +588,7 @@ int wilc_wlan_get_num_conn_ifcs(struct wilc *wilc)
 	return ret_val;
 }
 
-struct net_device* wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc)
+struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc)
 {
 	return wilc->vif[ifc]->ndev;
 }
