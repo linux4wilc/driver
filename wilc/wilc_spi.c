@@ -174,7 +174,7 @@ static int wilc_spi_suspend(struct device *dev)
 	chip_allow_sleep(wilc, 0);
 	mutex_lock(&wilc->hif_cs);
 
-	return 0 ;
+	return 0;
 }
 
 static int wilc_spi_resume(struct device *dev)

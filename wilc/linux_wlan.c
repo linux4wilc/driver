@@ -1558,7 +1558,7 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 			priv->eap_buff_timer.data = (unsigned long) priv;
 		#endif
 			mod_timer(&priv->eap_buff_timer, (jiffies +
-                                      msecs_to_jiffies(10))) ;
+                                      msecs_to_jiffies(10)));
 			return;
 		}
 		skb = dev_alloc_skb(frame_len);
