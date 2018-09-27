@@ -169,11 +169,10 @@ static void wilc_cmd_handle_wilc_cca_threshold(char *param)
 	}
 
 	if (sscanf(param, " %d %d", &noise_thrshold, &carrier_thrshold) != 2) {
-		pr_err("Failed to parse input parameters. Usage:\n echo CCA_THRESHOLD "
-			"NOISE_THRESHOLD CARRIER_THRESHOLD > /dev/at_pwr_dev\n"
-			"where threshold values are in dB * 10\ne.g."
-			"echo CCA_THRESHOLD -625 -826 > /dev/at_pwr_dev to set thresholds "
-			"to -62.5 and -82.6\n\n");
+		pr_err("Failed to parse input parameters. Usage:\n");
+		pr_err("echo CCA_THRESHOLD NOISE_THRESHOLD CARRIER_THRESHOLD > /dev/at_pwr_dev\n");
+		pr_err("where threshold values are in dB * 10\n");
+		pr_err("e.g. echo CCA_THRESHOLD -625 -826 > /dev/at_pwr_dev to set thresholds to -62.5 and -82.6\n\n");
 		return;
 	}
 
