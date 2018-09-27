@@ -725,6 +725,7 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 
 	for (i = 0; i < request->n_channels; i++) {
 		u16 freq = request->channels[i]->center_freq;
+
 		scan_ch_list[i] = (u8)ieee80211_frequency_to_channel(freq);
 		PRINT_D(vif->ndev, CFG80211_DBG,
 			"ScanChannel List[%d] = %d",
@@ -1794,6 +1795,7 @@ static int remain_on_channel(struct wiphy *wiphy,
 	int ret = 0;
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
+
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Remaining on channel %d\n", chan->hw_value);
 
 	if (wdev->iftype == NL80211_IFTYPE_AP) {
@@ -1821,6 +1823,7 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 {
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
+
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Cancel remain on channel\n");
 
 	return wilc_listen_state_expired(vif,

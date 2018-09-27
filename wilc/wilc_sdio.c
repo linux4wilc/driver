@@ -126,6 +126,7 @@ static int linux_sdio_probe(struct sdio_func *func,
 	int ret, io_type;
 	static bool init_power;
 	struct wilc_sdio *sdio_priv;
+
 	sdio_priv = kzalloc(sizeof(*sdio_priv), GFP_KERNEL);
 	if (!sdio_priv)
 		return -ENOMEM;
@@ -273,6 +274,7 @@ static int wilc_sdio_enable_interrupt(struct wilc *dev)
 {
 	struct sdio_func *func = container_of(dev->dev, struct sdio_func, dev);
 	int ret = 0;
+
 	sdio_intr_lock  = WILC_SDIO_HOST_NO_TAKEN;
 
 	sdio_claim_host(func);

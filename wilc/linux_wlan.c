@@ -1039,6 +1039,7 @@ static void wlan_init_locks(struct net_device *dev)
 {
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wl = vif->wilc;
+
 	PRINT_INFO(vif->ndev, INIT_DBG, "Initializing Locks ...\n");
 
 	mutex_init(&wl->rxq_cs);

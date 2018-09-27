@@ -1669,6 +1669,7 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 			assoc_resp_info_len);
 		if (assoc_resp_info_len != 0) {
 			s32 err = 0;
+
 			PRINT_INFO(vif->ndev, HOSTINF_DBG,
 				   "Parsing association response\n");
 			err = wilc_parse_assoc_resp_info(hif_drv->assoc_resp,
@@ -2182,6 +2183,7 @@ static void handle_disconnect(struct work_struct *work)
 	if (conn_req->conn_result) {
 		if (hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP) {
 			struct connect_info strConnectInfo;
+
 			PRINT_INFO(vif->ndev, HOSTINF_DBG,
 				   "Upper layer requested termination of connection\n");
 			memset(&strConnectInfo, 0, sizeof(struct connect_info));

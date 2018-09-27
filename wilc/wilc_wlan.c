@@ -40,6 +40,7 @@ void release_bus(struct wilc *wilc, enum bus_release release, int source)
 uint8_t reset_bus(struct wilc *wilc)
 {
 	uint8_t ret = 0;
+
 	if (wilc->io_type == HIF_SPI)
 		return wilc->hif_func->hif_reset(wilc);
 	return ret;
@@ -670,6 +671,7 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 			  (source == PWR_DEV_SRC_WIFI ? "Wifi" : "BT"));
 	} else {
 		int ret;
+
 		if (wilc->chip == WILC_1000) {
 			u32 wakeup_reg, wakeup_bit;
 			u32 to_host_from_fw_reg, to_host_from_fw_bit;
