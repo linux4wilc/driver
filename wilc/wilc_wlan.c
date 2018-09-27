@@ -1535,7 +1535,8 @@ int wilc_wlan_start(struct wilc *wilc)
 
 	ret = wilc->hif_func->hif_write_reg(wilc, WILC_GP_REG_1, reg);
 	if (!ret) {
-		PRINT_ER(vif->ndev, "[wilc start]: fail write WILC_GP_REG_1...\n");
+		PRINT_ER(vif->ndev,
+			 "[wilc start]: fail write WILC_GP_REG_1...\n");
 		release_bus(wilc, RELEASE_ALLOW_SLEEP, PWR_DEV_SRC_WIFI);
 		return -EIO;
 	}
@@ -1646,7 +1647,7 @@ int wilc_wlan_stop(struct wilc *wilc)
 							   WILC_GLB_RESET_0,
 							   &reg);
 			if (!ret) {
-				PRINT_ER(vif->ndev, "Error while reading reg\n");
+				PRINT_ER(vif->ndev, "Error reading reg\n");
 				release_bus(wilc, RELEASE_ALLOW_SLEEP,
 					    PWR_DEV_SRC_WIFI);
 				return ret;

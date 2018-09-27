@@ -33,8 +33,11 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 	switch (state) {
 	case IP_STATE_OBTAINING:
 
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "Obtaining an IP, Disable (Scan-Set PowerSave)\n");
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "Save the Current state of the PS = %d\n", vif->pwrsave_current_state);
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "Obtaining IP, Disable (Scan-Set PowerSave)\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "Save the Current state of the PS = %d\n",
+			   vif->pwrsave_current_state);
 
 		vif->obtaining_ip = true;
 
@@ -55,8 +58,11 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 
 	case IP_STATE_OBTAINED:
 
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP obtained , Enable (Scan-Set PowerSave)\n");
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "IP obtained , Enable (Scan-Set PowerSave)\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "Recover the state of the PS = %d\n",
+			   vif->pwrsave_current_state);
 
 		vif->obtaining_ip = false;
 
@@ -163,7 +169,8 @@ static int debug_thread(void *arg)
 						msecs_to_jiffies(6000))) {
 			while (!kthread_should_stop())
 				schedule();
-			PRINT_INFO(vif->ndev, GENERIC_DBG, "Exit debug thread\n");
+			PRINT_INFO(vif->ndev, GENERIC_DBG,
+				   "Exit debug thread\n");
 			return 0;
 		}
 
@@ -193,10 +200,12 @@ static int debug_thread(void *arg)
 		if (hif_drv->hif_state == HOST_IF_CONNECTED) {
 			struct disconnect_info strDisconnectNotifInfo;
 
-			PRINT_INFO(vif->ndev, GENERIC_DBG, "notify the upper layer with the wlan Disconnection\n");
+			PRINT_INFO(vif->ndev, GENERIC_DBG,
+				   "notify the upper layer with the wlan Disconnection\n");
 			memset(&strDisconnectNotifInfo, 0, sizeof(struct disconnect_info));
 			if (hif_drv->usr_scan_req.scan_result) {
-				PRINT_INFO(vif->ndev, GENERIC_DBG, "\n\n<< Abort the running OBSS Scan >>\n\n");
+				PRINT_INFO(vif->ndev, GENERIC_DBG,
+					   "\n\n<< Abort the running OBSS Scan >>\n\n");
 				del_timer(&hif_drv->scan_timer);
 				handle_scan_done(vif, SCAN_EVENT_ABORTED);
 			}
@@ -211,8 +220,7 @@ static int debug_thread(void *arg)
 #endif
 
 				hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
-								  NULL,
-								  0,
+								  NULL, 0,
 								  &strDisconnectNotifInfo,
 								  hif_drv->usr_conn_req.arg);
 			} else {
@@ -605,30 +613,30 @@ static int linux_wlan_txq_task(void *vp)
 {
 	int ret;
 	u32 txq_count;
-	struct net_device *dev = vp;
+	struct net_device *ndev = vp;
 	int backoff_weight = TX_BACKOFF_WEIGHT_MIN;
 	signed long timeout;
-	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc_vif *vif = netdev_priv(ndev);
 	struct wilc *wl = vif->wilc;
 
 	complete(&wl->txq_thread_started);
 	while (1) {
-		PRINT_INFO(vif->ndev, TX_DBG, "txq_task Taking a nap\n");
+		PRINT_INFO(ndev, TX_DBG, "txq_task Taking a nap\n");
 		wait_for_completion(&wl->txq_event);
-		PRINT_INFO(vif->ndev, TX_DBG, "txq_task Who waked me up\n");
+		PRINT_INFO(ndev, TX_DBG, "txq_task Who waked me up\n");
 		if (wl->close) {
 			complete(&wl->txq_thread_started);
 
 			while (!kthread_should_stop())
 				schedule();
-			PRINT_INFO(vif->ndev, TX_DBG, "TX thread stopped\n");
+			PRINT_INFO(ndev, TX_DBG, "TX thread stopped\n");
 			break;
 		}
-		PRINT_INFO(vif->ndev, TX_DBG, "txq_task handle the sending packet and let me go to sleep.\n");
+		PRINT_INFO(ndev, TX_DBG, "handle the tx packet\n");
 		do {
-			ret = wilc_wlan_handle_txq(dev, &txq_count);
+			ret = wilc_wlan_handle_txq(ndev, &txq_count);
 			if (txq_count < FLOW_CONTROL_LOWER_THRESHOLD) {
-				PRINT_INFO(vif->ndev, TX_DBG, "Waking up queue\n");
+				PRINT_INFO(ndev, TX_DBG, "Waking up queue\n");
 				if (netif_queue_stopped(wl->vif[0]->ndev))
 					netif_wake_queue(wl->vif[0]->ndev);
 				if (netif_queue_stopped(wl->vif[1]->ndev))
@@ -1112,7 +1120,8 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			ret = -EIO;
 			goto fail_locks;
 		}
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "WILC Initialization done\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "WILC Initialization done\n");
 		if (init_irq(dev)) {
 			ret = -EIO;
 			goto fail_locks;

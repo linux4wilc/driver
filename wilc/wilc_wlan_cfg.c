@@ -499,7 +499,8 @@ void wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 		break;
 
 	case 'S':
-		PRINT_D(wilc->vif[0]->ndev, RX_DBG, "Scan Notification Received\n");
+		PRINT_D(wilc->vif[0]->ndev, RX_DBG,
+			"Scan Notification Received\n");
 		wilc_scan_complete_received(wilc, frame - 4, size + 4);
 		break;
 

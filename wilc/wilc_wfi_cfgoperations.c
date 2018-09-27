@@ -1797,7 +1797,8 @@ static int remain_on_channel(struct wiphy *wiphy,
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Remaining on channel %d\n", chan->hw_value);
 
 	if (wdev->iftype == NL80211_IFTYPE_AP) {
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "Required while in AP mode\n");
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "Required while in AP mode\n");
 		return ret;
 	}
 
@@ -1997,7 +1998,8 @@ static int mgmt_tx(struct wiphy *wiphy,
 							    buf_len);
 			#endif
 			else
-				PRINT_INFO(vif->ndev, GENERIC_DBG, "Not a P2P public action frame\n");
+				PRINT_INFO(vif->ndev, GENERIC_DBG,
+					   "Not a P2P public action frame\n");
 
 			break;
 
@@ -2130,7 +2132,8 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 
 	/* Can't set PS during obtaining IP */
 	if (vif->obtaining_ip == true) {
-		PRINT_ER(dev, "Device obtaining IP, Power Managment will be handled after IP Obtained\n");
+		PRINT_ER(dev,
+			 "Device obtaining IP, Power Managment will be handled after IP Obtained\n");
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "Save the Current state of the PS = %d\n", enabled);
 
@@ -2140,7 +2143,9 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 		return 0;
 	}
 
-	PRINT_INFO(vif->ndev, CFG80211_DBG, " Power save Enabled= %d , TimeOut = %d\n", enabled, timeout);
+	PRINT_INFO(vif->ndev, CFG80211_DBG,
+		   " Power save Enabled= %d , TimeOut = %d\n", enabled,
+		   timeout);
 
 	if (vif->wilc->enable_ps)
 		wilc_set_power_mgmt(vif, enabled, timeout);
@@ -2583,7 +2588,8 @@ static int wilc_suspend(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 
 	if (!wow)
-		PRINT_INFO(priv->dev, GENERIC_DBG, "No wake up triggers defined\n");
+		PRINT_INFO(priv->dev, GENERIC_DBG,
+			   "No wake up triggers defined\n");
 	else if (wow->any == 0)
 		PRINT_INFO(priv->dev, GENERIC_DBG,
 			   "The only supported wake up trigger (any) is not set\n");
