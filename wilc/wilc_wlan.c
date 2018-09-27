@@ -820,7 +820,9 @@ void chip_wakeup_wilc1000(struct wilc *wilc, int source)
 		val32 |= BIT(6);
 		wilc->hif_func->hif_write_reg(wilc, 0x1e9c, val32);
 	}
-	/*workaround sometimes spi fail to read clock regs after reading/writing clockless registers*/
+	/*workaround sometimes spi fail to read clock regs after reading
+	 * writing clockless registers
+	 */
 	reset_bus(wilc);
 
 _fail_:
@@ -864,15 +866,17 @@ void chip_wakeup_wilc3000(struct wilc *wilc, int source)
 			usleep_range(1000, 1100);
 
 			/*
-			 * Make sure chip is awake. This is an extra step that can be removed
-			 * later to avoid the bus access overhead
-			 * g_wlan.hif_func.hif_read_reg(0xf0, &clk_status_reg_val);
+			 * Make sure chip is awake. This is an extra step that
+			 * can be removed later to avoid the bus access
+			 * overhead
 			 */
 			wilc->hif_func->hif_read_reg(wilc, clk_status_register,
 						      &clk_status_reg_val);
 
 		}
-		/* in case of failure, Reset the wakeup bit to introduce a new edge on the next loop */
+		/* in case of failure, Reset the wakeup bit to introduce a new
+		 * edge on the next loop
+		 */
 		if ((clk_status_reg_val & clk_status_bit) == 0) {
 			dev_warn(wilc->dev, "clocks still OFF. Retrying\n");
 			wilc->hif_func->hif_write_reg(wilc, wakeup_register,

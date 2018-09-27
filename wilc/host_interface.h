@@ -378,7 +378,9 @@ void wilc_resolve_disconnect_aberration(struct wilc_vif *vif);
 int wilc_get_vif_idx(struct wilc_vif *vif);
 int wilc_set_tx_power(struct wilc_vif *vif, u8 tx_power);
 int wilc_get_tx_power(struct wilc_vif *vif, u8 *tx_power);
-/*0 select antenna 1 , 2 select antenna mode , 2 allow the firmware to choose the best antenna*/
+/*0 select antenna 1 , 2 select antenna mode , 2 allow the firmware to choose
+ * the best antenna
+ */
 int wilc_set_antenna(struct wilc_vif *vif, u8 mode);
 
 signed int host_int_set_wowlan_trigger(struct wilc_vif *vif, u8 wowlan_trigger);

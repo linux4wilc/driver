@@ -210,7 +210,9 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 
 		pr_info("AT PWR: bt_power_down\n");
 
-		/* Adjust coexistence module. This should be done from the FW in the future*/
+		/* Adjust coexistence module. This should be done from the FW
+		 * in the future
+		 */
 		acquire_bus(wilc, ACQUIRE_AND_WAKEUP, PWR_DEV_SRC_BT);
 
 		ret = wilc->hif_func->hif_read_reg(wilc, WILC_GLOBAL_MODE_CONTROL, &reg);
@@ -461,8 +463,8 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	}
 
 	/*
-	 * Avoid booting from BT boot ROM. Make sure that Drive IRQN [SDIO platform]
-	 * or SD_DAT3 [SPI platform] to ?1?
+	 * Avoid booting from BT boot ROM. Make sure that Drive IRQN
+	 * [SDIO platform] or SD_DAT3 [SPI platform] to ?1?
 	 */
 	/* Set cortus reset register to register control. */
 	ret = wilc->hif_func->hif_read_reg(wilc, 0x3b0090, &reg);

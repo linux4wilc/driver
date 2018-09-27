@@ -38,7 +38,9 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 
 		vif->obtaining_ip = true;
 
-		/* Set this flag to avoid storing the disabled case of PS which occurs duringIP */
+		/* Set this flag to avoid storing the disabled case of PS which
+		 * occurs duringIP
+		 */
 		g_ignore_PS_state = true;
 
 		wilc_set_power_mgmt(vif, 0, 0);
@@ -634,11 +636,13 @@ static int linux_wlan_txq_task(void *vp)
 			if (ret == WILC_TX_ERR_NO_BUF) {
 				timeout = msecs_to_jiffies(TX_BACKOFF_WEIGHT_UNIT_MS << backoff_weight);
 				do {
-					/* Back off from sending packets for some time. */
-					/* schedule_timeout will allow RX task to run and free buffers.*/
-					/*Setting state to TASK_INTERRUPTIBLE will put the thread back to CPU*/
-					/*running queue when it's signaled even if 'timeout' isn't elapsed.*/
-					/*This gives faster chance for reserved SK buffers to be freed*/
+			/* Back off from sending packets for some time.
+			 * schedule_timeout will allow RX task to run and free
+			 * buffers. Setting state to TASK_INTERRUPTIBLE will
+			 * put the thread back to CPU running queue when it's
+			 * signaled even if 'timeout' isn't elapsed. This gives
+			 * faster chance for reserved SK buffers to be freed
+			 */
 					set_current_state(TASK_INTERRUPTIBLE);
 					timeout = schedule_timeout(timeout);
 					} while (/*timeout*/0);
