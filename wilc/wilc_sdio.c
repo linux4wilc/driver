@@ -10,9 +10,7 @@
 #include <linux/module.h>
 
 #include "wilc_wfi_netdevice.h"
-
-void chip_wakeup(struct wilc *wilc, int source);
-void chip_allow_sleep(struct wilc *wilc, int source);
+#include "wilc_wlan.h"
 
 enum sdio_host_lock {
 	WILC_SDIO_HOST_NO_TAKEN = 0,

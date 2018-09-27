@@ -21,7 +21,6 @@
 
 extern void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size,
 				u32 pkt_offset, u8 status);
-extern void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size);
 
 void acquire_bus(struct wilc *wilc, enum bus_acquire acquire, int source)
 {
@@ -1301,14 +1300,14 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 				PRINT_ER(vif->ndev,
 					 "wilc_netdev in wilc is NULL");
 				return;
-			 }
+			}
 
 			 vif = netdev_priv(wilc_netdev);
 
-			 if (vif->iftype == MONITOR_MODE)
+			if (vif->iftype == MONITOR_MODE)
 				/* packet received on monitor interface */
 				wilc_wfi_monitor_rx(vif, buffer, size);
-			 else if (pkt_len > 0)
+			else if (pkt_len > 0)
 				wilc_frmw_to_linux(vif, buff_ptr, pkt_len,
 						   pkt_offset, PKT_STATUS_NEW);
 		}
@@ -1822,7 +1821,6 @@ int wilc_wlan_cfg_get_val(struct wilc *wl, u16 wid, u8 *buffer, u32 buffer_size)
 	return wilc_wlan_cfg_get_wid_value(wl, wid, buffer, buffer_size);
 }
 unsigned int cfg_packet_timeout;
-extern int wait_for_recovery;
 int wilc_send_config_pkt(struct wilc_vif *vif, u8 mode, struct wid *wids,
 			 u32 count, u32 drv)
 {

@@ -1197,9 +1197,6 @@ static int mac_init_fn(struct net_device *ndev)
 	return 0;
 }
 
-int wilc_bt_power_up(struct wilc *wilc, int source);
-int wilc_bt_power_down(struct wilc *wilc, int source);
-
 static int wilc_mac_open(struct net_device *ndev)
 {
 	struct wilc_vif *vif = netdev_priv(ndev);

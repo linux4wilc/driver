@@ -8,6 +8,7 @@
 
 #include "wilc_wfi_netdevice.h"
 #include "linux_wlan.h"
+#include "wilc_wfi_cfgoperations.h"
 
 #define HOST_IF_SCAN_TIMEOUT                    4000
 #define HOST_IF_CONNECT_TIMEOUT                 9500
@@ -76,13 +77,6 @@ struct send_buffered_eap {
 	unsigned int pkt_offset;
 	void *user_arg;
 };
-
-signed int wilc_send_buffered_eap(struct wilc_vif *vif,
-				  wilc_frmw_to_linux_t frmw_to_linux,
-				  free_eap_buf_param eap_buf_param,
-				  u8 *buff, unsigned int size,
-				  unsigned int pkt_offset,
-				  void *user_arg);
 
 struct scan_attr {
 	u8 src;
@@ -241,7 +235,6 @@ struct join_bss_param {
 };
 
 static struct host_if_drv *terminated_handle;;
-extern int recovery_on;
 static struct mutex hif_deinit_lock;
 
 /* 'msg' should be free by the caller for syc */

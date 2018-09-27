@@ -18,6 +18,7 @@
 #define IP_STATE_GO_ASSIGNING					3
 #define IP_STATE_DEFAULT							4
 
+extern int wait_for_recovery;
 
 void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state);
 void store_power_save_current_state(struct wilc_vif *vif, bool val);
@@ -55,5 +56,9 @@ static inline bool ether_addr_equal_unaligned(const u8 *addr1, const u8 *addr2)
 #endif
 }
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0) */
+
+int wilc_bt_power_up(struct wilc *wilc, int source);
+int wilc_bt_power_down(struct wilc *wilc, int source);
+void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size);
 
 #endif /* WILC_LINUX_WLAN_H */
