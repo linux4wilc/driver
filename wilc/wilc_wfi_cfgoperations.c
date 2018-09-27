@@ -165,10 +165,8 @@ void clear_shadow_scan(struct wilc_priv *priv)
 	int i;
 
 	for (i = 0; i < priv->scanned_cnt; i++) {
-		if (priv->scanned_shadow[i].ies) {
-			kfree(priv->scanned_shadow[i].ies);
-			priv->scanned_shadow[i].ies = NULL;
-		}
+		kfree(priv->scanned_shadow[i].ies);
+		priv->scanned_shadow[i].ies = NULL;
 
 		kfree(priv->scanned_shadow[i].join_params);
 		priv->scanned_shadow[i].join_params = NULL;
@@ -2803,8 +2801,6 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net,
 		wiphy_free(wdev->wiphy);
 		kfree(wdev);
 		return NULL;
-	} else {
-		PRINT_INFO(net, CFG80211_DBG, "Successful Registering\n");
 	}
 
 	priv->dev = net;

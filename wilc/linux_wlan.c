@@ -223,10 +223,10 @@ static int debug_thread(void *arg)
 					recovery_on = 0;
 				}
 			}
-		} else if (kthread_should_stop()) {
-			break;
-		} else {
+		} else if (!kthread_should_stop()) {
 			msleep(1000);
+		} else {
+			break;
 		}
 	}
 	return 0;
@@ -507,10 +507,9 @@ void free_eap_buff_params(void *vp)
 	priv = (struct wilc_priv *)vp;
 
 	if (priv->buffered_eap) {
-		if (priv->buffered_eap->buff) {
-			kfree(priv->buffered_eap->buff);
-			priv->buffered_eap->buff = NULL;
-		}
+		kfree(priv->buffered_eap->buff);
+		priv->buffered_eap->buff = NULL;
+
 		kfree(priv->buffered_eap);
 		priv->buffered_eap = NULL;
 	}

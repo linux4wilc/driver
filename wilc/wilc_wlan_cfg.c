@@ -272,11 +272,9 @@ static void wilc_wlan_parse_response_frame(struct wilc *wl, u8 *info,
 						 */
 						len = 2 + length + 1;
 						break;
-					} else {
-						PRINT_ER(vif->ndev,
-							 "Checksum Failed!");
-						return;
 					}
+					PRINT_ER(vif->ndev, "Checksum Failed");
+					return;
 				}
 				i++;
 			} while (1);

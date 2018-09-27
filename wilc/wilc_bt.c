@@ -97,7 +97,7 @@ static ssize_t wilc_bt_dev_write(struct file *f, const char __user *buff,
 	struct wilc_cmd_handle_entry *wilc_cmd_entry;
 	char *cmd_buff;
 
-	cmd_buff = kmalloc(sizeof(char) * len, GFP_KERNEL);
+	cmd_buff = kmalloc(len, GFP_KERNEL);
 
 	if (copy_from_user(cmd_buff, buff, len))
 		return -EIO;
@@ -201,8 +201,6 @@ static void wilc_cmd_handle_wilc_cca_threshold(char *param)
 	reg &= ~(0x7FF0000);
 	reg |= ((carr_thrshold_frac & 0x7) | ((carr_thrshold_int & 0x1FF) << 3)) << 16;
 	wilc_bt->hif_func->hif_write_reg(wilc_bt, CCA_CTL_7, reg);
-
-	return;
 }
 
 int wilc_bt_power_down(struct wilc *wilc, int source)
@@ -330,7 +328,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 	} else {
 		/*Bug 215*/
 		/*Avoid overlapping between BT and Wifi intialization*/
-		if ((wilc->power_status[PWR_DEV_SRC_WIFI] == true)) {
+		if (wilc->power_status[PWR_DEV_SRC_WIFI] == true) {
 			while (!wilc->initialized) {
 				msleep(100);
 				if (++count > 20) {
@@ -338,7 +336,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 					break;
 				}
 			}
-		} else if ((wilc->power_status[PWR_DEV_SRC_BT] == true)) {
+		} else if (wilc->power_status[PWR_DEV_SRC_BT] == true) {
 			while (!bt_init_done) {
 				msleep(200);
 				if (++count > 30) {
@@ -549,7 +547,6 @@ fail_1:
 	pr_debug("Freeing BT FW buffer ...\n");
 	pr_debug("Releasing BT firmware\n");
 	release_firmware(wilc_bt_firmware);
-	return;
 }
 
 static void wilc_bt_start(struct wilc *wilc)

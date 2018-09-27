@@ -36,9 +36,8 @@ extern atomic_t WILC_DEBUG_REGION;
 	netdev_warn(netdev, "WRN [%s: %d]"format, __func__, __LINE__, ##__VA_ARGS__); } \
 	while (0)
 
-#define PRINT_ER(netdev, format, ...) do { netdev_err(netdev, "ERR [%s: %d] "format,\
-	__func__, __LINE__, ##__VA_ARGS__); } \
-	while (0)
+#define PRINT_ER(netdev, format, ...) netdev_err(netdev, "ERR [%s: %d] "format,\
+	__func__, __LINE__, ##__VA_ARGS__)
 
 int wilc_debugfs_init(void);
 void wilc_debugfs_remove(void);

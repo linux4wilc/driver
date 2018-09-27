@@ -310,10 +310,8 @@ void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len
 
 			/* filter only un-matched channels */
 			if (ch_index == ch_list_len) {
-				if (priv->scanned_shadow[i].ies) {
-					kfree(priv->scanned_shadow[i].ies);
-					priv->scanned_shadow[i].ies = NULL;
-				}
+				kfree(priv->scanned_shadow[i].ies);
+				priv->scanned_shadow[i].ies = NULL;
 
 				kfree(priv->scanned_shadow[i].join_params);
 				priv->scanned_shadow[i].join_params = NULL;

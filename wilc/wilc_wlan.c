@@ -382,7 +382,6 @@ static void ac_q_limit(struct wilc *wilc, u8 ac, u16 *q_limit)
 			q_limit[i] = (cnt[i] * FLOW_CONTROL_UPPER_THRESHOLD / sum) + 1;
 	}
 	spin_unlock_irqrestore(&wilc->txq_spinlock, flags);
-	return;
 }
 
 static inline u8 ac_classify(struct wilc *wilc, struct txq_entry_t *tqe)

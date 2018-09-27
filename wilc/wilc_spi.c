@@ -269,11 +269,9 @@ static int wilc_spi_tx(struct wilc *wilc, u8 *b, u32 len)
 		};
 		char *r_buffer = kzalloc(len, GFP_KERNEL);
 
-		if (!r_buffer) {
-			dev_err(&spi->dev,
-				"Failed to allocate memory for r_buffer\n");
+		if (!r_buffer)
 			return -ENOMEM;
-		}
+
 		tr.rx_buf = r_buffer;
 		dev_dbg(&spi->dev, "Request writing %d bytes\n", len);
 
@@ -313,10 +311,9 @@ static int wilc_spi_rx(struct wilc *wilc, u8 *rb, u32 rlen)
 		};
 		char *t_buffer = kzalloc(rlen, GFP_KERNEL);
 
-		if (!t_buffer) {
-			dev_err(&spi->dev, "Failed to allocate memory for t_buffer\n");
+		if (!t_buffer)
 			return -ENOMEM;
-		}
+
 		tr.tx_buf = t_buffer;
 
 		memset(&msg, 0, sizeof(msg));
