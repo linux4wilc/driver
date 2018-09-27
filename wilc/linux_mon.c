@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
-* Copyright (c) 2012 - 2018 Microchip Technology Inc., and its subsidiaries.
-* All rights reserved.
-*/
+ * Copyright (c) 2012 - 2018 Microchip Technology Inc., and its subsidiaries.
+ * All rights reserved.
+ */
 
 #include <linux/etherdevice.h>
 
@@ -222,9 +222,9 @@ static netdev_tx_t wilc_wfi_mon_xmit(struct sk_buff *skb,
 	memcpy(srcadd, &skb->data[10], 6);
 	memcpy(bssid, &skb->data[16], 6);
 	/*
-	* Identify if data or mgmt packet, if source address and bssid
-	* fields are equal send it to mgmt frames handler
-	*/
+	 * Identify if data or mgmt packet, if source address and bssid
+	 * fields are equal send it to mgmt frames handler
+	 */
 	if (!(memcmp(srcadd, bssid, 6))) {
 		ret = mon_mgmt_tx(mon_priv->real_ndev, skb->data, skb->len);
 		if (ret)

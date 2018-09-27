@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
-* Copyright (c) 2012 - 2018 Microchip Technology Inc., and its subsidiaries.
-* All rights reserved.
-*/
+ * Copyright (c) 2012 - 2018 Microchip Technology Inc., and its subsidiaries.
+ * All rights reserved.
+ */
 
 #include <linux/etherdevice.h>
 #include <linux/if_ether.h>
@@ -1583,8 +1583,9 @@ int wilc_wlan_stop(struct wilc *wilc)
 		return ret;
 	}
 
-	/* Configure the power sequencer to ignore WIFI sleep signal on making chip
-		sleep decision */
+	/* Configure the power sequencer to ignore WIFI sleep signal on making
+	 * chip sleep decision
+	 */
 	ret = wilc->hif_func->hif_read_reg(wilc, WILC_PWR_SEQ_MISC_CTRL, &reg);
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while reading reg\n");

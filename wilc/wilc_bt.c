@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
-* Copyright (c) 2012 - 2018 Microchip Technology Inc., and its subsidiaries.
-* All rights reserved.
-*/
+ * Copyright (c) 2012 - 2018 Microchip Technology Inc., and its subsidiaries.
+ * All rights reserved.
+ */
 
 #include <linux/fs.h>
 #include <linux/device.h>
@@ -242,8 +242,11 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 					break;
 				}
 			}
-			/*An additional wait to give BT firmware time to do CPLL update as the time
-			measured since the start of BT Fw till the end of function "rf_nmi_init_tuner" was 71.2 ms */
+			/* An additional wait to give BT firmware time to do
+			 * CPLL update as the time measured since the start of
+			 * BT Fw till the end of function "rf_nmi_init_tuner"
+			 * was 71.2 ms
+			 */
 			msleep(100);
 		}
 	}
