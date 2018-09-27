@@ -861,7 +861,7 @@ void chip_wakeup_wilc3000(struct wilc *wilc, int source)
 		while (((clk_status_reg_val & clk_status_bit) == 0) &&
 		       (((++trials) % 3) == 0)) {
 			/* Wait for the chip to stabilize*/
-			usleep_range(1000, 1000);
+			usleep_range(1000, 1100);
 
 			/*
 			 * Make sure chip is awake. This is an extra step that can be removed

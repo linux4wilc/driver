@@ -791,10 +791,10 @@ retry:
 
 fail:
 	if (result != N_OK) {
-		msleep(1);
+		usleep_range(1000, 1100);
 		wilc_spi_reset(wilc);
 		dev_err(&spi->dev, "Reset and retry %d %x\n", retry, adr);
-		msleep(1);
+		usleep_range(1000, 1100);
 		retry--;
 		if (retry)
 			goto retry;
@@ -820,10 +820,10 @@ retry:
 
 fail:
 	if (result != N_OK) {
-		msleep(1);
+		usleep_range(1000, 1100);
 		wilc_spi_reset(wilc);
 		dev_err(&spi->dev, "Reset and retry %d %x\n", retry, adr);
-		msleep(1);
+		usleep_range(1000, 1100);
 		retry--;
 		if (retry)
 			goto retry;
@@ -864,11 +864,11 @@ _RETRY_:
 
 fail:
 	if (result != N_OK) {
-		msleep(1);
+		usleep_range(1000, 1100);
 		wilc_spi_reset(wilc);
 		dev_err(&spi->dev,
 			"Reset and retry %d %x %d\n", retry, addr, data);
-		msleep(1);
+		usleep_range(1000, 1100);
 		retry--;
 		if (retry)
 			goto _RETRY_;
@@ -915,11 +915,11 @@ retry:
 
 fail:
 	if (result != N_OK) {
-		msleep(1);
+		usleep_range(1000, 1100);
 		wilc_spi_reset(wilc);
 		dev_err(&spi->dev,
 			"Reset and retry %d %x %d\n", retry, addr, size);
-		msleep(1);
+		usleep_range(1000, 1100);
 		retry--;
 		if (retry)
 			goto retry;
@@ -955,10 +955,10 @@ retry:
 
 fail:
 	if (result != N_OK) {
-		msleep(1);
+		usleep_range(1000, 1100);
 		wilc_spi_reset(wilc);
 		dev_warn(&spi->dev, "Reset and retry %d %x\n", retry, addr);
-		msleep(1);
+		usleep_range(1000, 1100);
 		retry--;
 		if (retry)
 			goto retry;
@@ -984,11 +984,11 @@ retry:
 
 fail:
 	if (result != N_OK) {
-		msleep(1);
+		usleep_range(1000, 1100);
 		wilc_spi_reset(wilc);
 		dev_warn(&spi->dev, "Reset and retry %d %x %d\n", retry, addr,
 			 size);
-		msleep(1);
+		usleep_range(1000, 1100);
 		retry--;
 		if (retry)
 			goto retry;
