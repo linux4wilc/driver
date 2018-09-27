@@ -156,12 +156,12 @@ struct tcp_ack_filter {
 	bool enabled;
 };
 
-typedef struct {
+struct sysfs_attr_group {
 	bool p2p_mode;
 	u8 ant_swtch_mode;
 	u8 antenna1;
 	u8 antenna2;
-} sysfs_attr_group;
+};
 
 struct wilc_vif {
 	u8 idx;
@@ -176,7 +176,7 @@ struct wilc_vif {
 	struct net_device *ndev;
 	u8 ifc_id;
 
-	sysfs_attr_group attr_sysfs;
+	struct sysfs_attr_group attr_sysfs;
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	bool pwrsave_current_state;
 	struct timer_list during_ip_timer;

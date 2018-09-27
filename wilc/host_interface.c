@@ -3021,7 +3021,7 @@ static void handle_set_antenna_mode(struct work_struct *work)
 	struct wilc_vif *vif = msg->vif;
 	int ret;
 	struct wid wid;
-	sysfs_attr_group *attr_syfs_p = &vif->attr_sysfs;
+	struct sysfs_attr_group *attr_syfs_p = &vif->attr_sysfs;
 	struct host_if_set_ant *set_ant = &msg->body.set_ant;
 
 	wid.id = WID_ANTENNA_SELECTION;
@@ -4565,7 +4565,7 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 {
 	int ret;
 	struct host_if_msg *msg;
-	sysfs_attr_group *attr_syfs_p;
+	struct sysfs_attr_group *attr_syfs_p;
 
 	memset(&msg, 0, sizeof(struct host_if_msg));
 
