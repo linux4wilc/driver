@@ -966,45 +966,46 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 	do {
 		ac_exist = 0;
 		for (ac = 0; (ac < NQUEUES) && (!max_size_over); ac++) {
-			if (tqe_q[ac]) {
-				ac_exist = 1;
-				for (k = 0; (k < num_pkts_to_add[ac]) && (!max_size_over) && tqe_q[ac]; k++) {
-					if (i < (WILC_VMM_TBL_SIZE - 1)) {
-						if (tqe_q[ac]->type == WILC_CFG_PKT)
-							vmm_sz = ETH_CONFIG_PKT_HDR_OFFSET;
-						else if (tqe_q[ac]->type == WILC_NET_PKT)
-							vmm_sz = ETH_ETHERNET_HDR_OFFSET;
-						else
-							vmm_sz = HOST_HDR_OFFSET;
+			if (!tqe_q[ac])
+				continue;
 
-						vmm_sz += tqe_q[ac]->buffer_size;
-						PRINT_INFO(vif->ndev, TX_DBG, "VMM Size before alignment = %d\n", vmm_sz);
-						if (vmm_sz & 0x3)
-							vmm_sz = (vmm_sz + 4) & ~0x3;
-
-						if ((sum + vmm_sz) > LINUX_TX_SIZE) {
-							max_size_over = 1;
-							break;
-						}
-						PRINT_INFO(vif->ndev, TX_DBG, "VMM Size AFTER alignment = %d\n", vmm_sz);
-						vmm_table[i] = vmm_sz / 4;
-						PRINT_INFO(vif->ndev, TX_DBG, "VMMTable entry size = %d\n", vmm_table[i]);
-						if (tqe_q[ac]->type == WILC_CFG_PKT) {
-							vmm_table[i] |= BIT(10);
-							PRINT_INFO(vif->ndev, TX_DBG, "VMMTable entry changed for CFG packet = %d\n", vmm_table[i]);
-						}
-						cpu_to_le32s(&vmm_table[i]);
-						vmm_entries_ac[i] = ac;
-
-						i++;
-						sum += vmm_sz;
-						PRINT_INFO(vif->ndev, TX_DBG, "sum = %d\n", sum);
-						tqe_q[ac] = wilc_wlan_txq_get_next(wilc, tqe_q[ac], ac);
-					} else {
-						max_size_over = 1;
-						break;
-					}
+			ac_exist = 1;
+			for (k = 0; (k < num_pkts_to_add[ac]) && (!max_size_over) && tqe_q[ac]; k++) {
+				if (i >= (WILC_VMM_TBL_SIZE - 1)) {
+					max_size_over = 1;
+					break;
 				}
+
+				if (tqe_q[ac]->type == WILC_CFG_PKT)
+					vmm_sz = ETH_CONFIG_PKT_HDR_OFFSET;
+				else if (tqe_q[ac]->type == WILC_NET_PKT)
+					vmm_sz = ETH_ETHERNET_HDR_OFFSET;
+				else
+					vmm_sz = HOST_HDR_OFFSET;
+
+				vmm_sz += tqe_q[ac]->buffer_size;
+				PRINT_INFO(vif->ndev, TX_DBG, "VMM Size before alignment = %d\n", vmm_sz);
+				if (vmm_sz & 0x3)
+					vmm_sz = (vmm_sz + 4) & ~0x3;
+
+				if ((sum + vmm_sz) > LINUX_TX_SIZE) {
+					max_size_over = 1;
+					break;
+				}
+				PRINT_INFO(vif->ndev, TX_DBG, "VMM Size AFTER alignment = %d\n", vmm_sz);
+				vmm_table[i] = vmm_sz / 4;
+				PRINT_INFO(vif->ndev, TX_DBG, "VMMTable entry size = %d\n", vmm_table[i]);
+				if (tqe_q[ac]->type == WILC_CFG_PKT) {
+					vmm_table[i] |= BIT(10);
+					PRINT_INFO(vif->ndev, TX_DBG, "VMMTable entry changed for CFG packet = %d\n", vmm_table[i]);
+				}
+				cpu_to_le32s(&vmm_table[i]);
+				vmm_entries_ac[i] = ac;
+
+				i++;
+				sum += vmm_sz;
+				PRINT_INFO(vif->ndev, TX_DBG, "sum = %d\n", sum);
+				tqe_q[ac] = wilc_wlan_txq_get_next(wilc, tqe_q[ac], ac);
 			}
 		}
 		num_pkts_to_add = ac_preserve_ratio;

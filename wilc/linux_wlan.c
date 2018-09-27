@@ -152,84 +152,86 @@ static int debug_thread(void *arg)
 	complete(&wl->debug_thread_started);
 
 	while (1) {
-		if (wl->initialized) {
-			if (wait_for_completion_timeout(&wl->debug_thread_started,
-							msecs_to_jiffies(6000))) {
-				while (!kthread_should_stop())
-					schedule();
-				PRINT_INFO(vif->ndev, GENERIC_DBG, "Exit debug thread\n");
-				return 0;
-			}
-
-			if (debug_running) {
-				PRINT_INFO(dev, GENERIC_DBG,
-					   "*** Debug Thread Running ***\n");
-				if (cfg_packet_timeout >= 5) {
-					PRINT_INFO(dev, GENERIC_DBG,
-						   "<Recover>\n");
-					cfg_packet_timeout = 0;
-					timeout = 10;
-					recovery_on = 1;
-					wait_for_recovery = 1;
-					for (i = 0; i < NUM_CONCURRENT_IFC; i++)
-						wilc_mac_close(wl->vif[i]->ndev);
-					for (i = NUM_CONCURRENT_IFC; i > 0; i--) {
-						while (wilc_mac_open(wl->vif[i-1]->ndev) && --timeout)
-							msleep(100);
-
-						if (timeout == 0)
-							PRINT_WRN(vif->ndev, GENERIC_DBG,
-								  "Couldn't restart interface %d again\n", i);
-					}
-					if (hif_drv->hif_state == HOST_IF_CONNECTED) {
-						struct disconnect_info strDisconnectNotifInfo;
-
-						PRINT_INFO(vif->ndev, GENERIC_DBG, "notify the upper layer with the wlan Disconnection\n");
-						memset(&strDisconnectNotifInfo, 0, sizeof(struct disconnect_info));
-						if (hif_drv->usr_scan_req.scan_result) {
-							PRINT_INFO(vif->ndev, GENERIC_DBG, "\n\n<< Abort the running OBSS Scan >>\n\n");
-							del_timer(&hif_drv->scan_timer);
-							handle_scan_done(vif, SCAN_EVENT_ABORTED);
-						}
-						strDisconnectNotifInfo.reason = 0;
-						strDisconnectNotifInfo.ie = NULL;
-						strDisconnectNotifInfo.ie_len = 0;
-
-						if (hif_drv->usr_conn_req.conn_result) {
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-
-							handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
-#endif
-
-							hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
-											  NULL,
-											  0,
-											  &strDisconnectNotifInfo,
-											  hif_drv->usr_conn_req.arg);
-						} else {
-							PRINT_ER(vif->ndev, "Connect result NULL\n");
-						}
-						eth_zero_addr(hif_drv->assoc_bssid);
-
-						hif_drv->usr_conn_req.ssid_len = 0;
-						kfree(hif_drv->usr_conn_req.ssid);
-						hif_drv->usr_conn_req.ssid = NULL;
-						kfree(hif_drv->usr_conn_req.bssid);
-						hif_drv->usr_conn_req.bssid = NULL;
-						hif_drv->usr_conn_req.ies_len = 0;
-						kfree(hif_drv->usr_conn_req.ies);
-						hif_drv->usr_conn_req.ies = NULL;
-
-						hif_drv->hif_state = HOST_IF_IDLE;
-					}
-					recovery_on = 0;
-				}
-			}
-		} else if (!kthread_should_stop()) {
+		if (!wl->initialized && !kthread_should_stop()) {
 			msleep(1000);
-		} else {
+			continue;
+		} else if (!wl->initialized) {
 			break;
 		}
+
+		if (wait_for_completion_timeout(&wl->debug_thread_started,
+						msecs_to_jiffies(6000))) {
+			while (!kthread_should_stop())
+				schedule();
+			PRINT_INFO(vif->ndev, GENERIC_DBG, "Exit debug thread\n");
+			return 0;
+		}
+
+		if (!debug_running)
+			continue;
+		PRINT_INFO(dev, GENERIC_DBG,
+			   "*** Debug Thread Running ***\n");
+		if (cfg_packet_timeout < 5)
+			continue;
+
+		PRINT_INFO(dev, GENERIC_DBG,
+			   "<Recover>\n");
+		cfg_packet_timeout = 0;
+		timeout = 10;
+		recovery_on = 1;
+		wait_for_recovery = 1;
+		for (i = 0; i < NUM_CONCURRENT_IFC; i++)
+			wilc_mac_close(wl->vif[i]->ndev);
+		for (i = NUM_CONCURRENT_IFC; i > 0; i--) {
+			while (wilc_mac_open(wl->vif[i-1]->ndev) && --timeout)
+				msleep(100);
+
+			if (timeout == 0)
+				PRINT_WRN(vif->ndev, GENERIC_DBG,
+					  "Couldn't restart interface %d again\n", i);
+		}
+		if (hif_drv->hif_state == HOST_IF_CONNECTED) {
+			struct disconnect_info strDisconnectNotifInfo;
+
+			PRINT_INFO(vif->ndev, GENERIC_DBG, "notify the upper layer with the wlan Disconnection\n");
+			memset(&strDisconnectNotifInfo, 0, sizeof(struct disconnect_info));
+			if (hif_drv->usr_scan_req.scan_result) {
+				PRINT_INFO(vif->ndev, GENERIC_DBG, "\n\n<< Abort the running OBSS Scan >>\n\n");
+				del_timer(&hif_drv->scan_timer);
+				handle_scan_done(vif, SCAN_EVENT_ABORTED);
+			}
+			strDisconnectNotifInfo.reason = 0;
+			strDisconnectNotifInfo.ie = NULL;
+			strDisconnectNotifInfo.ie_len = 0;
+
+			if (hif_drv->usr_conn_req.conn_result) {
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+
+				handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+#endif
+
+				hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
+								  NULL,
+								  0,
+								  &strDisconnectNotifInfo,
+								  hif_drv->usr_conn_req.arg);
+			} else {
+				PRINT_ER(vif->ndev, "Connect result NULL\n");
+			}
+			eth_zero_addr(hif_drv->assoc_bssid);
+
+			hif_drv->usr_conn_req.ssid_len = 0;
+			kfree(hif_drv->usr_conn_req.ssid);
+			hif_drv->usr_conn_req.ssid = NULL;
+			kfree(hif_drv->usr_conn_req.bssid);
+			hif_drv->usr_conn_req.bssid = NULL;
+			hif_drv->usr_conn_req.ies_len = 0;
+			kfree(hif_drv->usr_conn_req.ies);
+			hif_drv->usr_conn_req.ies = NULL;
+
+			hif_drv->hif_state = HOST_IF_IDLE;
+		}
+		recovery_on = 0;
 	}
 	return 0;
 }
