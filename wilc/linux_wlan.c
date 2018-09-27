@@ -1844,14 +1844,14 @@ static void wilc_wlan_power(struct wilc *wilc, int power)
 
 	if (gpio_reset < 0) {
 		gpio_reset = GPIO_NUM_RESET;
-		pr_info("wifi_pm : load default reset GPIO\n", power);
+		pr_info("wifi_pm : load default reset GPIO %d\n", gpio_reset);
 	}
 
 	gpio_chip_en = of_get_named_gpio_flags(wilc->dt_dev->of_node, "chip_en-gpios", 0, NULL);
 
 	if (gpio_chip_en < 0) {
-		pr_info("wifi_pm : load default chip_en GPIO\n", power);
-		gpio_reset = GPIO_NUM_CHIP_EN;
+		gpio_chip_en = GPIO_NUM_CHIP_EN;
+		pr_info("wifi_pm : load default chip_en GPIO %d\n", gpio_chip_en);
 	}
 
 	if (gpio_request(gpio_chip_en, "CHIP_EN") == 0 &&
