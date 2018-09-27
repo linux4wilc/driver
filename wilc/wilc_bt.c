@@ -179,7 +179,7 @@ static void wilc_cmd_handle_wilc_cca_threshold(char *param)
 		return;
 	}
 
-	pr_info("Changing CCA noise threshold to %d and carrier thresholds to %d \n",
+	pr_info("Changing CCA noise threshold to %d and carrier thresholds to %d\n",
 		noise_thrshold, carrier_thrshold);
 
 	carr_thrshold_int = carrier_thrshold/10;
@@ -230,7 +230,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 			while (!wilc->initialized) {
 				msleep(100);
 				if (++count > 20) {
-					pr_warn("Wifi took too much time to initialize \n");
+					pr_warn("Wifi took too much time to initialize\n");
 					break;
 				}
 			}
@@ -238,7 +238,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 			while (!bt_init_done) {
 				msleep(200);
 				if (++count > 30) {
-					pr_warn("BT has taken too much time to initialize \n");
+					pr_warn("BT has taken too much time to initialize\n");
 					break;
 				}
 			}

@@ -1126,7 +1126,7 @@ int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count)
 
 		if (entries == 0) {
 			PRINT_INFO(vif->ndev, TX_DBG,
-				   "no buffer in the chip (reg: %08x), retry later [[ %d, %x ]] \n",
+				   "no buffer in the chip (reg: %08x), retry later [[ %d, %x ]]\n",
 				   reg, i, vmm_table[i-1]);
 			ret = func->hif_read_reg(wilc, WILC_HOST_TX_CTRL, &reg);
 			if (!ret) {
@@ -1349,7 +1349,7 @@ static void wilc_wlan_handle_rxq(struct wilc *wilc)
 		kfree(rqe);
 	} while (1);
 
-	PRINT_INFO(vif->ndev, RX_DBG, "THREAD: Exiting RX thread \n");
+	PRINT_INFO(vif->ndev, RX_DBG, "THREAD: Exiting RX thread\n");
 }
 
 static void wilc_unknown_isr_ext(struct wilc *wilc)

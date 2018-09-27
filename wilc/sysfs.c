@@ -41,7 +41,7 @@ static ssize_t wilc_sysfs_store(struct kobject *kobj, struct kobj_attribute *att
 			vif[i]->attr_sysfs.p2p_mode = (attr_val?1:0);
 		} else if (strcmp(attr->attr.name, "ant_swtch_mode") == 0) {
 			if (attr_val > ANT_SWTCH_DUAL_GPIO_CTRL)
-				PRINT_ER(vif[i]->ndev, "Valid antenna switch modes: \n1-Single Antenna, 2-Dual Antenna\n");
+				PRINT_ER(vif[i]->ndev, "Valid antenna switch modes:\n1-Single Antenna, 2-Dual Antenna\n");
 			else
 				vif[i]->attr_sysfs.ant_swtch_mode = attr_val;
 		} else if (strcmp(attr->attr.name, "antenna1") == 0) {

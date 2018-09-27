@@ -814,7 +814,7 @@ static void handle_scan(struct work_struct *work)
 	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting SCAN params\n");
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Scanning: In [%d] state \n", hif_drv->hif_state);
+	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Scanning: In [%d] state\n", hif_drv->hif_state);
 
 	if (!hif_drv) {
 		PRINT_ER(vif->ndev, "Driver is null\n");
@@ -3754,7 +3754,7 @@ wilc_get_statistics(struct wilc_vif *vif, struct rf_info *stats, bool is_sync)
 	int result;
 	struct host_if_msg *msg;
 
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, " wilc_get_statistics \n");
+	PRINT_INFO(vif->ndev, HOSTINF_DBG, " wilc_get_statistics\n");
 	msg = wilc_alloc_work(vif, handle_get_statistics, is_sync);
 	if (IS_ERR(msg))
 		return PTR_ERR(msg);

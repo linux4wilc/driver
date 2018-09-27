@@ -498,7 +498,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 	} else if (scan_event == SCAN_EVENT_ABORTED) {
 		mutex_lock(&priv->scan_req_lock);
 
-		PRINT_INFO(priv->dev, CFG80211_DBG, "Scan Aborted \n");
+		PRINT_INFO(priv->dev, CFG80211_DBG, "Scan Aborted\n");
 		if (priv->scan_req) {
 #if KERNEL_VERSION(4, 7, 0) <= LINUX_VERSION_CODE
 			struct cfg80211_scan_info info = {

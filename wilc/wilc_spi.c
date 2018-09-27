@@ -182,7 +182,7 @@ static int wilc_spi_resume(struct device *dev)
 	struct spi_device *spi = to_spi_device(dev);
 	struct wilc *wilc = spi_get_drvdata(spi);
 
-	dev_info(&spi->dev, "\n\n  <<RESUME>> \n\n");
+	dev_info(&spi->dev, "\n\n  <<RESUME>>\n\n");
 
 	/*wake the chip to compelete the re-intialization*/
 	chip_wakeup(wilc, 0);
@@ -1012,7 +1012,7 @@ int wilc_spi_reset(struct wilc *wilc)
 
 	result = spi_cmd_complete(wilc, CMD_RESET, 0, 0, 0, 0);
 	if (result != N_OK) {
-		dev_err(&spi->dev, "Failed cmd reset \n");
+		dev_err(&spi->dev, "Failed cmd reset\n");
 		return 0;
 	}
 

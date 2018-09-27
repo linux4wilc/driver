@@ -403,7 +403,7 @@ static int init_irq(struct net_device *dev)
 
 	wl->dev_irq_num = gpiod_to_irq(wl->gpio_irq);
 	if (wl->dev_irq_num < 0) {
-		PRINT_ER(dev, "could not the IRQ \n");
+		PRINT_ER(dev, "could not the IRQ\n");
 		goto free_gpio;
 	}
 #else
@@ -1291,7 +1291,7 @@ static int wilc_set_mac_addr(struct net_device *dev, void *p)
 	int i;
 
 	if (!is_valid_ether_addr(addr->sa_data)) {
-		PRINT_INFO(vif->ndev, INIT_DBG, "Invalid MAC address \n");
+		PRINT_INFO(vif->ndev, INIT_DBG, "Invalid MAC address\n");
 		return -EINVAL;
 	}
 
@@ -1325,7 +1325,7 @@ static void wilc_set_multicast_list(struct net_device *dev)
 	int res;
 
 	PRINT_INFO(vif->ndev, INIT_DBG,
-		   "Setting mcast List with count = %d. \n", dev->mc.count);
+		   "Setting mcast List with count = %d.\n", dev->mc.count);
 	if (dev->flags & IFF_PROMISC) {
 		PRINT_INFO(vif->ndev, INIT_DBG,
 			   "Set promiscuous mode ON retrive all pkts\n");
@@ -1781,7 +1781,7 @@ static void wilc_wlan_power(struct wilc *wilc, int power)
 	struct gpio_desc *gpio_reset;
 	struct gpio_desc *gpio_chip_en;
 
-	pr_info("wifi_pm : %d \n", power);
+	pr_info("wifi_pm : %d\n", power);
 
 	gpio_reset = gpiod_get(wilc->dt_dev, "reset", GPIOD_ASIS);
 	if (IS_ERR(gpio_reset)) {
@@ -1826,7 +1826,7 @@ static void wilc_wlan_power(struct wilc *wilc, int power)
 	int gpio_reset;
 	int gpio_chip_en;
 
-	pr_info("wifi_pm : %d \n", power);
+	pr_info("wifi_pm : %d\n", power);
 
 	gpio_reset = of_get_named_gpio_flags(wilc->dt_dev->of_node, "reset-gpios", 0, NULL);
 

@@ -262,7 +262,7 @@ struct net_device *wilc_wfi_init_mon_interface(const char *name,
 	wilc_wfi_mon->netdev_ops = &wilc_wfi_netdev_ops;
 
 	if (register_netdevice(wilc_wfi_mon)) {
-		PRINT_ER(real_dev, "register_netdevice failed \n");
+		PRINT_ER(real_dev, "register_netdevice failed\n");
 		return NULL;
 	}
 	priv = netdev_priv(wilc_wfi_mon);
