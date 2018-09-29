@@ -245,7 +245,7 @@ struct join_bss_param {
 	u8 start_time[4];
 };
 
-static struct host_if_drv *terminated_handle;;
+static struct host_if_drv *terminated_handle;
 static struct mutex hif_deinit_lock;
 
 /* 'msg' should be free by the caller for syc */
@@ -307,34 +307,40 @@ static struct wilc_vif *wilc_get_vif_from_idx(struct wilc *wilc, int idx)
 	return wilc->vif[index];
 }
 
-void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list, u8 ch_list_len)
+void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list,
+			u8 ch_list_len)
 {
 	int i;
 	int ch_index;
 	int j;
+	struct network_info *net_info;
 
-	if (ch_list_len > 0) {
-		for (i = 0; i < priv->scanned_cnt;) {
-			for (ch_index = 0; ch_index < ch_list_len; ch_index++)
-				if (priv->scanned_shadow[i].ch == (ch_freq_list[ch_index] + 1))
-					break;
+	if (ch_list_len == 0)
+		return;
 
-			/* filter only un-matched channels */
-			if (ch_index == ch_list_len) {
-				kfree(priv->scanned_shadow[i].ies);
-				priv->scanned_shadow[i].ies = NULL;
+	for (i = 0; i < priv->scanned_cnt;) {
+		net_info = &priv->scanned_shadow[i];
 
-				kfree(priv->scanned_shadow[i].join_params);
-				priv->scanned_shadow[i].join_params = NULL;
+		for (ch_index = 0; ch_index < ch_list_len; ch_index++)
+			if (net_info->ch == (ch_freq_list[ch_index] + 1))
+				break;
 
-				for (j = i; (j < priv->scanned_cnt-1); j++)
-					priv->scanned_shadow[j] = priv->scanned_shadow[j+1];
-
-				priv->scanned_cnt--;
-				continue;
-			}
+		/* filter only un-matched channels */
+		if (ch_index != ch_list_len) {
 			i++;
+			continue;
 		}
+
+		kfree(net_info->ies);
+		net_info->ies = NULL;
+
+		kfree(net_info->join_params);
+		net_info->join_params = NULL;
+
+		for (j = i; (j < priv->scanned_cnt-1); j++)
+			priv->scanned_shadow[j] = priv->scanned_shadow[j+1];
+
+		priv->scanned_cnt--;
 	}
 }
 
@@ -812,11 +818,14 @@ static void handle_scan(struct work_struct *work)
 	u8 *hdn_ntwk_wid_val = NULL;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct hidden_network *hidden_net = &scan_info->hidden_network;
-	struct host_if_drv *hif_drv_p2p  = wilc_get_drv_handler_by_ifc(vif->wilc, P2P_IFC);
-	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
+	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
+							      P2P_IFC);
+	struct host_if_drv *hif_drv_wlan = get_drv_hndl_by_ifc(vif->wilc,
+							       WLAN_IFC);
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting SCAN params\n");
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Scanning: In [%d] state\n", hif_drv->hif_state);
+	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Scanning: In [%d] state\n",
+		   hif_drv->hif_state);
 
 	if (!hif_drv) {
 		PRINT_ER(vif->ndev, "Driver is null\n");
@@ -1016,8 +1025,10 @@ static void handle_connect(struct work_struct *work)
 	u8 *cur_byte = NULL;
 	struct join_bss_param *bss_param;
 	struct host_if_drv *hif_drv = vif->hif_drv;
-	struct host_if_drv *hif_drv_p2p  = wilc_get_drv_handler_by_ifc(vif->wilc, P2P_IFC);
-	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
+	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
+							      P2P_IFC);
+	struct host_if_drv *hif_drv_wlan = get_drv_hndl_by_ifc(vif->wilc,
+							       WLAN_IFC);
 
 	if (!hif_drv) {
 		PRINT_ER(vif->ndev, "hif driver is NULL\n");
@@ -1131,7 +1142,8 @@ static void handle_connect(struct work_struct *work)
 	wid_list[wid_cnt].val = (s8 *)&hif_drv->usr_conn_req.security;
 	wid_cnt++;
 
-	PRINT_D(vif->ndev, HOSTINF_DBG, "Encrypt Mode = %x\n", hif_drv->usr_conn_req.security);
+	PRINT_D(vif->ndev, HOSTINF_DBG, "Encrypt Mode = %x\n",
+		hif_drv->usr_conn_req.security);
 	wid_list[wid_cnt].id = WID_AUTH_TYPE;
 	wid_list[wid_cnt].type = WID_CHAR;
 	wid_list[wid_cnt].size = sizeof(char);
@@ -1294,7 +1306,7 @@ error:
 				       conn_attr->ies_len);
 			}
 
-			conn_attr->result(CONN_DISCONN_EVENT_CONN_RESP,
+			conn_attr->result(EVENT_CONN_RESP,
 					  &conn_info, MAC_STATUS_DISCONNECTED,
 					  NULL, conn_attr->arg);
 			hif_drv->hif_state = HOST_IF_IDLE;
@@ -1353,7 +1365,7 @@ static void handle_connect_timeout(struct work_struct *work)
 				goto out;
 		}
 
-		hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_CONN_RESP,
+		hif_drv->usr_conn_req.conn_result(EVENT_CONN_RESP,
 						  &info,
 						  MAC_STATUS_DISCONNECTED,
 						  NULL,
@@ -1723,7 +1735,7 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 	}
 
 	del_timer(&hif_drv->connect_timer);
-	hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_CONN_RESP,
+	hif_drv->usr_conn_req.conn_result(EVENT_CONN_RESP,
 					  &conn_info, mac_status, NULL,
 					  hif_drv->usr_conn_req.arg);
 
@@ -1735,7 +1747,7 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 		hif_drv->hif_state = HOST_IF_CONNECTED;
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		handle_pwrsave_during_obtainingIP(vif, IP_STATE_OBTAINING);
+		handle_pwrsave_for_IP(vif, IP_STATE_OBTAINING);
 #endif
 	} else {
 		PRINT_INFO(vif->ndev, HOSTINF_DBG,
@@ -1775,10 +1787,10 @@ static inline void host_int_handle_disconnect(struct wilc_vif *vif)
 
 	if (conn_result) {
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+		handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
 #endif
 
-		conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
+		conn_result(EVENT_DISCONN_NOTIF,
 			    NULL, 0, &disconn_info, hif_drv->usr_conn_req.arg);
 	} else {
 		PRINT_ER(vif->ndev, "Connect result NULL\n");
@@ -2150,8 +2162,10 @@ static void handle_disconnect(struct work_struct *work)
 	struct user_conn_req *conn_req;
 	int result;
 	u16 dummy_reason_code = 0;
-	struct host_if_drv *hif_drv_p2p  = wilc_get_drv_handler_by_ifc(vif->wilc, P2P_IFC);
-	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
+	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
+							      P2P_IFC);
+	struct host_if_drv *hif_drv_wlan = get_drv_hndl_by_ifc(vif->wilc,
+							       WLAN_IFC);
 
 	if (!hif_drv) {
 		PRINT_ER(vif->ndev, "hif driver is NULL\n");
@@ -2161,7 +2175,7 @@ static void handle_disconnect(struct work_struct *work)
 	if (hif_drv_wlan != NULL)	{
 		if (hif_drv_wlan->hif_state == HOST_IF_SCANNING) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Abort Scan before disconnecting. WLAN_IFC is in state [%d]\n",
+				   "Abort Scan. WLAN_IFC is in state [%d]\n",
 				   hif_drv_wlan->hif_state);
 			del_timer(&(hif_drv_wlan->scan_timer));
 			handle_scan_done(vif, SCAN_EVENT_ABORTED);
@@ -2170,7 +2184,7 @@ static void handle_disconnect(struct work_struct *work)
 	if (hif_drv_p2p != NULL) {
 		if (hif_drv_p2p->hif_state == HOST_IF_SCANNING) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Abort Scan before disconnecting. P2P_IFC is in state [%d]\n",
+				   "Abort Scan. P2P_IFC is in state [%d]\n",
 				   hif_drv_p2p->hif_state);
 			del_timer(&(hif_drv_p2p->scan_timer));
 			handle_scan_done(vif, SCAN_EVENT_ABORTED);
@@ -2184,7 +2198,7 @@ static void handle_disconnect(struct work_struct *work)
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Sending disconnect request\n");
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+	handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
 #endif
 
 	result = wilc_send_config_pkt(vif, SET_CFG, &wid, 1,
@@ -2212,33 +2226,34 @@ static void handle_disconnect(struct work_struct *work)
 
 	if (conn_req->conn_result) {
 		if (hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP) {
-			struct connect_info strConnectInfo;
+			struct connect_info connect;
 
 			PRINT_INFO(vif->ndev, HOSTINF_DBG,
-				   "Upper layer requested termination of connection\n");
-			memset(&strConnectInfo, 0, sizeof(struct connect_info));
+				   "supplicant requested disconnection\n");
+			memset(&connect, 0, sizeof(struct connect_info));
 			del_timer(&hif_drv->connect_timer);
 			if (conn_req->bssid != NULL)
-				memcpy(strConnectInfo.bssid, conn_req->bssid, 6);
+				memcpy(connect.bssid, conn_req->bssid, 6);
 			if (conn_req->ies != NULL) {
-				strConnectInfo.req_ies_len = conn_req->ies_len;
-				strConnectInfo.req_ies = kmalloc(conn_req->ies_len, GFP_ATOMIC);
-				memcpy(strConnectInfo.req_ies,
+				connect.req_ies_len = conn_req->ies_len;
+				connect.req_ies = kmalloc(conn_req->ies_len,
+							  GFP_ATOMIC);
+				memcpy(connect.req_ies,
 				       conn_req->ies,
 				       conn_req->ies_len);
 			}
-			conn_req->conn_result(CONN_DISCONN_EVENT_CONN_RESP,
-					      &strConnectInfo,
+			conn_req->conn_result(EVENT_CONN_RESP,
+					      &connect,
 					      MAC_STATUS_DISCONNECTED, NULL,
 					      conn_req->arg);
 
-			if (strConnectInfo.req_ies != NULL) {
-				kfree(strConnectInfo.req_ies);
-				strConnectInfo.req_ies = NULL;
+			if (connect.req_ies != NULL) {
+				kfree(connect.req_ies);
+				connect.req_ies = NULL;
 			}
 
 		} else if (hif_drv->hif_state == HOST_IF_CONNECTED) {
-			conn_req->conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
+			conn_req->conn_result(EVENT_DISCONN_NOTIF,
 					      NULL, 0, &disconn_info,
 					      conn_req->arg);
 		}
@@ -2351,7 +2366,8 @@ static void handle_get_statistics(struct work_struct *work)
 		PRINT_INFO(vif->ndev, HOSTINF_DBG, "Enable TCP filter\n");
 		wilc_enable_tcp_ack_filter(vif, true);
 	} else if (stats->link_speed != DEFAULT_LINK_SPEED) {
-		PRINT_INFO(vif->ndev, HOSTINF_DBG, "Disable TCP filter %d\n", stats->link_speed);
+		PRINT_INFO(vif->ndev, HOSTINF_DBG, "Disable TCP filter %d\n",
+			   stats->link_speed);
 		wilc_enable_tcp_ack_filter(vif, false);
 	}
 
@@ -2400,7 +2416,8 @@ static void handle_get_inactive_time(struct work_struct *work)
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to get inactive time\n");
 
-	PRINT_INFO(vif->ndev, CFG80211_DBG, "Getting inactive time : %d\n", hif_sta_inactive->inactive_time);
+	PRINT_INFO(vif->ndev, CFG80211_DBG, "Getting inactive time : %d\n",
+		   hif_sta_inactive->inactive_time);
 out:
 	/* free 'msg' data in caller */
 	complete(&msg->work_comp);
@@ -2659,8 +2676,10 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 	u8 remain_on_chan_flag;
 	struct wid wid;
 	struct host_if_drv *hif_drv = vif->hif_drv;
-	struct host_if_drv *hif_drv_p2p  = wilc_get_drv_handler_by_ifc(vif->wilc, P2P_IFC);
-	struct host_if_drv *hif_drv_wlan = wilc_get_drv_handler_by_ifc(vif->wilc, WLAN_IFC);
+	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
+							      P2P_IFC);
+	struct host_if_drv *hif_drv_wlan = get_drv_hndl_by_ifc(vif->wilc,
+							       WLAN_IFC);
 
 	if (!hif_drv) {
 		PRINT_ER(vif->ndev, "Driver is null\n");
@@ -2680,7 +2699,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 	if (hif_drv_p2p != NULL) {
 		if (hif_drv_p2p->hif_state == HOST_IF_SCANNING) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Interface busy scanning. P2P_IFC is in state [%d]\n",
+				   "IFC busy scanning P2P_IFC state %d\n",
 				   hif_drv_p2p->hif_state);
 			hif_drv->remain_on_ch_pending = 1;
 			result = -EBUSY;
@@ -2688,7 +2707,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 		} else if ((hif_drv_p2p->hif_state != HOST_IF_IDLE) &&
 		(hif_drv_p2p->hif_state != HOST_IF_CONNECTED)) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Interface busy connecting or listening. P2P_IFC is in state [%d]\n",
+				   "IFC busy connecting. P2P_IFC state %d\n",
 				   hif_drv_p2p->hif_state);
 			result = -EBUSY;
 			goto error;
@@ -2697,7 +2716,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 	if (hif_drv_wlan != NULL) {
 		if (hif_drv_wlan->hif_state == HOST_IF_SCANNING) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Interface busy scanning. WLAN_IFC is in state [%d]\n",
+				   "IFC busy scanning. WLAN_IFC state %d\n",
 				   hif_drv_wlan->hif_state);
 			hif_drv->remain_on_ch_pending = 1;
 			result = -EBUSY;
@@ -2705,7 +2724,7 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 		} else if ((hif_drv_wlan->hif_state != HOST_IF_IDLE) &&
 		(hif_drv_wlan->hif_state != HOST_IF_CONNECTED)) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Interface busy connecting or listening. WLAN_IFC is in state [%d]\n",
+				   "IFC busy connecting. WLAN_IFC %d\n",
 				   hif_drv_wlan->hif_state);
 			result = -EBUSY;
 			goto error;
@@ -2714,14 +2733,14 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 
 	if (vif->connecting) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "[handle_scan]: Don't do scan in (CONNECTING) state\n");
+			   "Don't do scan in (CONNECTING) state\n");
 		result = -EBUSY;
 		goto error;
 	}
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	if (vif->obtaining_ip) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "[handle_scan]: Don't do obss scan until IP adresss is obtained\n");
+			   "Don't obss scan until IP adresss is obtained\n");
 		result = -EBUSY;
 		goto error;
 	}
@@ -2902,7 +2921,8 @@ static void handle_power_management(struct work_struct *work)
 		power_mode = MIN_FAST_PS;
 	else
 		power_mode = NO_POWERSAVE;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling power mgmt to %d\n", power_mode);
+	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Handling power mgmt to %d\n",
+		   power_mode);
 	wid.val = &power_mode;
 	wid.size = sizeof(char);
 
@@ -3983,9 +4003,11 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 	#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 		timer_setup(&vif->periodic_rssi, get_periodic_rssi, 0);
 	#else
-		setup_timer(&vif->periodic_rssi, get_periodic_rssi, (unsigned long)vif);
+		setup_timer(&vif->periodic_rssi, get_periodic_rssi,
+			    (unsigned long)vif);
 	#endif
-		mod_timer(&vif->periodic_rssi, jiffies + msecs_to_jiffies(5000));
+		mod_timer(&vif->periodic_rssi,
+			  jiffies + msecs_to_jiffies(5000));
 
 #if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	timer_setup(&hif_drv->scan_timer, timer_scan_cb, 0);

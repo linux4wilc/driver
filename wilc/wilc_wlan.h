@@ -109,18 +109,18 @@ static inline bool is_wilc3000(u32 id)
 #define WILC_AHB_DATA_MEM_BASE		0x30000
 #define WILC_AHB_SHARE_MEM_BASE		0xd0000
 
-#define WILC_VMM_TBL_RX_SHADOW_BASE	WILC_AHB_SHARE_MEM_BASE
-#define WILC_VMM_TBL_RX_SHADOW_SIZE	256
+#define VMM_TBL_RX_SHADOW_BASE		WILC_AHB_SHARE_MEM_BASE
+#define VMM_TBL_RX_SHADOW_SIZE		256
 
 #define WILC_FW_HOST_COMM		0x13c0
 #define WILC_GP_REG_0			0x149c
 #define WILC_GP_REG_1			0x14a0
 
 #define WILC_COEXIST_CTL		0x161E00
-#define WILC_GLOBAL_MODE_CONTROL	0x1614
-#define WILC_PWR_SEQ_MISC_CTRL		0x3008
-#define WILC_COE_AUTO_PS_ON_NULL_PKT	0x160468
-#define WILC_COE_AUTO_PS_OFF_NULL_PKT	0x16046C
+#define GLOBAL_MODE_CONTROL		0x1614
+#define PWR_SEQ_MISC_CTRL		0x3008
+#define COE_AUTO_PS_ON_NULL_PKT		0x160468
+#define COE_AUTO_PS_OFF_NULL_PKT	0x16046C
 #define CCA_CTL_2 (0x160EF4)
 #define CCA_CTL_7 (0x160F08)
 
@@ -310,18 +310,17 @@ int wilc_wlan_firmware_download(struct wilc *wilc, const u8 *buffer,
 				u32 buffer_size);
 int wilc_wlan_start(struct wilc *wilc);
 int wilc_wlan_stop(struct wilc *wilc);
-int wilc_wlan_txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
+int txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
 			      u32 buffer_size, wilc_tx_complete_func_t func);
 int wilc_wlan_handle_txq(struct net_device *dev, u32 *txq_count);
 void wilc_handle_isr(struct wilc *wilc);
 void wilc_wlan_cleanup(struct net_device *dev);
-int wilc_wlan_cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
+int cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 		      u32 buffer_size, int commit, u32 drv_handler);
-int wilc_wlan_cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
+int cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 		      u32 drv_handler);
-int wilc_wlan_cfg_get_val(struct wilc *wl, u16 wid, u8 *buffer,
-			  u32 buffer_size);
-int wilc_wlan_txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
+int cfg_get_val(struct wilc *wl, u16 wid, u8 *buffer, u32 buffer_size);
+int txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
 			       u32 buffer_size, wilc_tx_complete_func_t func);
 
 void wilc_enable_tcp_ack_filter(struct wilc_vif *vif, bool value);

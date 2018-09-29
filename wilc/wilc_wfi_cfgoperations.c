@@ -213,15 +213,15 @@ static void refresh_scan(struct wilc_priv *priv, bool direct_scan)
 						      NL80211_BAND_2GHZ);
 	#else
 		freq = ieee80211_channel_to_frequency((s32)network_info->ch,
-											  IEEE80211_BAND_2GHZ);
+						      IEEE80211_BAND_2GHZ);
 	#endif
 		channel = ieee80211_get_channel(wiphy, freq);
 		rssi = get_rssi_avg(network_info);
 		bss = cfg80211_inform_bss(wiphy,
 					  channel,
-				#if KERNEL_VERSION(3, 18, 0) <= LINUX_VERSION_CODE
+			#if KERNEL_VERSION(3, 18, 0) <= LINUX_VERSION_CODE
 					  CFG80211_BSS_FTYPE_UNKNOWN,
-				#endif
+			#endif
 					  network_info->bssid,
 					  network_info->tsf_hi,
 					  network_info->cap_info,
@@ -434,9 +434,9 @@ static void cfg_scan_result(enum scan_event scan_event,
 
 			bss = cfg80211_inform_bss(wiphy,
 						  channel,
-					#if KERNEL_VERSION(3, 18, 0) <= LINUX_VERSION_CODE
+			#if KERNEL_VERSION(3, 18, 0) <= LINUX_VERSION_CODE
 						  CFG80211_BSS_FTYPE_UNKNOWN,
-					#endif
+			#endif
 						  network_info->bssid,
 						  network_info->tsf_hi,
 						  network_info->cap_info,
@@ -516,7 +516,7 @@ static void cfg_scan_result(enum scan_event scan_event,
 	}
 }
 
-static inline bool wilc_wfi_cfg_scan_time_expired(struct wilc_priv *priv, int i)
+static inline bool cfg_scan_time_expired(struct wilc_priv *priv, int i)
 {
 	unsigned long now = jiffies;
 
@@ -542,7 +542,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 
 	vif->connecting = false;
 
-	if (conn_disconn_evt == CONN_DISCONN_EVENT_CONN_RESP) {
+	if (conn_disconn_evt == EVENT_CONN_RESP) {
 		u16 connect_status;
 
 		connect_status = conn_info->status;
@@ -578,7 +578,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 				if (memcmp(priv->scanned_shadow[i].bssid,
 					   conn_info->bssid,
 					   ETH_ALEN) == 0) {
-					if (wilc_wfi_cfg_scan_time_expired(priv, i))
+					if (cfg_scan_time_expired(priv, i))
 						scan_refresh = true;
 
 					break;
@@ -601,7 +601,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 					conn_info->resp_ies,
 					conn_info->resp_ies_len, connect_status,
 					GFP_KERNEL);
-	} else if (conn_disconn_evt == CONN_DISCONN_EVENT_DISCONN_NOTIF) {
+	} else if (conn_disconn_evt == EVENT_DISCONN_NOTIF) {
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		vif->obtaining_ip = false;
 #endif
@@ -650,7 +650,8 @@ static int set_channel(struct wiphy *wiphy,
 	result = wilc_set_mac_chnl_num(vif, channelnum);
 
 	if (result != 0)
-		PRINT_ER(priv->dev, "Error in setting channel %d\n", channelnum);
+		PRINT_ER(priv->dev, "Error in setting channel %d\n",
+			 channelnum);
 
 	return result;
 }
@@ -802,29 +803,29 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		sme->ssid, sme->auth_type);
 
 	for (i = 0; i < priv->scanned_cnt; i++) {
-		if (sme->ssid_len == priv->scanned_shadow[i].ssid_len &&
-		    memcmp(priv->scanned_shadow[i].ssid,
-			   sme->ssid,
-			   sme->ssid_len) == 0) {
+		if (sme->ssid_len != priv->scanned_shadow[i].ssid_len ||
+		    memcmp(priv->scanned_shadow[i].ssid, sme->ssid,
+			   sme->ssid_len))
+			continue;
+
+		PRINT_D(vif->ndev, CFG80211_DBG,
+			"Network with required SSID is found %s\n",
+			sme->ssid);
+		if (!sme->bssid) {
 			PRINT_D(vif->ndev, CFG80211_DBG,
-				"Network with required SSID is found %s\n",
-				sme->ssid);
-			if (!sme->bssid) {
+				"BSSID is not passed from the user\n");
+			if (sel_bssi_idx == UINT_MAX ||
+			    get_rssi_avg(&priv->scanned_shadow[i]) >
+			    get_rssi_avg(&priv->scanned_shadow[sel_bssi_idx]))
+				sel_bssi_idx = i;
+		} else {
+			if (memcmp(priv->scanned_shadow[i].bssid,
+				   sme->bssid,
+				   ETH_ALEN) == 0) {
 				PRINT_D(vif->ndev, CFG80211_DBG,
-					"BSSID is not passed from the user\n");
-				if (sel_bssi_idx == UINT_MAX ||
-				    get_rssi_avg(&priv->scanned_shadow[i]) >
-				    get_rssi_avg(&priv->scanned_shadow[sel_bssi_idx]))
-					sel_bssi_idx = i;
-			} else {
-				if (memcmp(priv->scanned_shadow[i].bssid,
-					   sme->bssid,
-					   ETH_ALEN) == 0) {
-					PRINT_D(vif->ndev, CFG80211_DBG,
-						"BSSID is passed from the user and matched\n");
-					sel_bssi_idx = i;
-					break;
-				}
+					"BSSID is passed from the user and matched\n");
+				sel_bssi_idx = i;
+				break;
 			}
 		}
 	}
@@ -1568,9 +1569,11 @@ static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 *buf,
 	while (index < len) {
 		if (buf[index] == GO_INTENT_ATTR_ID) {
 			if (!p2p_mode)
-				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x0f << 1);
+				buf[index + 3] = (buf[index + 3]  & 0x01) |
+						 (0x0f << 1);
 			else
-				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x00 << 1);
+				buf[index + 3] = (buf[index + 3]  & 0x01) |
+						 (0x00 << 1);
 		}
 		if (buf[index] ==  CHANLIST_ATTR_ID)
 			channel_list_attr_index = index;
@@ -1593,9 +1596,11 @@ static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 *buf,
 	while (index < len) {
 		if (buf[index] == GO_INTENT_ATTR_ID) {
 			if (!p2p_mode)
-				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x00 << 1);
+				buf[index + 3] = (buf[index + 3]  & 0x01) |
+						 (0x00 << 1);
 			else
-				buf[index + 3] = (buf[index + 3]  & 0x01) | (0x0f << 1);
+				buf[index + 3] = (buf[index + 3]  & 0x01) |
+						 (0x0f << 1);
 			break;
 		}
 
@@ -1618,7 +1623,8 @@ static void wilc_wfi_cfg_parse_rx_vendor_spec(struct wilc_priv *priv, u8 *buff,
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	subtype = buff[P2P_PUB_ACTION_SUBTYPE];
-	if ((subtype == GO_NEG_REQ || subtype == GO_NEG_RSP) && !priv->p2p.is_wilc_ie) {
+	if ((subtype == GO_NEG_REQ || subtype == GO_NEG_RSP) &&
+	    !priv->p2p.is_wilc_ie) {
 		for (i = P2P_PUB_ACTION_SUBTYPE; i < size; i++) {
 			if (!memcmp(p2p_vendor_spec, &buff[i], 6)) {
 				priv->p2p.recv_random = buff[i + 6];
@@ -1685,7 +1691,8 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 #if KERNEL_VERSION(4, 7, 0) <= LINUX_VERSION_CODE
 	freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
  #else
-	freq = ieee80211_channel_to_frequency(curr_channel, IEEE80211_BAND_2GHZ);
+	freq = ieee80211_channel_to_frequency(curr_channel,
+					      IEEE80211_BAND_2GHZ);
  #endif
 	if (!ieee80211_is_action(fc)) {
 		cfg80211_rx_mgmt(priv->wdev, freq, 0, buff, size, 0);
@@ -1794,7 +1801,8 @@ static int remain_on_channel(struct wiphy *wiphy,
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "Remaining on channel %d\n", chan->hw_value);
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "Remaining on channel %d\n",
+		   chan->hw_value);
 
 	if (wdev->iftype == NL80211_IFTYPE_AP) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
@@ -1857,10 +1865,9 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 		}
 	}
 
-	if (priv->p2p.local_random <= priv->p2p.recv_random || !(subtype == GO_NEG_REQ ||
-						     subtype == GO_NEG_RSP ||
-						     subtype == P2P_INV_REQ ||
-						     subtype == P2P_INV_RSP))
+	if (priv->p2p.local_random <= priv->p2p.recv_random ||
+	    !(subtype == GO_NEG_REQ || subtype == GO_NEG_RSP ||
+	      subtype == P2P_INV_REQ || subtype == P2P_INV_RSP))
 		return;
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG,
@@ -1916,7 +1923,8 @@ static int mgmt_tx(struct wiphy *wiphy,
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct host_if_drv *wfi_drv = priv->hif_drv;
 	struct wilc_vif *vif = netdev_priv(wdev->netdev);
-	u32 buf_len = len + sizeof(p2p_vendor_spec) + sizeof(priv->p2p.local_random);
+	u32 buf_len = len + sizeof(p2p_vendor_spec) +
+		      sizeof(priv->p2p.local_random);
 	int ret = 0;
 
 	*cookie = (unsigned long)buf;
@@ -2018,9 +2026,8 @@ static int mgmt_tx(struct wiphy *wiphy,
 
 out_txq_add_pkt:
 
-	wilc_wlan_txq_add_mgmt_pkt(wdev->netdev, mgmt_tx,
-				   mgmt_tx->buff, mgmt_tx->size,
-				   wilc_wfi_mgmt_tx_complete);
+	txq_add_mgmt_pkt(wdev->netdev, mgmt_tx,	 mgmt_tx->buff, mgmt_tx->size,
+			 wilc_wfi_mgmt_tx_complete);
 
 out:
 
@@ -2186,7 +2193,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	PRINT_INFO(vif->ndev, GENERIC_DBG,
 		   "Changing virtual interface, enable scan\n");
-	handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+	handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
 #endif
 
 	switch (type) {
@@ -2247,7 +2254,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "start duringIP timer\n");
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		handle_pwrsave_during_obtainingIP(vif, IP_STATE_GO_ASSIGNING);
+		handle_pwrsave_for_IP(vif, IP_STATE_GO_ASSIGNING);
 #endif
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
@@ -2358,11 +2365,11 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct add_sta_param sta_params = { {0} };
 	struct wilc_vif *vif = netdev_priv(dev);
+	u8 *assoc_bss = priv->assoc_stainfo.sta_associated_bss[params->aid];
 
 	if (vif->iftype == AP_MODE || vif->iftype == GO_MODE) {
 		memcpy(sta_params.bssid, mac, ETH_ALEN);
-		memcpy(priv->assoc_stainfo.sta_associated_bss[params->aid], mac,
-		       ETH_ALEN);
+		memcpy(assoc_bss, mac, ETH_ALEN);
 		sta_params.aid = params->aid;
 		sta_params.rates_len = params->supported_rates_len;
 		sta_params.rates = params->supported_rates;
@@ -2370,12 +2377,8 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Adding station parameters %d\n", params->aid);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "BSSID = %x%x%x%x%x%x\n",
-			   priv->assoc_stainfo.sta_associated_bss[params->aid][0],
-			   priv->assoc_stainfo.sta_associated_bss[params->aid][1],
-			   priv->assoc_stainfo.sta_associated_bss[params->aid][2],
-			   priv->assoc_stainfo.sta_associated_bss[params->aid][3],
-			   priv->assoc_stainfo.sta_associated_bss[params->aid][4],
-			   priv->assoc_stainfo.sta_associated_bss[params->aid][5]);
+			   assoc_bss[0], assoc_bss[1], assoc_bss[2],
+			   assoc_bss[3], assoc_bss[4], assoc_bss[5]);
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG, "ASSOC ID = %d\n",
 			   sta_params.aid);
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
@@ -2560,7 +2563,8 @@ static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 	if (type == NL80211_IFTYPE_MONITOR) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Initializing mon ifc virtual device driver\n");
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Adding monitor interface[%p]\n", vif->ndev);
+		PRINT_INFO(vif->ndev, CFG80211_DBG,
+			   "Adding monitor interface[%p]\n", vif->ndev);
 		new_ifc = wilc_wfi_init_mon_interface(name, vif->ndev);
 		if (new_ifc) {
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
@@ -2796,8 +2800,9 @@ struct wireless_dev *wilc_create_wiphy(struct net_device *net,
 
 	PRINT_D(net, CFG80211_DBG,
 		"Max scan ids= %d,Max scan IE len= %d,Signal Type= %d,Interface Modes= %d,Interface Type= %d\n",
-		wdev->wiphy->max_scan_ssids, wdev->wiphy->max_scan_ie_len, wdev->wiphy->signal_type,
-		wdev->wiphy->interface_modes, wdev->iftype);
+		wdev->wiphy->max_scan_ssids, wdev->wiphy->max_scan_ie_len,
+		wdev->wiphy->signal_type, wdev->wiphy->interface_modes,
+		wdev->iftype);
 
 	set_wiphy_dev(wdev->wiphy, dev);
 

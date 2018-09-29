@@ -8,12 +8,12 @@
 
 #include "wilc_wfi_cfgoperations.h"
 
-struct wilc_wfi_radiotap_hdr {
+struct wfi_rtap_hdr {
 	struct ieee80211_radiotap_header hdr;
 	u8 rate;
 } __packed;
 
-struct wilc_wfi_radiotap_cb_hdr {
+struct wfi_rtap_cb_hdr {
 	struct ieee80211_radiotap_header hdr;
 	u8 rate;
 	u8 dump;
@@ -35,8 +35,8 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 {
 	u32 header, pkt_offset;
 	struct sk_buff *skb = NULL;
-	struct wilc_wfi_radiotap_hdr *hdr;
-	struct wilc_wfi_radiotap_cb_hdr *cb_hdr;
+	struct wfi_rtap_hdr *hdr;
+	struct wfi_rtap_cb_hdr *cb_hdr;
 
 	PRINT_D(vif->ndev, HOSTAPD_DBG,
 		"In monitor interface receive function\n");
@@ -73,7 +73,8 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		cb_hdr = skb_push(skb, sizeof(*cb_hdr));
 	#else
 		memcpy(skb_put(skb, size), buff, size);
-		cb_hdr = (struct wilc_wfi_radiotap_cb_hdr *)skb_push(skb, sizeof(*cb_hdr));
+		cb_hdr = (struct wfi_rtap_cb_hdr *)skb_push(skb,
+							    sizeof(*cb_hdr));
 	#endif
 		memset(cb_hdr, 0, sizeof(*cb_hdr));
 
@@ -105,7 +106,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		hdr = skb_push(skb, sizeof(*hdr));
 	#else
 		memcpy(skb_put(skb, size), buff, size);
-		hdr = (struct wilc_wfi_radiotap_hdr *)skb_push(skb,
+		hdr = (struct wfi_rtap_hdr *)skb_push(skb,
 							       sizeof(*hdr));
 	#endif
 		memset(hdr, 0, sizeof(*hdr));
@@ -184,7 +185,7 @@ static int mon_mgmt_tx(struct net_device *dev, const u8 *buf, size_t len)
 
 	mgmt_tx->size = len;
 
-	wilc_wlan_txq_add_mgmt_pkt(dev, mgmt_tx, mgmt_tx->buff, mgmt_tx->size,
+	txq_add_mgmt_pkt(dev, mgmt_tx, mgmt_tx->buff, mgmt_tx->size,
 				   mgmt_tx_complete);
 
 	netif_wake_queue(dev);

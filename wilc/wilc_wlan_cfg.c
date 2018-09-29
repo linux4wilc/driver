@@ -245,38 +245,42 @@ static void wilc_wlan_parse_response_frame(struct wilc *wl, u8 *info,
 			break;
 		case WID_BIN_DATA:
 			do {
+				uint16_t length = (info[3] << 8) |
+				info[2];
+				uint8_t  checksum = 0;
+				uint16_t i = 0;
+
 				if (wl->cfg.bin[i].id == WID_NIL)
 					break;
 
-				if (wl->cfg.bin[i].id == wid) {
-					uint16_t length = (info[3] << 8) |
-							  info[2];
-					uint8_t  checksum = 0;
-					uint16_t i = 0;
+				if (wl->cfg.bin[i].id != wid) {
+					i++;
+					continue;
+				}
 
-					/*
-					 * Compute the Checksum of received
-					 * data field
-					 */
-					for (i = 0; i < length; i++)
-						checksum += info[4 + i];
-					/*
-					 * Verify the checksum of recieved BIN
-					 * DATA
-					 */
-					if (checksum == info[4 + length]) {
-						memcpy(wl->cfg.bin[i].bin, &info[2], length + 2);
-						/*
-						 * value length + data length +
-						 * checksum
-						 */
-						len = 2 + length + 1;
-						break;
-					}
+				/*
+				 * Compute the Checksum of received
+				 * data field
+				 */
+				for (i = 0; i < length; i++)
+					checksum += info[4 + i];
+				/*
+				 * Verify the checksum of recieved BIN
+				 * DATA
+				 */
+				if (checksum != info[4 + length]) {
 					PRINT_ER(vif->ndev, "Checksum Failed");
 					return;
 				}
-				i++;
+
+				memcpy(wl->cfg.bin[i].bin, &info[2], length+2);
+				/*
+				 * value length + data length +
+				 * checksum
+				 */
+				len = 2 + length + 1;
+				break;
+
 			} while (1);
 			break;
 		default:
@@ -319,8 +323,8 @@ static void wilc_wlan_parse_info_frame(struct wilc *wl, u8 *info)
  *
  ********************************************/
 
-int wilc_wlan_cfg_set_wid(struct wilc_vif *vif, u8 *frame, u32 offset, u16 id,
-			  u8 *buf, int size)
+int cfg_set_wid(struct wilc_vif *vif, u8 *frame, u32 offset, u16 id, u8 *buf,
+			  int size)
 {
 	u8 type = (id >> 12) & 0xf;
 	int ret = 0;
@@ -357,7 +361,7 @@ int wilc_wlan_cfg_set_wid(struct wilc_vif *vif, u8 *frame, u32 offset, u16 id,
 	return ret;
 }
 
-int wilc_wlan_cfg_get_wid(u8 *frame, u32 offset, u16 id)
+int cfg_get_wid(u8 *frame, u32 offset, u16 id)
 {
 	u8 *buf;
 
@@ -372,8 +376,7 @@ int wilc_wlan_cfg_get_wid(u8 *frame, u32 offset, u16 id)
 	return 2;
 }
 
-int wilc_wlan_cfg_get_wid_value(struct wilc *wl, u16 wid, u8 *buffer,
-				u32 buffer_size)
+int cfg_get_wid_value(struct wilc *wl, u16 wid, u8 *buffer, u32 buffer_size)
 {
 	u32 type = (wid >> 12) & 0xf;
 	int i, ret = 0;
@@ -459,7 +462,7 @@ int wilc_wlan_cfg_get_wid_value(struct wilc *wl, u16 wid, u8 *buffer,
 	return ret;
 }
 
-void wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
+void cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 			       struct wilc_cfg_rsp *rsp)
 {
 	u8 msg_type;
@@ -514,7 +517,7 @@ void wilc_wlan_cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 	}
 }
 
-int wilc_wlan_cfg_init(struct wilc *wl)
+int cfg_init(struct wilc *wl)
 {
 	struct wilc_cfg_str_vals *str_vals;
 	struct wilc_bin_vals *bin_vals;
@@ -589,7 +592,7 @@ out_b:
 	return -ENOMEM;
 }
 
-void wilc_wlan_cfg_deinit(struct wilc *wl)
+void cfg_deinit(struct wilc *wl)
 {
 	kfree(wl->cfg.b);
 	kfree(wl->cfg.hw);

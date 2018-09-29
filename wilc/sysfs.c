@@ -11,8 +11,8 @@ static struct kobject *wilc_kobj;
 static int device_created;
 static struct wilc_vif *vif[NUM_CONCURRENT_IFC];
 
-static ssize_t wilc_sysfs_show(struct kobject *kobj, struct kobj_attribute *attr,
-		      char *buf)
+static ssize_t wilc_sysfs_show(struct kobject *kobj,
+			       struct kobj_attribute *attr, char *buf)
 {
 	int attr_val = -1;
 
@@ -28,8 +28,9 @@ static ssize_t wilc_sysfs_show(struct kobject *kobj, struct kobj_attribute *attr
 	return sprintf(buf, "%d\n", attr_val);
 }
 
-static ssize_t wilc_sysfs_store(struct kobject *kobj, struct kobj_attribute *attr,
-	const char *buf, size_t count)
+static ssize_t wilc_sysfs_store(struct kobject *kobj,
+				struct kobj_attribute *attr, const char *buf,
+				size_t count)
 {
 	int attr_val;
 	int i;

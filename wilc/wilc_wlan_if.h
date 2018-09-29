@@ -20,9 +20,9 @@
 #define HIF_SPI			BIT(0)
 #define HIF_SDIO_GPIO_IRQ	BIT(2)
 
-#define	FIRMWARE_WILC1000_WIFi		"mchp/wilc1000_wifi_firmware.bin"
-#define	FIRMWARE_WILC3000_WIFI		"mchp/wilc3000_wifi_firmware.bin"
-#define	FIRMWARE_WILC3000_BLE		"mchp/wilc3000_ble_firmware.bin"
+#define	FW_WILC1000_WIFi		"mchp/wilc1000_wifi_firmware.bin"
+#define	FW_WILC3000_WIFI		"mchp/wilc3000_wifi_firmware.bin"
+#define	FW_WILC3000_BLE		"mchp/wilc3000_ble_firmware.bin"
 
 /********************************************
  *
@@ -93,9 +93,9 @@ enum {
 	G_AUTO_PREAMBLE		= 2,	/* Auto Preamble Selection */
 };
 
-#define PWR_DEV_SRC_WIFI	0
-#define PWR_DEV_SRC_BT		1
-#define PWR_DEV_SRC_MAX		2
+#define DEV_WIFI	0
+#define DEV_BT		1
+#define DEV_MAX		2
 
 enum {
 	PASSIVE_SCAN		= 0,

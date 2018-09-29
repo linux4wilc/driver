@@ -24,7 +24,7 @@
 bool g_ignore_PS_state;
 #define DURING_IP_TIME_OUT		15000
 
-void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
+void handle_pwrsave_for_IP(struct wilc_vif *vif, uint8_t state)
 {
 	struct wilc_priv *priv;
 
@@ -52,7 +52,8 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 		vif->during_ip_timer.data = (uint32_t)vif;
 	#endif
-		mod_timer(&vif->during_ip_timer, (jiffies + msecs_to_jiffies(20000)));
+		mod_timer(&vif->during_ip_timer,
+			  (jiffies + msecs_to_jiffies(20000)));
 
 		break;
 
@@ -82,7 +83,8 @@ void handle_pwrsave_during_obtainingIP(struct wilc_vif *vif, uint8_t state)
 	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 		vif->during_ip_timer.data = (uint32_t)vif;
 	#endif
-		mod_timer(&vif->during_ip_timer, (jiffies + msecs_to_jiffies(DURING_IP_TIME_OUT)));
+		mod_timer(&vif->during_ip_timer,
+			  (jiffies + msecs_to_jiffies(DURING_IP_TIME_OUT)));
 
 		break;
 
@@ -122,7 +124,8 @@ void clear_during_ip(unsigned long arg)
 
 	vif->obtaining_ip = false;
 
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover the state of the PS = %d\n", vif->pwrsave_current_state);
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover PS = %d\n",
+		   vif->pwrsave_current_state);
 
 	/* Recover PS previous state */
 	if (vif->wilc->enable_ps == true)
@@ -130,8 +133,8 @@ void clear_during_ip(unsigned long arg)
 }
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
-void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset,
-			u8 status);
+void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size,
+			u32 pkt_offset, u8 status);
 static int wilc_mac_open(struct net_device *ndev);
 static int wilc_mac_close(struct net_device *ndev);
 
@@ -195,47 +198,47 @@ static int debug_thread(void *arg)
 
 			if (timeout == 0)
 				PRINT_WRN(vif->ndev, GENERIC_DBG,
-					  "Couldn't restart interface %d again\n", i);
+					  "Couldn't restart ifc %d\n", i);
 		}
 		if (hif_drv->hif_state == HOST_IF_CONNECTED) {
-			struct disconnect_info strDisconnectNotifInfo;
+			struct disconnect_info disconnect;
+			struct user_conn_req *con_req = &hif_drv->usr_conn_req;
 
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "notify the upper layer with the wlan Disconnection\n");
-			memset(&strDisconnectNotifInfo, 0, sizeof(struct disconnect_info));
+				   "notify the user with the Disconnection\n");
+			memset(&disconnect, 0, sizeof(struct disconnect_info));
 			if (hif_drv->usr_scan_req.scan_result) {
 				PRINT_INFO(vif->ndev, GENERIC_DBG,
-					   "\n\n<< Abort the running OBSS Scan >>\n\n");
+					   "Abort the running OBSS Scan\n");
 				del_timer(&hif_drv->scan_timer);
 				handle_scan_done(vif, SCAN_EVENT_ABORTED);
 			}
-			strDisconnectNotifInfo.reason = 0;
-			strDisconnectNotifInfo.ie = NULL;
-			strDisconnectNotifInfo.ie_len = 0;
+			disconnect.reason = 0;
+			disconnect.ie = NULL;
+			disconnect.ie_len = 0;
 
-			if (hif_drv->usr_conn_req.conn_result) {
+			if (con_req->conn_result) {
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 
-				handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+				handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
 #endif
 
-				hif_drv->usr_conn_req.conn_result(CONN_DISCONN_EVENT_DISCONN_NOTIF,
-								  NULL, 0,
-								  &strDisconnectNotifInfo,
-								  hif_drv->usr_conn_req.arg);
+				con_req->conn_result(EVENT_DISCONN_NOTIF, NULL,
+						     0, &disconnect,
+						     con_req->arg);
 			} else {
 				PRINT_ER(vif->ndev, "Connect result NULL\n");
 			}
 			eth_zero_addr(hif_drv->assoc_bssid);
 
-			hif_drv->usr_conn_req.ssid_len = 0;
-			kfree(hif_drv->usr_conn_req.ssid);
-			hif_drv->usr_conn_req.ssid = NULL;
-			kfree(hif_drv->usr_conn_req.bssid);
-			hif_drv->usr_conn_req.bssid = NULL;
-			hif_drv->usr_conn_req.ies_len = 0;
-			kfree(hif_drv->usr_conn_req.ies);
-			hif_drv->usr_conn_req.ies = NULL;
+			con_req->ssid_len = 0;
+			kfree(con_req->ssid);
+			con_req->ssid = NULL;
+			kfree(con_req->bssid);
+			con_req->bssid = NULL;
+			con_req->ies_len = 0;
+			kfree(con_req->ies);
+			con_req->ies = NULL;
 
 			hif_drv->hif_state = HOST_IF_IDLE;
 		}
@@ -295,10 +298,11 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
 			hif_drv->ifc_up = 1;
 
-			handle_pwrsave_during_obtainingIP(vif,
+			handle_pwrsave_for_IP(vif,
 							  IP_STATE_OBTAINED);
 		}
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "[%s] Up IP\n", dev_iface->ifa_label);
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "[%s] Up IP\n",
+			   dev_iface->ifa_label);
 
 		ip_addr_buf = (char *)&dev_iface->ifa_address;
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP add=%d:%d:%d:%d\n",
@@ -314,13 +318,14 @@ static int dev_state_ev_handler(struct notifier_block *this,
 			"\n =========== IP Address Released ============\n\n");
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
 			hif_drv->ifc_up = 0;
-			handle_pwrsave_during_obtainingIP(vif, IP_STATE_DEFAULT);
+			handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
 		}
 
 
 		wilc_resolve_disconnect_aberration(vif);
 
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "[%s] Down IP\n", dev_iface->ifa_label);
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "[%s] Down IP\n",
+			   dev_iface->ifa_label);
 
 		ip_addr_buf = null_ip;
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP add=%d:%d:%d:%d\n",
@@ -419,7 +424,8 @@ static int init_irq(struct net_device *dev)
 		goto free_gpio;
 	}
 #else
-	wl->gpio_irq = of_get_named_gpio_flags(wl->dt_dev->of_node, "irq-gpios", 0, NULL);
+	wl->gpio_irq = of_get_named_gpio_flags(wl->dt_dev->of_node,
+					       "irq-gpios", 0, NULL);
 	if (wl->gpio_irq < 0) {
 		wl->gpio_irq = GPIO_NUM;
 		dev_warn(wl->dev, "failed to get IRQ GPIO, load default\r\n");
@@ -438,17 +444,16 @@ static int init_irq(struct net_device *dev)
 
 	if (wl->io_type == HIF_SPI ||
 		wl->io_type == HIF_SDIO_GPIO_IRQ) {
-		if (request_threaded_irq(wl->dev_irq_num,
-						      isr_uh_routine,
-						      isr_bh_routine,
-						      IRQF_TRIGGER_LOW | IRQF_ONESHOT|IRQF_NO_SUSPEND,
-						      "WILC_IRQ", wl) < 0) {
+		if (request_threaded_irq(wl->dev_irq_num, isr_uh_routine,
+					 isr_bh_routine, IRQF_TRIGGER_LOW |
+							IRQF_ONESHOT |
+							IRQF_NO_SUSPEND,
+					 "WILC_IRQ", wl) < 0) {
 			PRINT_ER(dev, "Failed to request IRQ\n");
 			goto free_gpio;
 		}
 	} else {
-		if (request_irq(wl->dev_irq_num,
-					     host_wakeup_isr,
+		if (request_irq(wl->dev_irq_num, host_wakeup_isr,
 					     IRQF_TRIGGER_FALLING |
 					     IRQF_NO_SUSPEND,
 					     "WILC_IRQ", wl) < 0) {
@@ -503,7 +508,7 @@ void wilc_mac_indicate(struct wilc *wilc)
 {
 	s8 status;
 
-	wilc_wlan_cfg_get_val(wilc, WID_STATUS, &status, 1);
+	cfg_get_val(wilc, WID_STATUS, &status, 1);
 	if (wilc->mac_status == MAC_STATUS_INIT) {
 		wilc->mac_status = status;
 		complete(&wilc->sync_event);
@@ -534,6 +539,7 @@ void eap_buff_timeout(unsigned long user)
 #endif
 {
 	u8 null_bssid[ETH_ALEN] = {0};
+	u8 *assoc_bss;
 	static u8 timeout = 5;
 	int status = -1;
 #if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
@@ -543,8 +549,10 @@ void eap_buff_timeout(unsigned long user)
 #endif
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
-	if (!(memcmp(priv->associated_bss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
-		mod_timer(&priv->eap_buff_timer, (jiffies + msecs_to_jiffies(10)));
+	assoc_bss = priv->associated_bss;
+	if (!(memcmp(assoc_bss, null_bssid, ETH_ALEN)) && (timeout-- > 0)) {
+		mod_timer(&priv->eap_buff_timer,
+			  (jiffies + msecs_to_jiffies(10)));
 		return;
 	}
 	del_timer(&priv->eap_buff_timer);
@@ -597,7 +605,7 @@ struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc)
 	return wilc->vif[ifc]->ndev;
 }
 
-struct host_if_drv *wilc_get_drv_handler_by_ifc(struct wilc *wilc, uint8_t ifc)
+struct host_if_drv *get_drv_hndl_by_ifc(struct wilc *wilc, uint8_t ifc)
 {
 	return wilc->vif[ifc]->hif_drv;
 }
@@ -606,7 +614,7 @@ struct host_if_drv *wilc_get_drv_handler_by_ifc(struct wilc *wilc, uint8_t ifc)
 #define TX_BACKOFF_WEIGHT_DECR_STEP (1)
 #define TX_BACKOFF_WEIGHT_MAX (0)
 #define TX_BACKOFF_WEIGHT_MIN (0)
-#define TX_BACKOFF_WEIGHT_UNIT_MS (1)
+#define TX_BCKOFF_WGHT_MS (1)
 
 
 static int linux_wlan_txq_task(void *vp)
@@ -635,7 +643,7 @@ static int linux_wlan_txq_task(void *vp)
 		PRINT_INFO(ndev, TX_DBG, "handle the tx packet\n");
 		do {
 			ret = wilc_wlan_handle_txq(ndev, &txq_count);
-			if (txq_count < FLOW_CONTROL_LOWER_THRESHOLD) {
+			if (txq_count < FLOW_CTRL_LOW_THRESHLD) {
 				PRINT_INFO(ndev, TX_DBG, "Waking up queue\n");
 				if (netif_queue_stopped(wl->vif[0]->ndev))
 					netif_wake_queue(wl->vif[0]->ndev);
@@ -644,7 +652,8 @@ static int linux_wlan_txq_task(void *vp)
 			}
 
 			if (ret == WILC_TX_ERR_NO_BUF) {
-				timeout = msecs_to_jiffies(TX_BACKOFF_WEIGHT_UNIT_MS << backoff_weight);
+				timeout = msecs_to_jiffies(TX_BCKOFF_WGHT_MS <<
+							   backoff_weight);
 				do {
 			/* Back off from sending packets for some time.
 			 * schedule_timeout will allow RX task to run and free
@@ -680,10 +689,10 @@ static int wilc_wlan_get_firmware(struct net_device *dev)
 
 	if (wilc->chip == WILC_3000) {
 		PRINT_INFO(dev, INIT_DBG, "Detect chip WILC3000\n");
-		firmware = FIRMWARE_WILC3000_WIFI;
+		firmware = FW_WILC3000_WIFI;
 	} else if (wilc->chip == WILC_1000) {
 		PRINT_INFO(dev, INIT_DBG, "Detect chip WILC1000\n");
-		firmware = FIRMWARE_WILC1000_WIFi;
+		firmware = FW_WILC1000_WIFi;
 	} else {
 		return -1;
 	}
@@ -772,82 +781,82 @@ static int linux_wlan_init_test_config(struct net_device *dev,
 
 	*(int *)c_val = (unsigned int)vif->iftype;
 
-	if (!wilc_wlan_cfg_set(vif, 1, WID_SET_OPERATION_MODE, c_val, 4, 0, 0))
+	if (!cfg_set(vif, 1, WID_SET_OPERATION_MODE, c_val, 4, 0, 0))
 		goto fail;
 
 	c_val[0] = 0;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_PC_TEST_MODE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_PC_TEST_MODE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = INFRASTRUCTURE;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_BSS_TYPE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_BSS_TYPE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = AUTORATE;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_CURRENT_TX_RATE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_CURRENT_TX_RATE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = G_MIXED_11B_2_MODE;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11G_OPERATING_MODE, c_val, 1, 0,
+	if (!cfg_set(vif, 0, WID_11G_OPERATING_MODE, c_val, 1, 0,
 			       0))
 		goto fail;
 
 	c_val[0] = G_AUTO_PREAMBLE;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_PREAMBLE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_PREAMBLE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = AUTO_PROT;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_PROT_MECH, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_11N_PROT_MECH, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = ACTIVE_SCAN;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_SCAN_TYPE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_SCAN_TYPE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = SITE_SURVEY_OFF;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_SITE_SURVEY, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_SITE_SURVEY, c_val, 1, 0, 0))
 		goto fail;
 
 	*((int *)c_val) = 0xffff;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_RTS_THRESHOLD, c_val, 2, 0, 0))
+	if (!cfg_set(vif, 0, WID_RTS_THRESHOLD, c_val, 2, 0, 0))
 		goto fail;
 
 	*((int *)c_val) = 2346;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_FRAG_THRESHOLD, c_val, 2, 0, 0))
+	if (!cfg_set(vif, 0, WID_FRAG_THRESHOLD, c_val, 2, 0, 0))
 		goto fail;
 
 	c_val[0] = 0;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_BCAST_SSID, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_BCAST_SSID, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = 1;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_QOS_ENABLE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_QOS_ENABLE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = NO_POWERSAVE;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_POWER_MANAGEMENT, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_POWER_MANAGEMENT, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = NO_ENCRYPT;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11I_MODE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_11I_MODE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = OPEN_SYSTEM;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_AUTH_TYPE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_AUTH_TYPE, c_val, 1, 0, 0))
 		goto fail;
 
 	strcpy(c_val, "123456790abcdef1234567890");
-	if (!wilc_wlan_cfg_set(vif, 0, WID_WEP_KEY_VALUE, c_val,
+	if (!cfg_set(vif, 0, WID_WEP_KEY_VALUE, c_val,
 			       (strlen(c_val) + 1), 0, 0))
 		goto fail;
 
 	strcpy(c_val, "12345678");
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11I_PSK, c_val, (strlen(c_val)), 0,
+	if (!cfg_set(vif, 0, WID_11I_PSK, c_val, (strlen(c_val)), 0,
 			       0))
 		goto fail;
 
 	strcpy(c_val, "password");
-	if (!wilc_wlan_cfg_set(vif, 0, WID_1X_KEY, c_val, (strlen(c_val) + 1),
+	if (!cfg_set(vif, 0, WID_1X_KEY, c_val, (strlen(c_val) + 1),
 			       0, 0))
 		goto fail;
 
@@ -855,97 +864,97 @@ static int linux_wlan_init_test_config(struct net_device *dev,
 	c_val[1] = 168;
 	c_val[2] = 1;
 	c_val[3] = 112;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_1X_SERV_ADDR, c_val, 4, 0, 0))
+	if (!cfg_set(vif, 0, WID_1X_SERV_ADDR, c_val, 4, 0, 0))
 		goto fail;
 
 	c_val[0] = 3;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_LISTEN_INTERVAL, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_LISTEN_INTERVAL, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = 3;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_DTIM_PERIOD, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_DTIM_PERIOD, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = NORMAL_ACK;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_ACK_POLICY, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_ACK_POLICY, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = 0;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_USER_CONTROL_ON_TX_POWER, c_val, 1,
+	if (!cfg_set(vif, 0, WID_USER_CONTROL_ON_TX_POWER, c_val, 1,
 			       0, 0))
 		goto fail;
 
 	c_val[0] = 48;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_TX_POWER_LEVEL_11A, c_val, 1, 0,
+	if (!cfg_set(vif, 0, WID_TX_POWER_LEVEL_11A, c_val, 1, 0,
 			       0))
 		goto fail;
 
 	c_val[0] = 28;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_TX_POWER_LEVEL_11B, c_val, 1, 0,
+	if (!cfg_set(vif, 0, WID_TX_POWER_LEVEL_11B, c_val, 1, 0,
 			       0))
 		goto fail;
 
 	*((int *)c_val) = 100;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_BEACON_INTERVAL, c_val, 2, 0, 0))
+	if (!cfg_set(vif, 0, WID_BEACON_INTERVAL, c_val, 2, 0, 0))
 		goto fail;
 
 	c_val[0] = REKEY_DISABLE;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_REKEY_POLICY, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_REKEY_POLICY, c_val, 1, 0, 0))
 		goto fail;
 
 	*((int *)c_val) = 84600;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_REKEY_PERIOD, c_val, 4, 0, 0))
+	if (!cfg_set(vif, 0, WID_REKEY_PERIOD, c_val, 4, 0, 0))
 		goto fail;
 
 	*((int *)c_val) = 500;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_REKEY_PACKET_COUNT, c_val, 4, 0,
+	if (!cfg_set(vif, 0, WID_REKEY_PACKET_COUNT, c_val, 4, 0,
 			       0))
 		goto fail;
 
 	c_val[0] = 1;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_SHORT_SLOT_ALLOWED, c_val, 1, 0,
+	if (!cfg_set(vif, 0, WID_SHORT_SLOT_ALLOWED, c_val, 1, 0,
 			       0))
 		goto fail;
 
 	c_val[0] = G_SELF_CTS_PROT;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_ERP_PROT_TYPE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_11N_ERP_PROT_TYPE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = 1;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_ENABLE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_11N_ENABLE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = HT_MIXED_MODE;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_OPERATING_MODE, c_val, 1, 0,
+	if (!cfg_set(vif, 0, WID_11N_OPERATING_MODE, c_val, 1, 0,
 			       0))
 		goto fail;
 
 	c_val[0] = 1;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_TXOP_PROT_DISABLE, c_val, 1, 0,
+	if (!cfg_set(vif, 0, WID_11N_TXOP_PROT_DISABLE, c_val, 1, 0,
 			       0))
 		goto fail;
 
 	c_val[0] = DETECT_PROTECT_REPORT;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_OBSS_NONHT_DETECTION, c_val, 1,
+	if (!cfg_set(vif, 0, WID_11N_OBSS_NONHT_DETECTION, c_val, 1,
 			       0, 0))
 		goto fail;
 
 	c_val[0] = RTS_CTS_NONHT_PROT;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_HT_PROT_TYPE, c_val, 1, 0, 0))
+	if (!cfg_set(vif, 0, WID_11N_HT_PROT_TYPE, c_val, 1, 0, 0))
 		goto fail;
 
 	c_val[0] = 0;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_RIFS_PROT_ENABLE, c_val, 1, 0,
+	if (!cfg_set(vif, 0, WID_11N_RIFS_PROT_ENABLE, c_val, 1, 0,
 			       0))
 		goto fail;
 
 	c_val[0] = 7;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_CURRENT_TX_MCS, c_val, 1, 0,
+	if (!cfg_set(vif, 0, WID_11N_CURRENT_TX_MCS, c_val, 1, 0,
 			       0))
 		goto fail;
 
 	c_val[0] = 1;
-	if (!wilc_wlan_cfg_set(vif, 0, WID_11N_IMMEDIATE_BA_ENABLED, c_val, 1,
+	if (!cfg_set(vif, 0, WID_11N_IMMEDIATE_BA_ENABLED, c_val, 1,
 			       1, 0))
 		goto fail;
 
@@ -1161,15 +1170,16 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			goto fail_irq_enable;
 		}
 
-		if (wilc_wlan_cfg_get(vif, 1, WID_FIRMWARE_VERSION, 1, 0)) {
+		if (cfg_get(vif, 1, WID_FIRMWARE_VERSION, 1, 0)) {
 			int size;
 			char firmware_ver[50];
 
-			size = wilc_wlan_cfg_get_val(wl, WID_FIRMWARE_VERSION,
+			size = cfg_get_val(wl, WID_FIRMWARE_VERSION,
 						     firmware_ver,
 						     sizeof(firmware_ver));
 			firmware_ver[size] = '\0';
-			PRINT_INFO(dev, INIT_DBG, "WILC Firmware Ver = %s\n", firmware_ver);
+			PRINT_INFO(dev, INIT_DBG, "WILC Firmware Ver = %s\n",
+				   firmware_ver);
 		}
 		ret = linux_wlan_init_test_config(dev, vif);
 
@@ -1227,7 +1237,7 @@ static int wilc_mac_open(struct net_device *ndev)
 	PRINT_INFO(ndev, INIT_DBG, "MAC OPEN[%p] %s\n", ndev, ndev->name);
 
 	if (wl->open_ifcs == 0)
-		wilc_bt_power_up(wl, PWR_DEV_SRC_WIFI);
+		wilc_bt_power_up(wl, DEV_WIFI);
 
 	if (!recovery_on) {
 		ret = wilc_init_host_int(ndev);
@@ -1365,7 +1375,8 @@ static void wilc_set_multicast_list(struct net_device *dev)
 
 	netdev_for_each_mc_addr(ha, dev) {
 		memcpy(mc_list + i, ha->addr, ETH_ALEN);
-		PRINT_INFO(vif->ndev, INIT_DBG, "Entry[%d]: %x:%x:%x:%x:%x:%x\n", i/ETH_ALEN,
+		PRINT_INFO(vif->ndev, INIT_DBG, "Entry%d: %x:%x:%x:%x:%x:%x\n",
+			   i/ETH_ALEN,
 			   mc_list[i], mc_list[i + 1], mc_list[i + 2],
 			   mc_list[i + 3], mc_list[i + 4], mc_list[i + 5]);
 		i += ETH_ALEN;
@@ -1442,11 +1453,11 @@ netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 	vif->netstats.tx_bytes += tx_data->size;
 	tx_data->bssid = wilc->vif[vif->idx]->bssid;
 	tx_data->vif = vif;
-	queue_count = wilc_wlan_txq_add_net_pkt(ndev, (void *)tx_data,
+	queue_count = txq_add_net_pkt(ndev, (void *)tx_data,
 						tx_data->buff, tx_data->size,
 						linux_wlan_tx_complete);
 
-	if (queue_count > FLOW_CONTROL_UPPER_THRESHOLD) {
+	if (queue_count > FLOW_CTRL_UP_THRESHLD) {
 		netif_stop_queue(wilc->vif[0]->ndev);
 		netif_stop_queue(wilc->vif[1]->ndev);
 	}
@@ -1515,8 +1526,8 @@ static int wilc_mac_close(struct net_device *ndev)
 	return 0;
 }
 
-void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset,
-			u8 status)
+void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size,
+			u32 pkt_offset, u8 status)
 {
 	unsigned int frame_len = 0;
 	int stats;
@@ -1528,68 +1539,69 @@ void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset
 	buff += pkt_offset;
 	priv = wiphy_priv(vif->ndev->ieee80211_ptr->wiphy);
 
-	if (size > 0) {
-		frame_len = size;
-		buff_to_send = buff;
-
-		if (status == PKT_STATUS_NEW && buff_to_send[12] == 0x88 &&
-		   buff_to_send[13] == 0x8e &&
-		   (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) &&
-		   !memcmp(priv->associated_bss, null_bssid, ETH_ALEN)) {
-			if (!priv->buffered_eap) {
-				priv->buffered_eap = kmalloc(sizeof(struct
-								    wilc_buffered_eap),
-							     GFP_ATOMIC);
-				if (priv->buffered_eap) {
-					priv->buffered_eap->buff = NULL;
-					priv->buffered_eap->size = 0;
-					priv->buffered_eap->pkt_offset = 0;
-				} else {
-					PRINT_ER(vif->ndev,
-						 "failed to alloc buffered_eap\n");
-					return;
-				}
-			} else {
-				kfree(priv->buffered_eap->buff);
-			}
-			priv->buffered_eap->buff = kmalloc(size + pkt_offset,
-							   GFP_ATOMIC);
-			priv->buffered_eap->size = size;
-			priv->buffered_eap->pkt_offset = pkt_offset;
-			memcpy(priv->buffered_eap->buff, buff -
-			       pkt_offset, size + pkt_offset);
-		#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
-			priv->eap_buff_timer.data = (unsigned long) priv;
-		#endif
-			mod_timer(&priv->eap_buff_timer, (jiffies +
-				  msecs_to_jiffies(10)));
-			return;
-		}
-		skb = dev_alloc_skb(frame_len);
-		if (!skb) {
-			PRINT_ER(vif->ndev, "Low memory - packet droped\n");
-			return;
-		}
-
-		skb->dev = vif->ndev;
-		if (skb->dev == NULL)
-			PRINT_ER(vif->ndev, "skb->dev is NULL\n");
-	#if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
-		skb_put_data(skb, buff_to_send, frame_len);
-	#else
-		memcpy(skb_put(skb, frame_len), buff_to_send, frame_len);
-	#endif
-
-		skb->protocol = eth_type_trans(skb, vif->ndev);
-		vif->netstats.rx_packets++;
-		vif->netstats.rx_bytes += frame_len;
-		skb->ip_summed = CHECKSUM_UNNECESSARY;
-		stats = netif_rx(skb);
-		PRINT_D(vif->ndev, RX_DBG, "netif_rx ret value is: %d\n", stats);
-	} else {
+	if (size == 0) {
 		PRINT_ER(vif->ndev,
 			 "Discard sending packet with len = %d\n", size);
+		return;
 	}
+
+	frame_len = size;
+	buff_to_send = buff;
+
+	if (status == PKT_STATUS_NEW && buff_to_send[12] == 0x88 &&
+	   buff_to_send[13] == 0x8e &&
+	   (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) &&
+	   !memcmp(priv->associated_bss, null_bssid, ETH_ALEN)) {
+		if (!priv->buffered_eap) {
+			priv->buffered_eap = kmalloc(sizeof(struct
+							    wilc_buffered_eap),
+						     GFP_ATOMIC);
+			if (priv->buffered_eap) {
+				priv->buffered_eap->buff = NULL;
+				priv->buffered_eap->size = 0;
+				priv->buffered_eap->pkt_offset = 0;
+			} else {
+				PRINT_ER(vif->ndev,
+					 "failed to alloc buffered_eap\n");
+				return;
+			}
+		} else {
+			kfree(priv->buffered_eap->buff);
+		}
+		priv->buffered_eap->buff = kmalloc(size + pkt_offset,
+						   GFP_ATOMIC);
+		priv->buffered_eap->size = size;
+		priv->buffered_eap->pkt_offset = pkt_offset;
+		memcpy(priv->buffered_eap->buff, buff -
+		       pkt_offset, size + pkt_offset);
+	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
+		priv->eap_buff_timer.data = (unsigned long) priv;
+	#endif
+		mod_timer(&priv->eap_buff_timer, (jiffies +
+			  msecs_to_jiffies(10)));
+		return;
+	}
+	skb = dev_alloc_skb(frame_len);
+	if (!skb) {
+		PRINT_ER(vif->ndev, "Low memory - packet droped\n");
+		return;
+	}
+
+	skb->dev = vif->ndev;
+	if (skb->dev == NULL)
+		PRINT_ER(vif->ndev, "skb->dev is NULL\n");
+#if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
+	skb_put_data(skb, buff_to_send, frame_len);
+#else
+	memcpy(skb_put(skb, frame_len), buff_to_send, frame_len);
+#endif
+
+	skb->protocol = eth_type_trans(skb, vif->ndev);
+	vif->netstats.rx_packets++;
+	vif->netstats.rx_bytes += frame_len;
+	skb->ip_summed = CHECKSUM_UNNECESSARY;
+	stats = netif_rx(skb);
+	PRINT_D(vif->ndev, RX_DBG, "netif_rx ret value: %d\n", stats);
 }
 
 void wilc_wfi_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size)
@@ -1658,7 +1670,7 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	flush_workqueue(wilc->hif_workqueue);
 	destroy_workqueue(wilc->hif_workqueue);
 	wilc->hif_workqueue = NULL;
-	wilc_wlan_cfg_deinit(wilc);
+	cfg_deinit(wilc);
 	kfree(wilc->bus_data);
 	kfree(wilc);
 	wilc_debugfs_remove();
@@ -1689,7 +1701,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	if (!wl)
 		return -ENOMEM;
 
-	ret = wilc_wlan_cfg_init(wl);
+	ret = cfg_init(wl);
 	if (ret)
 		goto free_wl;
 
@@ -1781,7 +1793,7 @@ free_ndev:
 	unregister_inetaddr_notifier(&g_dev_notifier);
 	destroy_workqueue(wl->hif_workqueue);
 free_cfg:
-	wilc_wlan_cfg_deinit(wl);
+	cfg_deinit(wl);
 free_wl:
 	kfree(wl);
 	return ret;
@@ -1837,21 +1849,24 @@ static void wilc_wlan_power(struct wilc *wilc, int power)
 {
 	int gpio_reset;
 	int gpio_chip_en;
+	struct device_node *of_node = wilc->dt_dev->of_node;
 
 	pr_info("wifi_pm : %d\n", power);
 
-	gpio_reset = of_get_named_gpio_flags(wilc->dt_dev->of_node, "reset-gpios", 0, NULL);
+	gpio_reset = of_get_named_gpio_flags(of_node, "reset-gpios", 0, NULL);
 
 	if (gpio_reset < 0) {
 		gpio_reset = GPIO_NUM_RESET;
 		pr_info("wifi_pm : load default reset GPIO %d\n", gpio_reset);
 	}
 
-	gpio_chip_en = of_get_named_gpio_flags(wilc->dt_dev->of_node, "chip_en-gpios", 0, NULL);
+	gpio_chip_en = of_get_named_gpio_flags(of_node, "chip_en-gpios", 0,
+					       NULL);
 
 	if (gpio_chip_en < 0) {
 		gpio_chip_en = GPIO_NUM_CHIP_EN;
-		pr_info("wifi_pm : load default chip_en GPIO %d\n", gpio_chip_en);
+		pr_info("wifi_pm : load default chip_en GPIO %d\n",
+			gpio_chip_en);
 	}
 
 	if (gpio_request(gpio_chip_en, "CHIP_EN") == 0 &&

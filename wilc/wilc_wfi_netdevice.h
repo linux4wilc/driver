@@ -24,8 +24,8 @@
 #include "wilc_wlan.h"
 #include "wilc_wlan_cfg.h"
 
-#define FLOW_CONTROL_LOWER_THRESHOLD		128
-#define FLOW_CONTROL_UPPER_THRESHOLD		256
+#define FLOW_CTRL_LOW_THRESHLD		128
+#define FLOW_CTRL_UP_THRESHLD		256
 
 #define WILC_MAX_NUM_PMKIDS			16
 #define PMKID_LEN				16
@@ -243,8 +243,8 @@ struct wilc {
 	bool enable_ps;
 	enum wilc_chip_type chip;
 
-	uint8_t power_status[PWR_DEV_SRC_MAX];
-	uint8_t keep_awake[PWR_DEV_SRC_MAX];
+	uint8_t power_status[DEV_MAX];
+	uint8_t keep_awake[DEV_MAX];
 	struct mutex cs;
 	int clients_count;
 	struct workqueue_struct *hif_workqueue;
@@ -257,8 +257,8 @@ struct wilc_wfi_mon_priv {
 	struct net_device *real_ndev;
 };
 
-void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size, u32 pkt_offset,
-			u8 status);
+void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size,
+			u32 pkt_offset, u8 status);
 void wilc_mac_indicate(struct wilc *wilc);
 void wilc_netdev_cleanup(struct wilc *wilc);
 int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
