@@ -539,7 +539,7 @@ int cfg_init(struct wilc *wl)
 	if (!wl->cfg.s)
 		goto out_w;
 
-	str_vals = kzalloc(sizeof(str_vals), GFP_KERNEL);
+	str_vals = kzalloc(sizeof(*str_vals), GFP_KERNEL);
 	if (!str_vals)
 		goto out_s;
 
@@ -548,7 +548,7 @@ int cfg_init(struct wilc *wl)
 	if (!wl->cfg.bin)
 		goto out_str_val;
 
-	bin_vals = kzalloc(sizeof(bin_vals), GFP_KERNEL);
+	bin_vals = kzalloc(sizeof(*bin_vals), GFP_KERNEL);
 	if (!bin_vals)
 		goto out_bin;
 
