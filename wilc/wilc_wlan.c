@@ -19,9 +19,6 @@
 	list_entry((pos)->member.next, typeof(*(pos)), member)
 #endif
 
-extern void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size,
-				u32 pkt_offset, u8 status);
-
 void acquire_bus(struct wilc *wilc, enum bus_acquire acquire, int source)
 {
 	mutex_lock(&wilc->hif_cs);

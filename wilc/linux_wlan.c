@@ -287,12 +287,10 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		PRINT_WRN(vif->ndev, GENERIC_DBG, "No Wireless Priv\n");
 		return NOTIFY_DONE;
 	}
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "dev_state_ev_handler +++\n");
 
 	switch (event) {
 	case NETDEV_UP:
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "dev_state_ev_handler event=NETDEV_UP %p\n", dev);
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "event NETDEV_UP%p\n", dev);
 		PRINT_D(vif->ndev, GENERIC_DBG,
 			"\n =========== IP Address Obtained ============\n\n");
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
@@ -312,8 +310,8 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		break;
 
 	case NETDEV_DOWN:
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "dev_state_ev_handler event=NETDEV_DOWN %p\n", dev);
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "event=NETDEV_DOWN %p\n",
+			   dev);
 		PRINT_D(vif->ndev, GENERIC_DBG,
 			"\n =========== IP Address Released ============\n\n");
 		if (vif->iftype == STATION_MODE || vif->iftype == CLIENT_MODE) {
@@ -335,7 +333,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 
 	default:
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "dev_state_ev_handler [%s] unknown dev event %lu\n",
+			   "[%s] unknown dev event %lu\n",
 			   dev_iface->ifa_label, event);
 		break;
 	}

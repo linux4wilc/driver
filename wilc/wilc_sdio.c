@@ -291,7 +291,7 @@ static void wilc_sdio_disable_interrupt(struct wilc *dev)
 	struct sdio_func *func = container_of(dev->dev, struct sdio_func, dev);
 	int ret;
 
-	dev_info(&func->dev, "wilc_sdio_disable_interrupt\n");
+	dev_info(&func->dev, "%s\n", __func__);
 
 	if (sdio_intr_lock  == WILC_SDIO_HOST_IRQ_TAKEN)
 		wait_event_interruptible(sdio_intr_waitqueue,

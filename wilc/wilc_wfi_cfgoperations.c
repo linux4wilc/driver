@@ -732,7 +732,7 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 	}
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
-		   "Requested num of scan channel %d\n",
+		   "Requested num of channel %d\n",
 		   request->n_channels);
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Scan Request IE len =  %d\n",
@@ -2276,13 +2276,14 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		vif->iftype = MONITOR_MODE;
 		wl->enable_ps = false;
 		if (wl->initialized) {
-		vif->monitor_flag = 1;
-		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 MONITOR_MODE, vif->ifc_id, false);
+			vif->monitor_flag = 1;
+			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
+						 MONITOR_MODE, vif->ifc_id,
+						 false);
 
-		wilc_set_operation_mode(vif, MONITOR_MODE);
-		wilc_set_power_mgmt(vif_1, 0, 0);
-		wilc_set_power_mgmt(vif_2, 0, 0);
+			wilc_set_operation_mode(vif, MONITOR_MODE);
+			wilc_set_power_mgmt(vif_1, 0, 0);
+			wilc_set_power_mgmt(vif_2, 0, 0);
 		}
 		break;
 

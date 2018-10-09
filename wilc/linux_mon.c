@@ -143,9 +143,9 @@ static void mgmt_tx_complete(void *priv, int status)
 
 	if (status == 1) {
 		if (buf[0] == 0x10 || buf[0] == 0xb0)
-		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
-			   "Packet sent Size = %d Add = %p.\n",
-			   pv_data->size, pv_data->buff);
+			PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
+				   "Packet sent Size = %d Add = %p.\n",
+				   pv_data->size, pv_data->buff);
 	} else {
 		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
 			   "Couldn't send packet Size = %d Add = %p.\n",

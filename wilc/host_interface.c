@@ -976,7 +976,7 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 	struct user_scan_req *scan_req;
 	u8 null_bssid[6] = {0};
 
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "in handle_scan_done()\n");
+	PRINT_INFO(vif->ndev, HOSTINF_DBG, "handling scan done\n");
 
 	if (!hif_drv) {
 		PRINT_ER(vif->ndev, "hif driver is NULL\n");
@@ -3050,7 +3050,7 @@ static void handle_scan_timer(struct work_struct *work)
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	int ret;
 
-	PRINT_INFO(msg->vif->ndev, HOSTINF_DBG, "handle_scan_timer\n");
+	PRINT_INFO(msg->vif->ndev, HOSTINF_DBG, "handling scan timer\n");
 	ret = handle_scan_done(msg->vif, SCAN_EVENT_ABORTED);
 	if (ret)
 		PRINT_ER(msg->vif->ndev, "Failed to handle scan done\n");
@@ -3062,7 +3062,7 @@ static void handle_remain_on_chan_work(struct work_struct *work)
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
 	int ret;
 
-	PRINT_INFO(msg->vif->ndev, HOSTINF_DBG, "handle_remain_on_chan_work\n");
+	PRINT_INFO(msg->vif->ndev, HOSTINF_DBG, "handling remain on channel\n");
 	ret = handle_remain_on_chan(msg->vif, &msg->body.remain_on_ch);
 	if (ret)
 		PRINT_ER(msg->vif->ndev,
@@ -3823,7 +3823,7 @@ wilc_get_statistics(struct wilc_vif *vif, struct rf_info *stats, bool is_sync)
 	int result;
 	struct host_if_msg *msg;
 
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, " wilc_get_statistics\n");
+	PRINT_INFO(vif->ndev, HOSTINF_DBG, " getting statistics\n");
 	msg = wilc_alloc_work(vif, handle_get_statistics, is_sync);
 	if (IS_ERR(msg))
 		return PTR_ERR(msg);
