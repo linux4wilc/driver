@@ -4142,12 +4142,12 @@ void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 	id |= (buffer[length - 2] << 16);
 	id |= (buffer[length - 1] << 24);
 	vif = wilc_get_vif_from_idx(wilc, id);
-	PRINT_INFO(vif->ndev, HOSTINF_DBG,
-		   "General asynchronous info packet received\n");
 	if (!vif) {
 		mutex_unlock(&hif_deinit_lock);
 		return;
 	}
+	PRINT_INFO(vif->ndev, HOSTINF_DBG,
+		   "General asynchronous info packet received\n");
 
 	hif_drv = vif->hif_drv;
 
