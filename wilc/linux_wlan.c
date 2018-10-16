@@ -1639,27 +1639,19 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 		wilc->firmware = NULL;
 	}
 
-	if ((wilc->vif[0]->ndev || wilc->vif[1]->ndev)) {
-		for (i = 0; i < NUM_CONCURRENT_IFC; i++)
-			if (wilc->vif[i]->ndev)
-				if (wilc->vif[i]->mac_opened)
-					wilc_mac_close(wilc->vif[i]->ndev);
-
-		for (i = 0; i < NUM_CONCURRENT_IFC; i++) {
-			if (wilc->vif[i] && wilc->vif[i]->ndev) {
-				PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG,
-					   "Unregistering netdev %p\n",
-					   wilc->vif[i]->ndev);
-				unregister_netdev(wilc->vif[i]->ndev);
-				PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG,
-					   "Freeing Wiphy...\n");
-				wilc_free_wiphy(wilc->vif[i]->ndev);
-				PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG,
-					   "Freeing netdev...\n");
-			}
+	for (i = 0; i < NUM_CONCURRENT_IFC; i++)
+		if (wilc->vif[i] && wilc->vif[i]->ndev) {
+			PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG,
+				   "Unregistering netdev %p\n",
+				   wilc->vif[i]->ndev);
+			unregister_netdev(wilc->vif[i]->ndev);
+			PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG,
+				   "Freeing Wiphy...\n");
+			wilc_free_wiphy(wilc->vif[i]->ndev);
+			PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG,
+				   "Freeing netdev...\n");
 			free_netdev(wilc->vif[i]->ndev);
 		}
-	}
 
 	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		unregister_inetaddr_notifier(&g_dev_notifier);
