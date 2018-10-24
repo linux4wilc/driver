@@ -4,7 +4,7 @@ config WILC
 config WLAN_VENDOR_MCHP
         bool "Microhip devices"
         default y
-	---help---
+	help
 	This adds support for WILC1000 & WILC3000 chips which support
 	IEEE 802.11n WiFi. WILC3000 is a WiFi-BT combo chip.
 
@@ -14,7 +14,7 @@ config WILC_SDIO
 	tristate "WILC SDIO"
 	depends on CFG80211 && INET && MMC
 	select WILC
-	---help---
+	help
 	  This module adds support for the SDIO interface of adapters using
 	  WILC1000 & WILC3000 chipset. The Atmel WILC1000 SDIO is a full speed interface.
 	  It meets SDIO card specification version 2.0. The interface supports
@@ -29,7 +29,7 @@ config WILC_SPI
 	tristate "WILC SPI"
 	depends on CFG80211 && INET && SPI
 	select WILC
-	---help---
+	help
 	  This module adds support for the SPI interface of adapters using
 	  WILC1000 & WILC3000 chipset. The Atmel WILC1000 has a Serial Peripheral
 	  Interface (SPI) that operates as a SPI slave. This SPI interface can
@@ -43,7 +43,7 @@ config WILC_HW_OOB_INTR
 	bool "WILC out of band interrupt"
 	depends on WILC_SDIO
 	default n
-	---help---
+	help
 	  This option enables out-of-band interrupt support for the WILC1000 &
 	  WILC3000 chipset. This OOB interrupt is intended to provide a faster
 	  interrupt mechanism for SDIO host controllers that don't support SDIO
