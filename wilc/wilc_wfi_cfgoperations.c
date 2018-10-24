@@ -1403,33 +1403,55 @@ static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting Wiphy params\n");
 
 	if (changed & WIPHY_PARAM_RETRY_SHORT) {
-		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Setting WIPHY_PARAM_RETRY_SHORT %d\n",
-			   wiphy->retry_short);
-		cfg_param_val.flag  |= RETRY_SHORT;
-		cfg_param_val.short_retry_limit = wiphy->retry_short;
+		if (wiphy->retry_short > 0 && wiphy->retry_short < 256) {
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Setting WIPHY_PARAM_RETRY_SHORT %d\n",
+				   wiphy->retry_short);
+			cfg_param_val.flag  |= RETRY_SHORT;
+			cfg_param_val.short_retry_limit = wiphy->retry_short;
+		} else {
+			PRINT_ER(vif->ndev, "Short retry limit out of range\n");
+			return -EINVAL;
+		}
 	}
 	if (changed & WIPHY_PARAM_RETRY_LONG) {
-		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Setting WIPHY_PARAM_RETRY_LONG %d\n",
-			   wiphy->retry_long);
-		cfg_param_val.flag |= RETRY_LONG;
-		cfg_param_val.long_retry_limit = wiphy->retry_long;
+		if (wiphy->retry_long > 0 && wiphy->retry_long < 256) {
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Setting WIPHY_PARAM_RETRY_LONG %d\n",
+				   wiphy->retry_long);
+			cfg_param_val.flag |= RETRY_LONG;
+			cfg_param_val.long_retry_limit = wiphy->retry_long;
+		} else {
+			PRINT_ER(vif->ndev, "Long retry limit out of range\n");
+			return -EINVAL;
+		}
 	}
 	if (changed & WIPHY_PARAM_FRAG_THRESHOLD) {
-		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Setting WIPHY_PARAM_FRAG_THRESHOLD %d\n",
-			   wiphy->frag_threshold);
-		cfg_param_val.flag |= FRAG_THRESHOLD;
-		cfg_param_val.frag_threshold = wiphy->frag_threshold;
+		if (wiphy->frag_threshold > 255 &&
+		    wiphy->frag_threshold < 7937) {
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Setting WIPHY_PARAM_FRAG_THRESHOLD %d\n",
+				   wiphy->frag_threshold);
+			cfg_param_val.flag |= FRAG_THRESHOLD;
+			cfg_param_val.frag_threshold = wiphy->frag_threshold;
+		} else {
+			PRINT_ER(vif->ndev,
+				 "Fragmentation threshold out of range\n");
+			return -EINVAL;
+		}
 	}
 
 	if (changed & WIPHY_PARAM_RTS_THRESHOLD) {
-		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Setting WIPHY_PARAM_RTS_THRESHOLD %d\n",
-			   wiphy->rts_threshold);
-		cfg_param_val.flag |= RTS_THRESHOLD;
-		cfg_param_val.rts_threshold = wiphy->rts_threshold;
+		if (wiphy->rts_threshold > 255) {
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Setting WIPHY_PARAM_RTS_THRESHOLD %d\n",
+				   wiphy->rts_threshold);
+			cfg_param_val.flag |= RTS_THRESHOLD;
+			cfg_param_val.rts_threshold = wiphy->rts_threshold;
+		} else {
+			PRINT_ER(vif->ndev, "RTS threshold out of range\n");
+			return -EINVAL;
+		}
 	}
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,

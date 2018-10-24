@@ -521,61 +521,41 @@ static void handle_cfg_param(struct work_struct *work)
 	if (param->flag & RETRY_SHORT) {
 		u16 retry_limit = param->short_retry_limit;
 
-		if (retry_limit > 0 && retry_limit < 256) {
-			wid_list[i].id = WID_SHORT_RETRY_LIMIT;
-			wid_list[i].val = (s8 *)&param->short_retry_limit;
-			wid_list[i].type = WID_SHORT;
-			wid_list[i].size = sizeof(u16);
-			hif_drv->cfg_values.short_retry_limit = retry_limit;
-		} else {
-			PRINT_ER(vif->ndev, "Range(1~256) over\n");
-			goto unlock;
-		}
+		wid_list[i].id = WID_SHORT_RETRY_LIMIT;
+		wid_list[i].val = (s8 *)&param->short_retry_limit;
+		wid_list[i].type = WID_SHORT;
+		wid_list[i].size = sizeof(u16);
+		hif_drv->cfg_values.short_retry_limit = retry_limit;
 		i++;
 	}
 	if (param->flag & RETRY_LONG) {
 		u16 limit = param->long_retry_limit;
 
-		if (limit > 0 && limit < 256) {
-			wid_list[i].id = WID_LONG_RETRY_LIMIT;
-			wid_list[i].val = (s8 *)&param->long_retry_limit;
-			wid_list[i].type = WID_SHORT;
-			wid_list[i].size = sizeof(u16);
-			hif_drv->cfg_values.long_retry_limit = limit;
-		} else {
-			PRINT_ER(vif->ndev, "Range(1~256) over\n");
-			goto unlock;
-		}
+		wid_list[i].id = WID_LONG_RETRY_LIMIT;
+		wid_list[i].val = (s8 *)&param->long_retry_limit;
+		wid_list[i].type = WID_SHORT;
+		wid_list[i].size = sizeof(u16);
+		hif_drv->cfg_values.long_retry_limit = limit;
 		i++;
 	}
 	if (param->flag & FRAG_THRESHOLD) {
 		u16 frag_th = param->frag_threshold;
 
-		if (frag_th > 255 && frag_th < 7937) {
-			wid_list[i].id = WID_FRAG_THRESHOLD;
-			wid_list[i].val = (s8 *)&param->frag_threshold;
-			wid_list[i].type = WID_SHORT;
-			wid_list[i].size = sizeof(u16);
-			hif_drv->cfg_values.frag_threshold = frag_th;
-		} else {
-			PRINT_ER(vif->ndev, "Threshold Range fail\n");
-			goto unlock;
-		}
+		wid_list[i].id = WID_FRAG_THRESHOLD;
+		wid_list[i].val = (s8 *)&param->frag_threshold;
+		wid_list[i].type = WID_SHORT;
+		wid_list[i].size = sizeof(u16);
+		hif_drv->cfg_values.frag_threshold = frag_th;
 		i++;
 	}
 	if (param->flag & RTS_THRESHOLD) {
 		u16 rts_th = param->rts_threshold;
 
-		if (rts_th > 255) {
-			wid_list[i].id = WID_RTS_THRESHOLD;
-			wid_list[i].val = (s8 *)&param->rts_threshold;
-			wid_list[i].type = WID_SHORT;
-			wid_list[i].size = sizeof(u16);
-			hif_drv->cfg_values.rts_threshold = rts_th;
-		} else {
-			PRINT_ER(vif->ndev, "Threshold Range fail\n");
-			goto unlock;
-		}
+		wid_list[i].id = WID_RTS_THRESHOLD;
+		wid_list[i].val = (s8 *)&param->rts_threshold;
+		wid_list[i].type = WID_SHORT;
+		wid_list[i].size = sizeof(u16);
+		hif_drv->cfg_values.rts_threshold = rts_th;
 		i++;
 	}
 
@@ -585,7 +565,6 @@ static void handle_cfg_param(struct work_struct *work)
 	if (ret)
 		PRINT_ER(vif->ndev, "Error in setting CFG params\n");
 
-unlock:
 	mutex_unlock(&hif_drv->cfg_values_lock);
 	kfree(msg);
 }
