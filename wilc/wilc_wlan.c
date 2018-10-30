@@ -1313,15 +1313,14 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 			buff_ptr += pkt_offset;
 
 			cfg_indicate_rx(wilc, buff_ptr, pkt_len,
-						  &rsp);
+					&rsp);
 			if (rsp.type == WILC_CFG_RSP) {
 				PRINT_INFO(vif->ndev, RX_DBG,
-					   "cfg_seq %d rsp.seq %d\n",
-					   wilc->cfg_seq_no, rsp.seq_no);
+					"cfg_seq %d rsp.seq %d\n",
+					wilc->cfg_seq_no, rsp.seq_no);
 
 				if (wilc->cfg_seq_no == rsp.seq_no)
 					complete(&wilc->cfg_event);
-
 			} else if (rsp.type == WILC_CFG_RSP_STATUS) {
 				wilc_mac_indicate(wilc);
 			}
@@ -1329,9 +1328,13 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 			pkt_offset &= ~(IS_MANAGMEMENT |
 					IS_MANAGMEMENT_CALLBACK |
 					IS_MGMT_STATUS_SUCCES);
-			 buff_ptr += HOST_HDR_OFFSET;
-			 wilc_wfi_mgmt_rx(wilc, buff_ptr, pkt_len);
-		} else {
+			buff_ptr += HOST_HDR_OFFSET;
+			wilc_wfi_mgmt_rx(wilc, buff_ptr, pkt_len);
+		} else if (pkt_offset & IS_MON_PKT) {
+			/* packet received on monitor interface */
+			buff_ptr += HOST_HDR_OFFSET;
+			wilc_wfi_handle_monitor_rx(wilc, buff_ptr, pkt_len);
+		} else if (pkt_len > 0) {
 			struct net_device *wilc_netdev;
 
 			wilc_netdev = get_if_handler(wilc, buffer);
@@ -1340,15 +1343,11 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 					 "wilc_netdev in wilc is NULL");
 				return;
 			}
-
-			 vif = netdev_priv(wilc_netdev);
-
-			if (vif->iftype == MONITOR_MODE)
-				/* packet received on monitor interface */
-				wilc_wfi_monitor_rx(vif, buffer, size);
-			else if (pkt_len > 0)
-				wilc_frmw_to_linux(vif, buff_ptr, pkt_len,
-						   pkt_offset, PKT_STATUS_NEW);
+			vif = netdev_priv(wilc_netdev);
+			wilc_frmw_to_linux(vif, buff_ptr,
+					pkt_len,
+					pkt_offset,
+					PKT_STATUS_NEW);
 		}
 
 		offset += tp_len;

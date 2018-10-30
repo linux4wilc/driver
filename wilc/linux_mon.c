@@ -31,6 +31,58 @@ static u8 bssid[6];
 #define TX_RADIOTAP_PRESENT ((1 << IEEE80211_RADIOTAP_RATE) |	\
 			     (1 << IEEE80211_RADIOTAP_TX_FLAGS))
 
+void wilc_wfi_handle_monitor_rx(struct wilc *wilc, u8 *buff, u32 size)
+{
+	struct wilc_vif *vif = 0;
+	struct sk_buff *skb = NULL;
+	struct wfi_rtap_hdr *hdr;
+	int i;
+
+	for (i = 0; i <= wilc->vif_num; i++) {
+		if (wilc->vif[i]->iftype == MONITOR_MODE) {
+			vif = wilc->vif[i];
+			break;
+		}
+	}
+
+	if (!vif) {
+		PRINT_D(vif->ndev, HOSTAPD_DBG, "Monitor interface not up\n");
+		return;
+	}
+
+	skb = dev_alloc_skb(size + sizeof(*hdr));
+
+	if (!skb) {
+		PRINT_D(vif->ndev, HOSTAPD_DBG,
+			"Monitor if : No memory to allocate skb");
+		return;
+	}
+#if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
+	skb_put_data(skb, buff, size);
+	hdr = skb_push(skb, sizeof(*hdr));
+#else
+	memcpy(skb_put(skb, size), buff, size);
+	hdr = (struct wfi_rtap_hdr *)skb_push(skb, sizeof(*hdr));
+#endif
+	memset(hdr, 0, sizeof(*hdr));
+	hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
+	hdr->hdr.it_len = cpu_to_le16(sizeof(*hdr));
+	PRINT_D(vif->ndev, HOSTAPD_DBG,
+		"Radiotap len %d\n", hdr->hdr.it_len);
+	hdr->hdr.it_present = cpu_to_le32
+			(1 << IEEE80211_RADIOTAP_RATE); /* | */
+	PRINT_D(vif->ndev, HOSTAPD_DBG, "Presentflags %d\n",
+		hdr->hdr.it_present);
+	hdr->rate = 5; /* txrate->bitrate / 5; */
+	skb->dev = vif->ndev;
+	skb_reset_mac_header(skb);
+	skb->ip_summed = CHECKSUM_UNNECESSARY;
+	skb->pkt_type = PACKET_OTHERHOST;
+	skb->protocol = htons(ETH_P_802_2);
+	memset(skb->cb, 0, sizeof(skb->cb));
+	netif_rx(skb);
+}
+
 void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 {
 	u32 header, pkt_offset;

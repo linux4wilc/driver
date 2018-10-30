@@ -2200,11 +2200,6 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 	struct wilc_vif *vif_1 = netdev_priv(net_device_1);
 	struct wilc_vif *vif_2 = netdev_priv(net_device_2);
 
-	if (wilc_wfi_mon == dev) {
-		wilc_wfi_mon = NULL;
-		vif->monitor_flag = 0;
-	}
-
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 		   "In Change virtual interface function\n");
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG,
@@ -2225,6 +2220,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			   "Interface type = NL80211_IFTYPE_STATION\n");
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
+		vif->monitor_flag = 0;
 		vif->iftype = STATION_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 					 STATION_MODE, vif->ifc_id, false);
@@ -2244,6 +2240,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			   "Interface type = NL80211_IFTYPE_P2P_CLIENT\n");
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
+		vif->monitor_flag = 0;
 		vif->iftype = CLIENT_MODE;
 		wl->enable_ps = false;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
@@ -2282,7 +2279,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		priv->wdev->iftype = type;
 		vif->iftype = GO_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-						 AP_MODE, vif->ifc_id, false);
+					AP_MODE, vif->ifc_id, false);
 		wilc_set_operation_mode(vif, AP_MODE);
 		wl->enable_ps = false;
 		wilc_set_power_mgmt(vif_1, 0, 0);
@@ -2291,14 +2288,12 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 	case NL80211_IFTYPE_MONITOR:
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 			   "Interface type = NL80211_IFTYPE_MONITOR\n");
-		wilc_wfi_mon = dev;
 		dev->ieee80211_ptr->iftype = type;
-		wilc_wfi_mon->type = ARPHRD_IEEE80211_RADIOTAP;
+		dev->type = ARPHRD_IEEE80211_RADIOTAP;
 		priv->wdev->iftype = type;
 		vif->iftype = MONITOR_MODE;
 		wl->enable_ps = false;
 		if (wl->initialized) {
-			vif->monitor_flag = 1;
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 						 MONITOR_MODE, vif->ifc_id,
 						 false);
