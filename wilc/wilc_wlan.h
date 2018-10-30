@@ -223,6 +223,7 @@ static inline bool is_wilc3000(u32 id)
 #define IS_MANAGMEMENT		0x100
 #define IS_MANAGMEMENT_CALLBACK	0x080
 #define IS_MGMT_STATUS_SUCCES	0x040
+#define IS_MON_PKT		0x020
 
 /********************************************
  *
@@ -348,4 +349,7 @@ void acquire_bus(struct wilc *wilc, enum bus_acquire acquire, int source);
 void release_bus(struct wilc *wilc, enum bus_release release, int source);
 int wilc_wlan_init(struct net_device *dev);
 u32 wilc_get_chipid(struct wilc *wilc, bool update);
+void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size,
+				u32 pkt_offset, u8 status);
+void wilc_wfi_handle_monitor_rx(struct wilc *wilc, u8 *buff, u32 size);
 #endif
