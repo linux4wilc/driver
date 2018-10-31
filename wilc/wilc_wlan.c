@@ -1337,7 +1337,7 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 		} else if (pkt_len > 0) {
 			struct net_device *wilc_netdev;
 
-			wilc_netdev = get_if_handler(wilc, buffer);
+			wilc_netdev = get_if_handler(wilc, buff_ptr);
 			if (!wilc_netdev) {
 				PRINT_ER(vif->ndev,
 					 "wilc_netdev in wilc is NULL");
