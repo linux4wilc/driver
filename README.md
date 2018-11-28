@@ -11,7 +11,7 @@ Microcip Embedded Wi-Fi® is a family of self-contained, low power and certified
 
 This is the unified driver source for wilc1000 & wilc3000 chipsets.
 
-Refer to the [Wi-Fi Link Controller Linux User Guide](http://ww1.microchip.com/downloads/en/DeviceDoc/70005328A.pdf) for information on how to use the wireless devices on linux.
+Refer to the [Wi-Fi Link Controller Linux User Guide](http://ww1.microchip.com/downloads/en/DeviceDoc/ATWILC1000-ATWILC3000-Wi-Fi-Link-Controller-Linux-User-Guide-DS70005328B.pdf) for information on how to use the wireless devices on linux and the [Wi-Fi Link Controller Linux Release Notes](http://ww1.microchip.com/downloads/en/DeviceDoc/WSGA-3295A.pdf) for the latest release notes and revision history.
 
 For more information on Microchip Embedded Wi-Fi®, visit [Microchip Embedded Wi-Fi®](http://www.microchip.com/design-centers/wireless-connectivity/embedded-wi-fi).
 
