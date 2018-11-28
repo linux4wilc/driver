@@ -4503,8 +4503,6 @@ int wilc_set_antenna(struct wilc_vif *vif, u8 mode)
 	struct host_if_msg *msg;
 	struct sysfs_attr_group *attr_syfs_p;
 
-	memset(&msg, 0, sizeof(struct host_if_msg));
-
 	msg = wilc_alloc_work(vif, handle_set_antenna_mode, false);
 	if (IS_ERR(msg))
 		return PTR_ERR(msg);
