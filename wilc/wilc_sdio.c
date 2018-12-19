@@ -8,6 +8,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
 #include <linux/module.h>
+#include <linux/pm_runtime.h>
 
 #include "wilc_wfi_netdevice.h"
 #include "wilc_wlan.h"
@@ -734,6 +735,10 @@ static int sdio_init(struct wilc *wilc, bool resume)
 
 	dev_info(&func->dev, "SDIO speed: %d\n",
 		func->card->host->ios.clock);
+
+	/* Patch for sdio interrupt latency issue */
+	pm_runtime_get_sync(mmc_dev(func->card->host));
+
 	init_waitqueue_head(&sdio_intr_waitqueue);
 	sdio_priv->irq_gpio = (wilc->io_type == HIF_SDIO_GPIO_IRQ);
 
