@@ -240,7 +240,6 @@ struct wilc {
 	struct device *dev;
 	struct device *dt_dev;
 
-	bool enable_ps;
 	enum wilc_chip_type chip;
 
 	uint8_t power_status[DEV_MAX];

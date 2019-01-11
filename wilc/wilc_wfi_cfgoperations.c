@@ -2166,8 +2166,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 		   " Power save Enabled= %d , TimeOut = %d\n", enabled,
 		   timeout);
 
-	if (vif->wilc->enable_ps)
-		wilc_set_power_mgmt(vif, enabled, timeout);
+	wilc_set_power_mgmt(vif, enabled, timeout);
 
 	return 0;
 }
@@ -2219,7 +2218,6 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		memset(priv->assoc_stainfo.sta_associated_bss, 0,
 		       MAX_NUM_STA * ETH_ALEN);
 
-		wl->enable_ps = true;
 		wilc_set_power_mgmt(vif_1, 1, 0);
 		wilc_set_power_mgmt(vif_2, 1, 0);
 		break;
@@ -2232,7 +2230,6 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		priv->wdev->iftype = type;
 		vif->monitor_flag = 0;
 		vif->iftype = CLIENT_MODE;
-		wl->enable_ps = false;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 					 STATION_MODE, vif->ifc_id, false);
 		wilc_set_operation_mode(vif, STATION_MODE);
@@ -2247,7 +2244,6 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev->iftype = type;
 		vif->iftype = AP_MODE;
-		wl->enable_ps = false;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 						 AP_MODE, vif->ifc_id, false);
@@ -2271,7 +2267,6 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 					AP_MODE, vif->ifc_id, false);
 		wilc_set_operation_mode(vif, AP_MODE);
-		wl->enable_ps = false;
 		wilc_set_power_mgmt(vif_1, 0, 0);
 		wilc_set_power_mgmt(vif_2, 0, 0);
 		break;
@@ -2282,7 +2277,6 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		dev->type = ARPHRD_IEEE80211_RADIOTAP;
 		priv->wdev->iftype = type;
 		vif->iftype = MONITOR_MODE;
-		wl->enable_ps = false;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 						 MONITOR_MODE, vif->ifc_id,
