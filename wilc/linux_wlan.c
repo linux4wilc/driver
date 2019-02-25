@@ -1464,38 +1464,10 @@ netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 
 static int wilc_mac_close(struct net_device *ndev)
 {
-	struct wilc_priv *priv;
 	struct wilc_vif *vif = netdev_priv(ndev);
-	struct host_if_drv *hif_drv;
-	struct wilc *wl;
-
-	if (!vif || !vif->ndev || !vif->ndev->ieee80211_ptr ||
-	    !vif->ndev->ieee80211_ptr->wiphy) {
-		PRINT_ER(ndev, "vif = NULL\n");
-		return 0;
-	}
-
-	priv = wiphy_priv(vif->ndev->ieee80211_ptr->wiphy);
-	wl = vif->wilc;
-
-	if (!priv) {
-		PRINT_ER(ndev, "priv = NULL\n");
-		return 0;
-	}
-
-	hif_drv = (struct host_if_drv *)priv->hif_drv;
+	struct wilc *wl = vif->wilc;
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "Mac close\n");
-
-	if (!wl) {
-		PRINT_ER(ndev, "wilc = NULL\n");
-		return 0;
-	}
-
-	if (!hif_drv) {
-		PRINT_ER(ndev, "hif driver is NULL\n");
-		return 0;
-	}
 
 	if (wl->open_ifcs > 0) {
 		wl->open_ifcs--;
