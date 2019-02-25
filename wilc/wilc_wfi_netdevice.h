@@ -169,7 +169,7 @@ struct wilc_priv {
 	struct sk_buff *skb;
 	struct net_device *dev;
 	struct host_if_drv *hif_drv;
-	struct host_if_pmkid_attr pmkid_list;
+	struct wilc_pmkid_attr pmkid_list;
 	u8 wep_key[4][WLAN_KEY_LEN_WEP104];
 	u8 wep_key_len[4];
 	/* The real interface that the monitor is on */
@@ -290,7 +290,8 @@ struct wilc {
 	struct task_struct *debug_thread;
 
 	int quit;
-	int cfg_frame_in_use;
+	/* lock to protect issue of wid command to fw */
+	struct mutex cfg_cmd_lock;
 	struct wilc_cfg_frame cfg_frame;
 	u32 cfg_frame_offset;
 	int cfg_seq_no;

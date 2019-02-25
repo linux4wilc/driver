@@ -467,8 +467,8 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		connect_status = conn_info->status;
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Connection response received = %d\n",
-			   mac_status);
+			   "Connection response received=%d connect_stat[%d]\n",
+			   mac_status, connect_status);
 		if (mac_status == WILC_MAC_STATUS_DISCONNECTED &&
 		    conn_info->status == WLAN_STATUS_SUCCESS) {
 			connect_status = WLAN_STATUS_UNSPECIFIED_FAILURE;
@@ -485,7 +485,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 			bool scan_refresh = false;
 			u32 i;
 
-			PRINT_D(vif->ndev, CFG80211_DBG,
+			PRINT_ER(dev,
 				"Connection Successful: BSSID: %x%x%x%x%x%x\n",
 				conn_info->bssid[0], conn_info->bssid[1],
 				conn_info->bssid[2], conn_info->bssid[3],
@@ -629,18 +629,15 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 	u8 scan_ch_list[MAX_NUM_SCANNED_NETWORKS];
 	struct hidden_network hidden_ntwk;
 
-	priv->scan_req = request;
-
-	priv->rcvd_ch_cnt = 0;
-
-	reset_shadow_found(priv);
-
-	priv->cfg_scanning = true;
 	if (request->n_channels > MAX_NUM_SCANNED_NETWORKS) {
 		PRINT_ER(priv->dev, "Requested scanned channels over\n");
 		return -EINVAL;
 	}
 
+	priv->scan_req = request;
+	priv->rcvd_ch_cnt = 0;
+	reset_shadow_found(priv);
+	priv->cfg_scanning = true;
 	for (i = 0; i < request->n_channels; i++) {
 		u16 freq = request->channels[i]->center_freq;
 
@@ -660,9 +657,10 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 		   "Number of SSIDs %d\n",
 		   request->n_ssids);
 	if (request->n_ssids >= 1) {
-		if (wilc_wfi_cfg_alloc_fill_ssid(vif, request,
-						 &hidden_ntwk))
-			return -ENOMEM;
+		if (wilc_wfi_cfg_alloc_fill_ssid(vif, request, &hidden_ntwk)) {
+			ret = -ENOMEM;
+			goto out;
+		}
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Trigger Scan Request\n");
@@ -683,8 +681,10 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 				(void *)priv, NULL);
 	}
 
-	if (ret != 0) {
-		ret = -EBUSY;
+out:
+	if (ret) {
+		priv->scan_req = NULL;
+		priv->cfg_scanning = false;
 		PRINT_WRN(vif->ndev, CFG80211_DBG,
 			  "Device is busy: Error(%d)\n", ret);
 	}
@@ -753,7 +753,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Required bss is in scan results\n");
 		nw_info = &priv->scanned_shadow[sel_bssi_idx];
-		PRINT_D(vif->ndev, CFG80211_DBG,
+		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			"network BSSID to be associated: %x%x%x%x%x%x\n",
 			nw_info->bssid[0], nw_info->bssid[1],
 			nw_info->bssid[2], nw_info->bssid[3],
@@ -898,6 +898,8 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 
 		PRINT_ER(dev, "wilc_set_join_req(): Error(%d)\n", ret);
 		ret = -ENOENT;
+		if (!wfi_drv->p2p_connect)
+			wlan_channel = INVALID_CHANNEL;
 		wilc_wlan_set_bssid(dev, null_bssid, WILC_STATION_MODE);
 		goto out_error;
 	}
@@ -933,7 +935,7 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev,
 	priv->p2p.is_wilc_ie = false;
 	wfi_drv->p2p_timeout = 0;
 
-	ret = wilc_disconnect(vif, reason_code);
+	ret = wilc_disconnect(vif);
 	if (ret != 0) {
 		PRINT_ER(priv->dev, "Error in disconnecting (%d)\n", ret);
 		ret = -EINVAL;
@@ -1271,7 +1273,7 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 				   "driver not initialized\n");
 			return -EBUSY;
 		}
-		wilc_get_statistics(vif, &stats, true);
+		wilc_get_statistics(vif, &stats);
 #if KERNEL_VERSION(3, 19, 0) <= LINUX_VERSION_CODE
 		sinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL) |
 			      BIT(NL80211_STA_INFO_RX_PACKETS) |
@@ -1430,7 +1432,7 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 			PRINT_INFO(netdev, CFG80211_DBG,
 				   "Reseting PMKID values\n");
 			memset(&priv->pmkid_list.pmkidlist[i], 0,
-			       sizeof(struct host_if_pmkid));
+			       sizeof(struct wilc_pmkid));
 			break;
 		}
 	}
@@ -1457,7 +1459,7 @@ static int flush_pmksa(struct wiphy *wiphy, struct net_device *netdev)
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 
 	PRINT_INFO(netdev, CFG80211_DBG, "Flushing  PMKID key values\n");
-	memset(&priv->pmkid_list, 0, sizeof(struct host_if_pmkid_attr));
+	memset(&priv->pmkid_list, 0, sizeof(struct wilc_pmkid_attr));
 
 	return 0;
 }
@@ -2037,7 +2039,7 @@ static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 {
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
-	int ret = 0;
+	int ret;
 
 	if (idx != 0)
 		return -ENOENT;
@@ -2045,7 +2047,6 @@ static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Dumping station information\n");
 
 	ret = wilc_get_rssi(vif, &sinfo->signal);
-
 	if (ret)
 		return ret;
 
@@ -2132,7 +2133,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		vif->monitor_flag = 0;
 		vif->iftype = WILC_STATION_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 WILC_STATION_MODE, vif->ifc_id, false);
+					 WILC_STATION_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, WILC_STATION_MODE);
 
 		memset(priv->assoc_stainfo.sta_associated_bss, 0,
@@ -2151,7 +2152,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		vif->monitor_flag = 0;
 		vif->iftype = WILC_CLIENT_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 WILC_STATION_MODE, vif->ifc_id, false);
+					 WILC_STATION_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, WILC_STATION_MODE);
 
 		wilc_set_power_mgmt(vif_1, 0, 0);
@@ -2166,8 +2167,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		vif->iftype = WILC_AP_MODE;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-						 WILC_AP_MODE, vif->ifc_id,
-						 false);
+						 WILC_AP_MODE, vif->ifc_id);
 			wilc_set_operation_mode(vif, WILC_AP_MODE);
 			wilc_set_power_mgmt(vif_1, 0, 0);
 			wilc_set_power_mgmt(vif_2, 0, 0);
@@ -2186,7 +2186,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		priv->wdev->iftype = type;
 		vif->iftype = WILC_GO_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					WILC_AP_MODE, vif->ifc_id, false);
+					WILC_AP_MODE, vif->ifc_id);
 		wilc_set_operation_mode(vif, WILC_AP_MODE);
 		wilc_set_power_mgmt(vif_1, 0, 0);
 		wilc_set_power_mgmt(vif_2, 0, 0);
@@ -2200,8 +2200,8 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		vif->iftype = WILC_MONITOR_MODE;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-						 WILC_MONITOR_MODE, vif->ifc_id,
-						 false);
+						 WILC_MONITOR_MODE,
+						 vif->ifc_id);
 
 			wilc_set_operation_mode(vif, WILC_MONITOR_MODE);
 			wilc_set_power_mgmt(vif_1, 0, 0);
@@ -2221,7 +2221,6 @@ static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 		    struct cfg80211_ap_settings *settings)
 {
 	struct wilc_vif *vif = netdev_priv(dev);
-	struct cfg80211_beacon_data *beacon = &settings->beacon;
 	int ret;
 
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Starting ap\n");
@@ -2229,7 +2228,7 @@ static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Interval= %d\n DTIM period= %d\n Head length= %d Tail length= %d\n",
 		   settings->beacon_interval, settings->dtim_period,
-		   beacon->head_len, beacon->tail_len);
+		   settings->beacon.head_len, settings->beacon.tail_len);
 	ret = set_channel(wiphy, &settings->chandef);
 
 	if (ret != 0)
@@ -2239,9 +2238,7 @@ static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 	wilc_set_power_mgmt(vif, 0, 0);
 
 	return wilc_add_beacon(vif, settings->beacon_interval,
-				   settings->dtim_period, beacon->head_len,
-				   (u8 *)beacon->head, beacon->tail_len,
-				   (u8 *)beacon->tail);
+			       settings->dtim_period, &settings->beacon);
 }
 
 static int change_beacon(struct wiphy *wiphy, struct net_device *dev,
@@ -2252,9 +2249,7 @@ static int change_beacon(struct wiphy *wiphy, struct net_device *dev,
 
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Setting beacon\n");
 
-	return wilc_add_beacon(vif, 0, 0, beacon->head_len,
-				   (u8 *)beacon->head, beacon->tail_len,
-				   (u8 *)beacon->tail);
+	return wilc_add_beacon(vif, 0, 0, beacon);
 }
 
 static int stop_ap(struct wiphy *wiphy, struct net_device *dev)
@@ -2286,16 +2281,11 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 {
 	int ret = 0;
 	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct add_sta_param sta_params = { {0} };
 	struct wilc_vif *vif = netdev_priv(dev);
 	u8 *assoc_bss = priv->assoc_stainfo.sta_associated_bss[params->aid];
 
 	if (vif->iftype == WILC_AP_MODE || vif->iftype == WILC_GO_MODE) {
-		memcpy(sta_params.bssid, mac, ETH_ALEN);
 		memcpy(assoc_bss, mac, ETH_ALEN);
-		sta_params.aid = params->aid;
-		sta_params.rates_len = params->supported_rates_len;
-		sta_params.rates = params->supported_rates;
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Adding station parameters %d\n", params->aid);
@@ -2303,38 +2293,37 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 			   assoc_bss[0], assoc_bss[1], assoc_bss[2],
 			   assoc_bss[3], assoc_bss[4], assoc_bss[5]);
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG, "ASSOC ID = %d\n",
-			   sta_params.aid);
+			   params->aid);
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 			   "Number of supported rates = %d\n",
-			   sta_params.rates_len);
-		if (!params->ht_capa) {
-			sta_params.ht_supported = false;
-		} else {
-			sta_params.ht_supported = true;
-			sta_params.ht_capa = *params->ht_capa;
-		}
-
-		sta_params.flags_mask = params->sta_flags_mask;
-		sta_params.flags_set = params->sta_flags_set;
+			   params->supported_rates_len);
 
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "IS HT supported = %d\n",
-			   sta_params.ht_supported);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n",
-			   sta_params.ht_capa.cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n",
-			   sta_params.ht_capa.ampdu_params_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params= %d\n",
-			   sta_params.ht_capa.extended_ht_cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap= %d\n",
-			   sta_params.ht_capa.tx_BF_cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Antenna selection info = %d\n",
-			   sta_params.ht_capa.antenna_selection_info);
+			   (!params->ht_capa) ? false : true);
+
+		if (params->ht_capa) {
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Capability Info = %d\n",
+				   params->ht_capa->cap_info);
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "AMPDU Params = %d\n",
+				   params->ht_capa->ampdu_params_info);
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "HT Extended params= %d\n",
+				   params->ht_capa->extended_ht_cap_info);
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Tx Beamforming Cap= %d\n",
+				   params->ht_capa->tx_BF_cap_info);
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Antenna selection info = %d\n",
+				   params->ht_capa->antenna_selection_info);
+		}
+
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n",
-			   sta_params.flags_mask);
+			   params->sta_flags_mask);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n",
-			   sta_params.flags_set);
-		ret = wilc_add_station(vif, &sta_params);
+			   params->sta_flags_set);
+		ret = wilc_add_station(vif, (const u8 *)mac, params);
 		if (ret)
 			PRINT_ER(dev, "Host add station fail\n");
 	}
@@ -2394,55 +2383,42 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 #endif
 {
 	int ret = 0;
-	struct add_sta_param sta_params = { {0} };
 	struct wilc_vif *vif = netdev_priv(dev);
 
 	PRINT_D(vif->ndev, CFG80211_DBG, "Change station paramters\n");
 
 	if (vif->iftype == WILC_AP_MODE || vif->iftype == WILC_GO_MODE) {
-		memcpy(sta_params.bssid, mac, ETH_ALEN);
-		sta_params.aid = params->aid;
-		sta_params.rates_len = params->supported_rates_len;
-		sta_params.rates = params->supported_rates;
-
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "BSSID = %x%x%x%x%x%x\n",
-			  sta_params.bssid[0], sta_params.bssid[1],
-			  sta_params.bssid[2], sta_params.bssid[3],
-			  sta_params.bssid[4],
-			  sta_params.bssid[5]);
+			  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "ASSOC ID = %d\n",
-			   sta_params.aid);
+			   params->aid);
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Number of supported rates = %d\n",
-			   sta_params.rates_len);
-		if (!params->ht_capa) {
-			sta_params.ht_supported = false;
-		} else {
-			sta_params.ht_supported = true;
-			sta_params.ht_capa = *params->ht_capa;
-		}
-
-		sta_params.flags_mask = params->sta_flags_mask;
-		sta_params.flags_set = params->sta_flags_set;
-
+			   params->supported_rates_len);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "IS HT supported = %d\n",
-			   sta_params.ht_supported);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Capability Info = %d\n",
-			   sta_params.ht_capa.cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "AMPDU Params = %d\n",
-			   sta_params.ht_capa.ampdu_params_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "HT Extended params= %d\n",
-			   sta_params.ht_capa.extended_ht_cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG, "Tx Beamforming Cap= %d\n",
-			   sta_params.ht_capa.tx_BF_cap_info);
-		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Antenna selection info = %d\n",
-			   sta_params.ht_capa.antenna_selection_info);
+			   (!params->ht_capa) ? false : true);
+		if (params->ht_capa) {
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Capability Info = %d\n",
+				   params->ht_capa->cap_info);
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "AMPDU Params = %d\n",
+				   params->ht_capa->ampdu_params_info);
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "HT Extended params= %d\n",
+				   params->ht_capa->extended_ht_cap_info);
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Tx Beamforming Cap= %d\n",
+				   params->ht_capa->tx_BF_cap_info);
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
+				   "Antenna selection info = %d\n",
+				   params->ht_capa->antenna_selection_info);
+		}
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Mask = %d\n",
-			   sta_params.flags_mask);
+			   params->sta_flags_mask);
 		PRINT_INFO(vif->ndev, CFG80211_DBG, "Flag Set = %d\n",
-			   sta_params.flags_set);
-		ret = wilc_edit_station(vif, &sta_params);
+			   params->sta_flags_set);
+		ret = wilc_edit_station(vif, (const u8 *)mac, params);
 		if (ret)
 			PRINT_ER(dev, "Host edit station fail\n");
 	}
@@ -2539,7 +2515,7 @@ static void wilc_set_wakeup(struct wiphy *wiphy, bool enabled)
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "cfg set wake up = %d\n", enabled);
-	host_int_set_wowlan_trigger(vif, (u8)enabled);
+	wilc_set_wowlan_trigger(vif, (u8)enabled);
 }
 
 static int set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,

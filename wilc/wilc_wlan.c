@@ -1781,8 +1781,7 @@ int cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 	int ret_size;
 	struct wilc *wilc = vif->wilc;
 
-	if (wilc->cfg_frame_in_use)
-		return 0;
+	mutex_lock(&wilc->cfg_cmd_lock);
 
 	if (start)
 		wilc->cfg_frame_offset = 0;
@@ -1793,13 +1792,14 @@ int cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 	offset += ret_size;
 	wilc->cfg_frame_offset = offset;
 
-	if (!commit)
+	if (!commit) {
+		mutex_unlock(&wilc->cfg_cmd_lock);
 		return ret_size;
+	}
 
 	PRINT_INFO(vif->ndev, TX_DBG,
 		   "[WILC]PACKET Commit with sequence number%d\n",
 		   wilc->cfg_seq_no);
-	wilc->cfg_frame_in_use = 1;
 
 	if (wilc_wlan_cfg_commit(vif, WILC_CFG_SET, drv_handler))
 		ret_size = 0;
@@ -1810,9 +1810,9 @@ int cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 		ret_size = 0;
 	}
 
-	wilc->cfg_frame_in_use = 0;
 	wilc->cfg_frame_offset = 0;
 	wilc->cfg_seq_no += 1;
+	mutex_unlock(&wilc->cfg_cmd_lock);
 
 	return ret_size;
 }
@@ -1824,8 +1824,7 @@ int cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 	int ret_size;
 	struct wilc *wilc = vif->wilc;
 
-	if (wilc->cfg_frame_in_use)
-		return 0;
+	mutex_lock(&wilc->cfg_cmd_lock);
 
 	if (start)
 		wilc->cfg_frame_offset = 0;
@@ -1835,10 +1834,10 @@ int cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 	offset += ret_size;
 	wilc->cfg_frame_offset = offset;
 
-	if (!commit)
+	if (!commit) {
+		mutex_unlock(&wilc->cfg_cmd_lock);
 		return ret_size;
-
-	wilc->cfg_frame_in_use = 1;
+	}
 
 	if (wilc_wlan_cfg_commit(vif, WILC_CFG_QUERY, drv_handler))
 		ret_size = 0;
@@ -1849,9 +1848,9 @@ int cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 		ret_size = 0;
 	}
 	PRINT_INFO(vif->ndev, TX_DBG, "Get Response received\n");
-	wilc->cfg_frame_in_use = 0;
 	wilc->cfg_frame_offset = 0;
 	wilc->cfg_seq_no += 1;
+	mutex_unlock(&wilc->cfg_cmd_lock);
 
 	return ret_size;
 }
