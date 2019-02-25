@@ -220,14 +220,14 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		/* Adjust coexistence module. This should be done from the FW
 		 * in the future
 		 */
-		acquire_bus(wilc, ACQUIRE_AND_WAKEUP, DEV_BT);
+		acquire_bus(wilc, WILC_BUS_ACQUIRE_AND_WAKEUP, DEV_BT);
 
 		ret = hif_func->hif_read_reg(wilc, GLOBAL_MODE_CONTROL,
 					     &reg);
 		if (!ret) {
 			pr_err("[wilc start]: fail read reg %x\n",
 			       GLOBAL_MODE_CONTROL);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 			return ret;
 		}
 		/* Clear BT mode*/
@@ -237,7 +237,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			pr_err("[wilc start]: fail write reg %x\n",
 			       GLOBAL_MODE_CONTROL);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 			return ret;
 		}
 
@@ -249,7 +249,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			pr_err("[wilc start]: fail read reg %x\n",
 			       COE_AUTO_PS_ON_NULL_PKT);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 			return ret;
 		}
 		reg &= ~BIT(30);
@@ -258,7 +258,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			pr_err("[wilc start]: fail write reg %x\n",
 			       COE_AUTO_PS_ON_NULL_PKT);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 			return ret;
 		}
 
@@ -269,7 +269,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			pr_err("[wilc start]: fail read reg %x\n",
 			       COE_AUTO_PS_OFF_NULL_PKT);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 			return ret;
 		}
 		reg &= ~BIT(30);
@@ -278,7 +278,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			pr_err("[wilc start]: fail write reg %x\n",
 			       COE_AUTO_PS_OFF_NULL_PKT);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 			return ret;
 		}
 		// Disable BT wakeup
@@ -287,7 +287,7 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			pr_err("[wilc start]: fail read reg %x\n",
 			       PWR_SEQ_MISC_CTRL);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 			return ret;
 		}
 		reg &= ~BIT(29);
@@ -296,11 +296,11 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		if (!ret) {
 			pr_err("[wilc start]: fail write reg %x\n",
 			       PWR_SEQ_MISC_CTRL);
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 			return ret;
 		}
 
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 
 		bt_init_done = 0;
 	}
@@ -390,7 +390,7 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 		/*TicketId1092*/
 		/*If WiFi is off, force BT*/
 		if (wilc->power_status[DEV_WIFI] == false) {
-			acquire_bus(wilc, ACQUIRE_AND_WAKEUP, DEV_BT);
+			acquire_bus(wilc, WILC_BUS_ACQUIRE_AND_WAKEUP, DEV_BT);
 
 			/*TicketId1115*/
 			/*Disable awake coex null frames*/
@@ -432,11 +432,11 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 				goto fail;
 			}
 
-			release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 		}
 
 		// Enable BT wakeup
-		acquire_bus(wilc, ACQUIRE_AND_WAKEUP, DEV_BT);
+		acquire_bus(wilc, WILC_BUS_ACQUIRE_AND_WAKEUP, DEV_BT);
 
 		ret = hif_func->hif_read_reg(wilc, PWR_SEQ_MISC_CTRL,
 					     &reg);
@@ -454,13 +454,13 @@ int wilc_bt_power_up(struct wilc *wilc, int source)
 			goto fail;
 		}
 
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 	}
 
 	return 0;
 
 fail:
-	release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+	release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 	wilc_bt_power_down(wilc, DEV_BT);
 	return ret;
 }
@@ -494,12 +494,12 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 		goto fail_1;
 	}
 
-	acquire_bus(wilc, ACQUIRE_AND_WAKEUP, DEV_BT);
+	acquire_bus(wilc, WILC_BUS_ACQUIRE_AND_WAKEUP, DEV_BT);
 
 	ret = hif_func->hif_write_reg(wilc, 0x4f0000, 0x71);
 	if (!ret) {
 		pr_err("[wilc start]: fail write reg 0x4f0000 ...\n");
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 		goto fail_1;
 	}
 
@@ -511,7 +511,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	ret = hif_func->hif_read_reg(wilc, 0x3b0090, &reg);
 	if (!ret) {
 		pr_err("[wilc start]: fail read reg 0x3b0090 ...\n");
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 		goto fail_1;
 	}
 
@@ -519,7 +519,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	ret = hif_func->hif_write_reg(wilc, 0x3b0090, reg);
 	if (!ret) {
 		pr_err("[wilc start]: fail write reg 0x3b0090 ...\n");
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 		goto fail_1;
 	}
 
@@ -534,7 +534,7 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 	}
 	hif_func->hif_write_reg(wilc, 0x3B0400, reg);
 
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 
 	/* blocks of sizes > 512 causes the wifi to hang! */
 	blksz = (1ul << 9);
@@ -563,11 +563,11 @@ static void wilc_bt_firmware_download(struct wilc *wilc)
 		/* Copy firmware into a DMA coherent buffer */
 		memcpy(dma_buffer, &buffer[offset], size2);
 
-		acquire_bus(wilc, ACQUIRE_AND_WAKEUP, DEV_BT);
+		acquire_bus(wilc, WILC_BUS_ACQUIRE_AND_WAKEUP, DEV_BT);
 
 		ret = hif_func->hif_block_tx(wilc, addr, dma_buffer, size2);
 
-		release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 
 		if (!ret)
 			break;
@@ -595,7 +595,7 @@ static void wilc_bt_start(struct wilc *wilc)
 {
 	u32 val32 = 0;
 
-	acquire_bus(wilc, ACQUIRE_AND_WAKEUP, DEV_BT);
+	acquire_bus(wilc, WILC_BUS_ACQUIRE_AND_WAKEUP, DEV_BT);
 
 	pr_info("Starting BT firmware\n");
 	/*
@@ -617,7 +617,7 @@ static void wilc_bt_start(struct wilc *wilc)
 
 	pr_info("BT Start Succeeded\n");
 
-	release_bus(wilc, RELEASE_ALLOW_SLEEP, DEV_BT);
+	release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_BT);
 }
 
 static void handle_cmd_pwr_up(char *param)
@@ -626,12 +626,12 @@ static void handle_cmd_pwr_up(char *param)
 	bt_init_done = 0;
 
 	if (!wilc_bt->initialized && !wilc_bt->hif_func->hif_is_init(wilc_bt)) {
-		acquire_bus(wilc_bt, ACQUIRE_ONLY, DEV_BT);
+		acquire_bus(wilc_bt, WILC_BUS_ACQUIRE_ONLY, DEV_BT);
 		if (!wilc_bt->hif_func->hif_init(wilc_bt, false)) {
-			release_bus(wilc_bt, RELEASE_ONLY, DEV_BT);
+			release_bus(wilc_bt, WILC_BUS_RELEASE_ONLY, DEV_BT);
 			return;
 		}
-		release_bus(wilc_bt, RELEASE_ONLY, DEV_BT);
+		release_bus(wilc_bt, WILC_BUS_RELEASE_ONLY, DEV_BT);
 	}
 
 	wilc_bt_power_up(wilc_bt, DEV_BT);

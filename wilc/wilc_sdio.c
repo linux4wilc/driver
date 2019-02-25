@@ -8,7 +8,6 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
 #include <linux/module.h>
-#include <linux/pm_runtime.h>
 
 #include "wilc_wfi_netdevice.h"
 #include "wilc_wlan.h"
@@ -39,6 +38,25 @@ struct wilc_sdio {
 	u32 block_size;
 	int nint;
 	bool is_init;
+};
+
+struct sdio_cmd52 {
+	u32 read_write:		1;
+	u32 function:		3;
+	u32 raw:		1;
+	u32 address:		17;
+	u32 data:		8;
+};
+
+struct sdio_cmd53 {
+	u32 read_write:		1;
+	u32 function:		3;
+	u32 block_mode:		1;
+	u32 increment:		1;
+	u32 address:		17;
+	u32 count:		9;
+	u8 *buffer;
+	u32 block_size;
 };
 
 static const struct wilc_hif_func wilc_hif_sdio;
@@ -131,9 +149,9 @@ static int linux_sdio_probe(struct sdio_func *func,
 		return -ENOMEM;
 
 	if (IS_ENABLED(CONFIG_WILC_HW_OOB_INTR))
-		io_type = HIF_SDIO_GPIO_IRQ;
+		io_type = WILC_HIF_SDIO_GPIO_IRQ;
 	else
-		io_type = HIF_SDIO;
+		io_type = WILC_HIF_SDIO;
 	dev_dbg(&func->dev, "Initializing netdev\n");
 	ret = wilc_netdev_init(&wilc, &func->dev, io_type, &wilc_hif_sdio);
 	if (ret) {
@@ -740,7 +758,7 @@ static int sdio_init(struct wilc *wilc, bool resume)
 	pm_runtime_get_sync(mmc_dev(func->card->host));
 
 	init_waitqueue_head(&sdio_intr_waitqueue);
-	sdio_priv->irq_gpio = (wilc->io_type == HIF_SDIO_GPIO_IRQ);
+	sdio_priv->irq_gpio = (wilc->io_type == WILC_HIF_SDIO_GPIO_IRQ);
 
 	/**
 	 *      function 0 csa enable

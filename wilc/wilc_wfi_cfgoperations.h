@@ -8,8 +8,6 @@
 #define NM_WFI_CFGOPERATIONS
 #include "wilc_wfi_netdevice.h"
 
-#define NO_ENCRYPT		0
-
 extern struct net_device *wilc_wfi_mon; /* global monitor netdev */
 
 struct wireless_dev *wilc_create_wiphy(struct net_device *net,

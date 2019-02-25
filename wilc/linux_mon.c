@@ -39,7 +39,7 @@ void wilc_wfi_handle_monitor_rx(struct wilc *wilc, u8 *buff, u32 size)
 	int i;
 
 	for (i = 0; i <= wilc->vif_num; i++) {
-		if (wilc->vif[i]->iftype == MONITOR_MODE) {
+		if (wilc->vif[i]->iftype == WILC_MONITOR_MODE) {
 			vif = wilc->vif[i];
 			break;
 		}
