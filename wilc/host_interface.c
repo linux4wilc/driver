@@ -2664,6 +2664,34 @@ int wilc_setup_multicast_filter(struct wilc_vif *vif, u32 enabled, u32 count,
 	return result;
 }
 
+void handle_powersave_state_changes(struct work_struct *work)
+{
+	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
+	struct wilc_vif *vif = msg->vif;
+
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover PS = %d\n",
+		   vif->pwrsave_current_state);
+
+	/* Recover PS previous state */
+	wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
+}
+
+void wilc_powersave_state_changes(struct wilc_vif *vif)
+{
+	int result;
+	struct host_if_msg *msg;
+
+	msg = wilc_alloc_work(vif, handle_powersave_state_changes, false);
+	if (IS_ERR(msg))
+		return;
+
+	result = wilc_enqueue_work(msg);
+	if (result) {
+		PRINT_ER(vif->ndev, "enqueue work failed\n");
+		kfree(msg);
+	}
+}
+
 int wilc_set_tx_power(struct wilc_vif *vif, u8 tx_power)
 {
 	int ret;

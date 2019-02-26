@@ -122,11 +122,7 @@ void clear_during_ip(unsigned long arg)
 
 	vif->obtaining_ip = false;
 
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover PS = %d\n",
-		   vif->pwrsave_current_state);
-
-	/* Recover PS previous state */
-	wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
+	wilc_powersave_state_changes(vif);
 }
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
