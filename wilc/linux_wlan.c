@@ -571,14 +571,15 @@ void wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
 	struct wilc *wilc = vif->wilc;
 	u8 i = 0;
 
-
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "set bssid on[%p]\n", wilc_netdev);
 	for (i = 0; i <= wilc->vif_num; i++) {
 		if (wilc_netdev == wilc->vif[i]->ndev) {
+			if (bssid)
+				ether_addr_copy(wilc->vif[i]->bssid, bssid);
+			else
+				eth_zero_addr(wilc->vif[i]->bssid);
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "set bssid [%x][%x][%x]\n", bssid[0],
-				   bssid[1], bssid[2]);
-			ether_addr_copy(wilc->vif[i]->bssid, bssid);
+				   "set bssid [%pM]\n", wilc->vif[i]->bssid);
 			wilc->vif[i]->iftype = mode;
 		}
 	}

@@ -23,14 +23,4 @@ void wilc_mgmt_frame_register(struct wiphy *wiphy, struct wireless_dev *wdev,
 			      u16 frame_type, bool reg);
 void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2);
 void wilc_sysfs_exit(void);
-void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list,
-			u8 ch_list_len);
-
-
-#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
-void remove_network_from_shadow(struct timer_list *t);
-#else
-void remove_network_from_shadow(unsigned long arg);
-#endif
-
 #endif

@@ -28,7 +28,6 @@ enum {
 
 #define WILC_MAX_NUM_STA			9
 #define MAX_NUM_SCANNED_NETWORKS		100
-#define MAX_NUM_SCANNED_NETWORKS_SHADOW		130
 #define WILC_MAX_NUM_PROBED_SSID		10
 
 #define TX_MIC_KEY_LEN				8
@@ -38,8 +37,6 @@ enum {
 #define WILC_ADD_STA_LENGTH			40
 #define WILC_NUM_CONCURRENT_IFC			2
 
-#define NUM_RSSI                5
-
 enum {
 	WILC_SET_CFG = 0,
 	WILC_GET_CFG
@@ -47,33 +44,6 @@ enum {
 
 #define WILC_MAX_ASSOC_RESP_FRAME_SIZE   256
 extern uint32_t cfg_packet_timeout;
-
-struct rssi_history_buffer {
-	bool full;
-	u8 index;
-	s8 samples[NUM_RSSI];
-};
-
-struct network_info {
-	s8 rssi;
-	u16 cap_info;
-	u8 ssid[MAX_SSID_LEN];
-	u8 ssid_len;
-	u8 bssid[6];
-	u16 beacon_period;
-	u8 dtim_period;
-	u8 ch;
-	unsigned long time_scan_cached;
-	unsigned long time_scan;
-	bool new_network;
-	u8 found;
-	u32 tsf_lo;
-	u8 *ies;
-	u16 ies_len;
-	void *join_params;
-	struct rssi_history_buffer rssi_history;
-	u64 tsf;
-};
 
 struct connect_info {
 	u8 bssid[6];
@@ -139,11 +109,6 @@ enum cfg_param {
 	WILC_CFG_PARAM_RTS_THRESHOLD = BIT(3)
 };
 
-struct found_net_info {
-	u8 bssid[6];
-	s8 rssi;
-};
-
 enum scan_event {
 	SCAN_EVENT_NETWORK_FOUND	= 0,
 	SCAN_EVENT_DONE			= 1,
@@ -157,8 +122,15 @@ enum conn_event {
 	EVENT_FORCE_32BIT		= 0xFFFFFFFF
 };
 
-typedef void (*wilc_scan_result)(enum scan_event, struct network_info *,
-				 void *, void *);
+struct wilc_rcvd_net_info {
+	s8 rssi;
+	u8 ch;
+	u16 frame_len;
+	struct ieee80211_mgmt *mgmt;
+};
+
+typedef void (*wilc_scan_result)(enum scan_event, struct wilc_rcvd_net_info *,
+				 void *);
 
 typedef void (*wilc_connect_result)(enum conn_event,
 				     struct connect_info *,
@@ -173,26 +145,21 @@ typedef void (*wilc_frmw_to_linux_t)(struct wilc_vif *, u8 *, unsigned int,
 				     unsigned int, u8);
 typedef void (*free_eap_buf_param)(void *);
 
-struct rcvd_net_info {
-	u8 *buffer;
-	u32 len;
-};
-
-struct hidden_net_info {
-	u8  *ssid;
+struct wilc_probe_ssid_info {
 	u8 ssid_len;
+	u8 *ssid;
 };
 
-struct hidden_network {
-	struct hidden_net_info *net_info;
+struct wilc_probe_ssid {
+	struct wilc_probe_ssid_info *ssid_info;
 	u8 n_ssids;
+	u32 size;
 };
 
 struct user_scan_req {
 	wilc_scan_result scan_result;
 	void *arg;
 	u32 ch_cnt;
-	struct found_net_info net_info[MAX_NUM_SCANNED_NETWORKS];
 };
 
 struct user_conn_req {
@@ -297,7 +264,7 @@ int wilc_get_rssi(struct wilc_vif *vif, s8 *rssi_level);
 int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	      u8 *ch_freq_list, u8 ch_list_len, const u8 *ies,
 	      size_t ies_len, wilc_scan_result scan_result, void *user_arg,
-	      struct hidden_network *hidden_network);
+	      struct wilc_probe_ssid *search);
 int wilc_hif_set_cfg(struct wilc_vif *vif,
 		     struct cfg_param_attr *cfg_param);
 int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler);
@@ -341,4 +308,6 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt);
 void wilc_scan_complete_received(struct wilc *wilc, u8 *buffer, u32 length);
 void wilc_network_info_received(struct wilc *wilc, u8 *buffer, u32 length);
 void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length);
+void *wilc_parse_join_bss_param(struct cfg80211_bss *bss,
+				struct cfg80211_crypto_settings *crypto);
 #endif

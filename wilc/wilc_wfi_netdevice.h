@@ -162,8 +162,6 @@ struct wilc_priv {
 	struct wilc_wfi_p2p_listen_params remain_on_ch_params;
 	u64 tx_cookie;
 	bool cfg_scanning;
-	u32 rcvd_ch_cnt;
-
 	u8 associated_bss[ETH_ALEN];
 	struct sta_info assoc_stainfo;
 	struct sk_buff *skb;
@@ -183,9 +181,7 @@ struct wilc_priv {
 	bool p2p_listen_state;
 	struct wilc_buffered_eap *buffered_eap;
 
-	struct timer_list aging_timer;
 	struct timer_list eap_buff_timer;
-	struct network_info scanned_shadow[MAX_NUM_SCANNED_NETWORKS_SHADOW];
 	int scanned_cnt;
 	struct wilc_p2p_var p2p;
 	struct ieee80211_channel channels[ARRAY_SIZE(wilc_2ghz_channels)];
@@ -294,7 +290,7 @@ struct wilc {
 	struct mutex cfg_cmd_lock;
 	struct wilc_cfg_frame cfg_frame;
 	u32 cfg_frame_offset;
-	int cfg_seq_no;
+	u8 cfg_seq_no;
 
 	u8 *rx_buffer;
 	u32 rx_buffer_offset;

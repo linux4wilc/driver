@@ -15,8 +15,6 @@
 
 #define FALSE_FRMWR_CHANNEL			100
 
-#define REAL_JOIN_REQ				0
-
 /* Generic success will return 0 */
 #define WILC_SUCCESS		0	/* Generic success */
 
@@ -47,6 +45,27 @@
 #define WILC_NO_MEM		-114
 #define WILC_UNSUPPORTED_VERSION -115
 #define WILC_FILE_EOF		-116
+
+#if KERNEL_VERSION(3, 17, 0) > LINUX_VERSION_CODE
+struct ieee80211_wmm_ac_param {
+	u8 aci_aifsn; /* AIFSN, ACM, ACI */
+	u8 cw; /* ECWmin, ECWmax (CW = 2^ECW - 1) */
+	__le16 txop_limit;
+} __packed;
+
+struct ieee80211_wmm_param_ie {
+	u8 element_id; /* Element ID: 221 (0xdd); */
+	u8 len; /* Length: 24 */
+	u8 oui[3]; /* 00:50:f2 */
+	u8 oui_type; /* 2 */
+	u8 oui_subtype; /* 1 */
+	u8 version; /* 1 for WMM version 1.0 */
+	u8 qos_info; /* AP/STA specific QoS info */
+	u8 reserved; /* 0 */
+	/* AC_BE, AC_BK, AC_VI, AC_VO */
+	struct ieee80211_wmm_ac_param ac[4];
+} __packed;
+#endif
 
 struct send_buffered_eap {
 	wilc_frmw_to_linux_t frmw_to_linux;
@@ -131,7 +150,7 @@ struct wilc_gtk_key {
 } __packed;
 
 union message_body {
-	struct rcvd_net_info net_info;
+	struct wilc_rcvd_net_info net_info;
 	struct rcvd_async_info async_info;
 	struct set_multicast multicast_info;
 	struct remain_ch remain_on_ch;
@@ -151,34 +170,50 @@ struct host_if_msg {
 	bool is_sync;
 };
 
-struct join_bss_param {
-	enum bss_types bss_type;
-	u8 dtim_period;
-	u16 beacon_period;
-	u16 cap_info;
-	u8 bssid[6];
-	char ssid[MAX_SSID_LEN];
-	u8 ssid_len;
-	u8 supp_rates[MAX_RATES_SUPPORTED + 1];
-	u8 ht_capable;
-	u8 wmm_cap;
-	u8 uapsd_cap;
-	bool rsn_found;
-	u8 rsn_grp_policy;
-	u8 mode_802_11i;
-	u8 rsn_pcip_policy[3];
-	u8 rsn_auth_policy[3];
-	u8 rsn_cap[2];
-	u32 tsf;
-	u8 noa_enabled;
-	u8 opp_enabled;
+struct wilc_noa_opp_enable {
 	u8 ct_window;
 	u8 cnt;
+	__le32 duration;
+	__le32 interval;
+	__le32 start_time;
+} __packed;
+
+struct wilc_noa_opp_disable {
+	u8 cnt;
+	__le32 duration;
+	__le32 interval;
+	__le32 start_time;
+} __packed;
+
+struct wilc_join_bss_param {
+	char ssid[IEEE80211_MAX_SSID_LEN];
+	u8 ssid_terminator;
+	u8 bss_type;
+	u8 ch;
+	__le16 cap_info;
+	u8 sa[ETH_ALEN];
+	u8 bssid[ETH_ALEN];
+	__le16 beacon_period;
+	u8 dtim_period;
+	u8 supp_rates[MAX_RATES_SUPPORTED + 1];
+	u8 wmm_cap;
+	u8 uapsd_cap;
+	u8 ht_capable;
+	u8 rsn_found;
+	u8 rsn_grp_policy;
+	u8 mode_802_11i;
+	u8 p_suites[3];
+	u8 akm_suites[3];
+	u8 rsn_cap[2];
+	u8 noa_enabled;
+	__le32 tsf_lo;
 	u8 idx;
-	u8 duration[4];
-	u8 interval[4];
-	u8 start_time[4];
-};
+	u8 opp_enabled;
+	union {
+		struct wilc_noa_opp_disable opp_dis;
+		struct wilc_noa_opp_enable opp_en;
+	};
+} __packed;
 
 static struct host_if_drv *terminated_handle;
 static struct mutex hif_deinit_lock;
@@ -242,43 +277,6 @@ static struct wilc_vif *wilc_get_vif_from_idx(struct wilc *wilc, int idx)
 	return wilc->vif[index];
 }
 
-void filter_shadow_scan(struct wilc_priv *priv, u8 *ch_freq_list,
-			u8 ch_list_len)
-{
-	int i;
-	int ch_index;
-	int j;
-	struct network_info *net_info;
-
-	if (ch_list_len == 0)
-		return;
-
-	for (i = 0; i < priv->scanned_cnt;) {
-		net_info = &priv->scanned_shadow[i];
-
-		for (ch_index = 0; ch_index < ch_list_len; ch_index++)
-			if (net_info->ch == (ch_freq_list[ch_index] + 1))
-				break;
-
-		/* filter only un-matched channels */
-		if (ch_index != ch_list_len) {
-			i++;
-			continue;
-		}
-
-		kfree(net_info->ies);
-		net_info->ies = NULL;
-
-		kfree(net_info->join_params);
-		net_info->join_params = NULL;
-
-		for (j = i; j < priv->scanned_cnt - 1; j++)
-			priv->scanned_shadow[j] = priv->scanned_shadow[j + 1];
-
-		priv->scanned_cnt--;
-	}
-}
-
 static void handle_send_buffered_eap(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
@@ -309,17 +307,15 @@ out:
 int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	      u8 *ch_freq_list, u8 ch_list_len, const u8 *ies,
 	      size_t ies_len, wilc_scan_result scan_result, void *user_arg,
-	      struct hidden_network *hidden_net)
+	      struct wilc_probe_ssid *search)
 {
-	struct wiphy *wiphy = vif->ndev->ieee80211_ptr->wiphy;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
 	int result = 0;
 	struct wid wid_list[5];
 	u32 index = 0;
 	u32 i;
 	u8 *buffer;
 	u8 valuesize = 0;
-	u8 *hdn_ntwk_wid_val = NULL;
+	u8 *search_ssid_vals = NULL;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
 							      WILC_P2P_IFC);
@@ -368,30 +364,31 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting SCAN params\n");
 	hif_drv->usr_scan_req.ch_cnt = 0;
 
-	wid_list[index].id = WID_SSID_PROBE_REQ;
-	wid_list[index].type = WID_STR;
+	if (search) {
+		for (i = 0; i < search->n_ssids; i++)
+			valuesize += ((search->ssid_info[i].ssid_len) + 1);
+		search_ssid_vals = kmalloc(valuesize + 1, GFP_KERNEL);
+		if (search_ssid_vals) {
+			wid_list[index].id = WID_SSID_PROBE_REQ;
+			wid_list[index].type = WID_STR;
+			wid_list[index].val = search_ssid_vals;
+			buffer = wid_list[index].val;
 
-	for (i = 0; i < hidden_net->n_ssids; i++)
-		valuesize += ((hidden_net->net_info[i].ssid_len) + 1);
-	hdn_ntwk_wid_val = kmalloc(valuesize + 1, GFP_KERNEL);
-	wid_list[index].val = hdn_ntwk_wid_val;
-	if (wid_list[index].val) {
-		buffer = wid_list[index].val;
-
-		*buffer++ = hidden_net->n_ssids;
+			*buffer++ = search->n_ssids;
 
 		PRINT_INFO(vif->ndev, HOSTINF_DBG,
 			   "In Handle_ProbeRequest number of ssid %d\n",
-			 hidden_net->n_ssids);
-		for (i = 0; i < hidden_net->n_ssids; i++) {
-			*buffer++ = hidden_net->net_info[i].ssid_len;
-			memcpy(buffer, hidden_net->net_info[i].ssid,
-			       hidden_net->net_info[i].ssid_len);
-			buffer += hidden_net->net_info[i].ssid_len;
-		}
+			 search->n_ssids);
+			for (i = 0; i < search->n_ssids; i++) {
+				*buffer++ = search->ssid_info[i].ssid_len;
+				memcpy(buffer, search->ssid_info[i].ssid,
+				       search->ssid_info[i].ssid_len);
+				buffer += search->ssid_info[i].ssid_len;
+			}
 
-		wid_list[index].size = (s32)(valuesize + 1);
-		index++;
+			wid_list[index].size = (s32)(valuesize + 1);
+			index++;
+		}
 	}
 
 	wid_list[index].id = WID_INFO_ELEMENT_PROBE;
@@ -426,12 +423,6 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	wid_list[index].val = (s8 *)&scan_source;
 	index++;
 
-    /*
-     * Remove APs from shadow scan list which are
-     * not in the requested scan channels list
-     */
-	filter_shadow_scan(priv, ch_freq_list, ch_list_len);
-
 	result = wilc_send_config_pkt(vif, WILC_SET_CFG, wid_list,
 				      index,
 				      wilc_get_vif_idx(vif));
@@ -453,8 +444,10 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	}
 
 error:
-	kfree(hidden_net->net_info);
-	kfree(hdn_ntwk_wid_val);
+	if (search) {
+		kfree(search->ssid_info);
+		kfree(search_ssid_vals);
+	}
 
 	return result;
 }
@@ -499,7 +492,7 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 
 	scan_req = &hif_drv->usr_scan_req;
 	if (scan_req->scan_result) {
-		scan_req->scan_result(evt, NULL, scan_req->arg, NULL);
+		scan_req->scan_result(evt, NULL, scan_req->arg);
 		scan_req->scan_result = NULL;
 	}
 
@@ -511,10 +504,9 @@ static int wilc_send_connect_wid(struct wilc_vif *vif)
 	int result = 0;
 	struct wid wid_list[8];
 	u32 wid_cnt = 0, dummyval = 0;
-	u8 *cur_byte = NULL;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct user_conn_req *conn_attr = &hif_drv->usr_conn_req;
-	struct join_bss_param *bss_param = hif_drv->usr_conn_req.param;
+	struct wilc_join_bss_param *bss_param = hif_drv->usr_conn_req.param;
 	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
 							      WILC_P2P_IFC);
 	struct host_if_drv *hif_drv_wlan = get_drv_hndl_by_ifc(vif->wilc,
@@ -585,112 +577,8 @@ static int wilc_send_connect_wid(struct wilc_vif *vif)
 
 	wid_list[wid_cnt].id = WID_JOIN_REQ_EXTENDED;
 	wid_list[wid_cnt].type = WID_STR;
-	wid_list[wid_cnt].size = 112;
-	wid_list[wid_cnt].val = kmalloc(wid_list[wid_cnt].size, GFP_KERNEL);
-
-	if (!wid_list[wid_cnt].val) {
-		result = -EFAULT;
-		goto error;
-	}
-
-	cur_byte = wid_list[wid_cnt].val;
-
-	if (conn_attr->ssid) {
-		memcpy(cur_byte, conn_attr->ssid, conn_attr->ssid_len);
-		cur_byte[conn_attr->ssid_len] = '\0';
-	}
-	cur_byte += MAX_SSID_LEN;
-	*(cur_byte++) = WILC_FW_BSS_TYPE_INFRA;
-
-	if (conn_attr->ch >= 1 && conn_attr->ch <= 14) {
-		*(cur_byte++) = conn_attr->ch;
-	} else {
-		PRINT_ER(vif->ndev, "Channel out of range\n");
-		*(cur_byte++) = 0xFF;
-	}
-	put_unaligned_le16(bss_param->cap_info, cur_byte);
-	cur_byte += 2;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* Cap Info %0x*\n",
-		   (*(cur_byte - 2) | ((*(cur_byte - 1)) << 8)));
-
-	if (conn_attr->bssid)
-		memcpy(cur_byte, conn_attr->bssid, 6);
-	cur_byte += 6;
-
-	if (conn_attr->bssid)
-		memcpy(cur_byte, conn_attr->bssid, 6);
-	cur_byte += 6;
-
-	put_unaligned_le16(bss_param->beacon_period, cur_byte);
-	cur_byte += 2;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* Beacon Period %d*\n",
-		   *(cur_byte - 2) | ((*(cur_byte - 1)) << 8));
-	*(cur_byte++)  =  bss_param->dtim_period;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* DTIM Period %d*\n",
-		   *(cur_byte - 1));
-
-	memcpy(cur_byte, bss_param->supp_rates, MAX_RATES_SUPPORTED + 1);
-	cur_byte += (MAX_RATES_SUPPORTED + 1);
-
-	*(cur_byte++)  =  bss_param->wmm_cap;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* wmm cap%d*\n", *(cur_byte - 1));
-	*(cur_byte++)  = bss_param->uapsd_cap;
-
-	*(cur_byte++)  = bss_param->ht_capable;
-	conn_attr->ht_capable = bss_param->ht_capable;
-
-	*(cur_byte++)  =  bss_param->rsn_found;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* rsn found %d*\n",
-		   *(cur_byte - 1));
-	*(cur_byte++)  =  bss_param->rsn_grp_policy;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* rsn group policy %0x*\n",
-		   *(cur_byte - 1));
-	*(cur_byte++) =  bss_param->mode_802_11i;
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "* mode_802_11i %d*\n",
-		   *(cur_byte - 1));
-	memcpy(cur_byte, bss_param->rsn_pcip_policy,
-	       sizeof(bss_param->rsn_pcip_policy));
-	cur_byte += sizeof(bss_param->rsn_pcip_policy);
-
-	memcpy(cur_byte, bss_param->rsn_auth_policy,
-	       sizeof(bss_param->rsn_auth_policy));
-	cur_byte += sizeof(bss_param->rsn_auth_policy);
-
-	memcpy(cur_byte, bss_param->rsn_cap, sizeof(bss_param->rsn_cap));
-	cur_byte += sizeof(bss_param->rsn_cap);
-
-	*(cur_byte++) = REAL_JOIN_REQ;
-	*(cur_byte++) = bss_param->noa_enabled;
-
-	if (bss_param->noa_enabled) {
-		PRINT_INFO(vif->ndev, HOSTINF_DBG, "NOA present\n");
-		put_unaligned_le32(bss_param->tsf, cur_byte);
-		cur_byte += 4;
-
-		*(cur_byte++) = bss_param->idx;
-		*(cur_byte++) = bss_param->opp_enabled;
-
-		if (bss_param->opp_enabled)
-			*(cur_byte++) = bss_param->ct_window;
-
-		*(cur_byte++) = bss_param->cnt;
-
-		memcpy(cur_byte, bss_param->duration,
-		       sizeof(bss_param->duration));
-		cur_byte += sizeof(bss_param->duration);
-
-		memcpy(cur_byte, bss_param->interval,
-		       sizeof(bss_param->interval));
-		cur_byte += sizeof(bss_param->interval);
-
-		memcpy(cur_byte, bss_param->start_time,
-		       sizeof(bss_param->start_time));
-		cur_byte += sizeof(bss_param->start_time);
-	} else {
-		PRINT_INFO(vif->ndev, HOSTINF_DBG, "NOA not present\n");
-	}
-
-	cur_byte = wid_list[wid_cnt].val;
+	wid_list[wid_cnt].size = sizeof(*bss_param);
+	wid_list[wid_cnt].val = (u8 *)bss_param;
 	wid_cnt++;
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "send HOST_IF_WAITING_CONN_RESP\n");
@@ -700,17 +588,17 @@ static int wilc_send_connect_wid(struct wilc_vif *vif)
 				      wilc_get_vif_idx(vif));
 	if (result) {
 		PRINT_ER(vif->ndev, "failed to send config packet\n");
-		kfree(cur_byte);
 		goto error;
 	} else {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "set HOST_IF_WAITING_CONN_RESP\n");
 		hif_drv->hif_state = HOST_IF_WAITING_CONN_RESP;
 	}
-	kfree(cur_byte);
+
 	return 0;
 
 error:
+
 	kfree(conn_attr->bssid);
 	conn_attr->bssid = NULL;
 
@@ -793,344 +681,171 @@ out:
 	kfree(msg);
 }
 
-static void host_int_fill_join_bss_param(struct join_bss_param *param, u8 *ies,
-					 u16 *out_index, u8 *pcipher_tc,
-					 u8 *auth_total_cnt, u32 tsf_lo,
-					 u8 *rates_no)
+void *wilc_parse_join_bss_param(struct cfg80211_bss *bss,
+				struct cfg80211_crypto_settings *crypto)
 {
-	u8 ext_rates_no;
-	u16 offset;
-	u8 pcipher_cnt;
-	u8 auth_cnt;
-	u8 i, j;
-	u16 index = *out_index;
-
-	if (ies[index] == WLAN_EID_SUPP_RATES) {
-		*rates_no = ies[index + 1];
-		param->supp_rates[0] = *rates_no;
-		index += 2;
-
-		for (i = 0; i < *rates_no; i++)
-			param->supp_rates[i + 1] = ies[index + i];
-
-		index += *rates_no;
-	} else if (ies[index] == WLAN_EID_EXT_SUPP_RATES) {
-		ext_rates_no = ies[index + 1];
-		if (ext_rates_no > (MAX_RATES_SUPPORTED - *rates_no))
-			param->supp_rates[0] = MAX_RATES_SUPPORTED;
-		else
-			param->supp_rates[0] += ext_rates_no;
-		index += 2;
-		for (i = 0; i < (param->supp_rates[0] - *rates_no); i++)
-			param->supp_rates[*rates_no + i + 1] = ies[index + i];
-
-		index += ext_rates_no;
-	} else if (ies[index] == WLAN_EID_HT_CAPABILITY) {
-		param->ht_capable = true;
-		index += ies[index + 1] + 2;
-	} else if ((ies[index] == WLAN_EID_VENDOR_SPECIFIC) &&
-		   (ies[index + 2] == 0x00) && (ies[index + 3] == 0x50) &&
-		   (ies[index + 4] == 0xF2) && (ies[index + 5] == 0x02) &&
-		   ((ies[index + 6] == 0x00) || (ies[index + 6] == 0x01)) &&
-		   (ies[index + 7] == 0x01)) {
-		param->wmm_cap = true;
-
-		if (ies[index + 8] & BIT(7))
-			param->uapsd_cap = true;
-		index += ies[index + 1] + 2;
-	} else if ((ies[index] == WLAN_EID_VENDOR_SPECIFIC) &&
-		 (ies[index + 2] == 0x50) && (ies[index + 3] == 0x6f) &&
-		 (ies[index + 4] == 0x9a) &&
-		 (ies[index + 5] == 0x09) && (ies[index + 6] == 0x0c)) {
-		u16 p2p_cnt;
-
-		param->tsf = tsf_lo;
-		param->noa_enabled = 1;
-		param->idx = ies[index + 9];
-
-		if (ies[index + 10] & BIT(7)) {
-			param->opp_enabled = 1;
-			param->ct_window = ies[index + 10];
-		} else {
-			param->opp_enabled = 0;
-		}
-
-		param->cnt = ies[index + 11];
-		p2p_cnt = index + 12;
-
-		memcpy(param->duration, ies + p2p_cnt, 4);
-		p2p_cnt += 4;
-
-		memcpy(param->interval, ies + p2p_cnt, 4);
-		p2p_cnt += 4;
-
-		memcpy(param->start_time, ies + p2p_cnt, 4);
-
-		index += ies[index + 1] + 2;
-	} else if ((ies[index] == WLAN_EID_RSN) ||
-		 ((ies[index] == WLAN_EID_VENDOR_SPECIFIC) &&
-		  (ies[index + 2] == 0x00) &&
-		  (ies[index + 3] == 0x50) && (ies[index + 4] == 0xF2) &&
-		  (ies[index + 5] == 0x01))) {
-		u16 rsn_idx = index;
-
-		if (ies[rsn_idx] == WLAN_EID_RSN) {
-			param->mode_802_11i = 2;
-		} else {
-			if (param->mode_802_11i == 0)
-				param->mode_802_11i = 1;
-			rsn_idx += 4;
-		}
-
-		rsn_idx += 7;
-		param->rsn_grp_policy = ies[rsn_idx];
-		rsn_idx++;
-		offset = ies[rsn_idx] * 4;
-		pcipher_cnt = (ies[rsn_idx] > 3) ? 3 : ies[rsn_idx];
-		rsn_idx += 2;
-
-		i = *pcipher_tc;
-		j = 0;
-		for (; i < (pcipher_cnt + *pcipher_tc) && i < 3; i++, j++) {
-			u8 *policy =  &param->rsn_pcip_policy[i];
-
-			*policy = ies[rsn_idx + ((j + 1) * 4) - 1];
-		}
-
-		*pcipher_tc += pcipher_cnt;
-		rsn_idx += offset;
-
-		offset = ies[rsn_idx] * 4;
-
-		auth_cnt = (ies[rsn_idx] > 3) ? 3 : ies[rsn_idx];
-		rsn_idx += 2;
-		i = *auth_total_cnt;
-		j = 0;
-		for (; i < (*auth_total_cnt + auth_cnt); i++, j++) {
-			u8 *policy =  &param->rsn_auth_policy[i];
-
-			*policy = ies[rsn_idx + ((j + 1) * 4) - 1];
-		}
-
-		*auth_total_cnt += auth_cnt;
-		rsn_idx += offset;
-
-		if (ies[index] == WLAN_EID_RSN) {
-			param->rsn_cap[0] = ies[rsn_idx];
-			param->rsn_cap[1] = ies[rsn_idx + 1];
-			rsn_idx += 2;
-		}
-		param->rsn_found = true;
-		index += ies[index + 1] + 2;
-	} else {
-		index += ies[index + 1] + 2;
-	}
-
-	*out_index = index;
-}
-
-static void *host_int_parse_join_bss_param(struct network_info *info)
-{
-	struct join_bss_param *param;
-	u16 index = 0;
-	u8 rates_no = 0;
-	u8 pcipher_total_cnt = 0;
-	u8 auth_total_cnt = 0;
+	struct wilc_join_bss_param *param;
+	struct ieee80211_p2p_noa_attr noa_attr;
+	u8 rates_len = 0;
+	const u8 *tim_elm, *ssid_elm, *rates_ie, *supp_rates_ie;
+	const u8 *ht_ie, *wpa_ie, *wmm_ie, *rsn_ie;
+	int ret;
+	const struct cfg80211_bss_ies *ies = bss->ies;
 
 	param = kzalloc(sizeof(*param), GFP_KERNEL);
 	if (!param)
 		return NULL;
 
-	param->dtim_period = info->dtim_period;
-	param->beacon_period = info->beacon_period;
-	param->cap_info = info->cap_info;
-	memcpy(param->bssid, info->bssid, 6);
-	memcpy((u8 *)param->ssid, info->ssid, info->ssid_len + 1);
-	param->ssid_len = info->ssid_len;
-	memset(param->rsn_pcip_policy, 0xFF, 3);
-	memset(param->rsn_auth_policy, 0xFF, 3);
+	param->beacon_period = bss->beacon_interval;
+	param->cap_info = bss->capability;
+	param->bss_type = WILC_FW_BSS_TYPE_INFRA;
+	param->ch = ieee80211_frequency_to_channel(bss->channel->center_freq);
+	ether_addr_copy(param->bssid, bss->bssid);
 
-	while (index < info->ies_len)
-		host_int_fill_join_bss_param(param, info->ies, &index,
-					     &pcipher_total_cnt,
-					     &auth_total_cnt, info->tsf_lo,
-					     &rates_no);
+	ssid_elm = cfg80211_find_ie(WLAN_EID_SSID, ies->data, ies->len);
+	if (ssid_elm) {
+		if (ssid_elm[1] <= IEEE80211_MAX_SSID_LEN)
+			memcpy(param->ssid, ssid_elm + 2, ssid_elm[1]);
+	}
+
+	tim_elm = cfg80211_find_ie(WLAN_EID_TIM, ies->data, ies->len);
+	if (tim_elm && tim_elm[1] >= 2)
+		param->dtim_period = tim_elm[3];
+
+	memset(param->p_suites, 0xFF, 3);
+	memset(param->akm_suites, 0xFF, 3);
+
+	rates_ie = cfg80211_find_ie(WLAN_EID_SUPP_RATES, ies->data, ies->len);
+	if (rates_ie) {
+		rates_len = rates_ie[1];
+		param->supp_rates[0] = rates_len;
+		memcpy(&param->supp_rates[1], rates_ie + 2, rates_len);
+	}
+
+	supp_rates_ie = cfg80211_find_ie(WLAN_EID_EXT_SUPP_RATES, ies->data,
+					 ies->len);
+	if (supp_rates_ie) {
+		if (supp_rates_ie[1] > (MAX_RATES_SUPPORTED - rates_len))
+			param->supp_rates[0] = MAX_RATES_SUPPORTED;
+		else
+			param->supp_rates[0] += supp_rates_ie[1];
+
+		memcpy(&param->supp_rates[rates_len + 1], supp_rates_ie + 2,
+		       (param->supp_rates[0] - rates_len));
+	}
+
+	ht_ie = cfg80211_find_ie(WLAN_EID_HT_CAPABILITY, ies->data, ies->len);
+	if (ht_ie)
+		param->ht_capable = true;
+
+	ret = cfg80211_get_p2p_attr(ies->data, ies->len,
+				    IEEE80211_P2P_ATTR_ABSENCE_NOTICE,
+				    (u8 *)&noa_attr, sizeof(noa_attr));
+	if (ret > 0) {
+		param->tsf_lo = cpu_to_le32(ies->tsf);
+		param->noa_enabled = 1;
+		param->idx = noa_attr.index;
+		if (noa_attr.oppps_ctwindow & IEEE80211_P2P_OPPPS_ENABLE_BIT) {
+			param->opp_enabled = 1;
+			param->opp_en.ct_window = noa_attr.oppps_ctwindow;
+			param->opp_en.cnt = noa_attr.desc[0].count;
+			param->opp_en.duration = noa_attr.desc[0].duration;
+			param->opp_en.interval = noa_attr.desc[0].interval;
+			param->opp_en.start_time = noa_attr.desc[0].start_time;
+		} else {
+			param->opp_enabled = 0;
+			param->opp_dis.cnt = noa_attr.desc[0].count;
+			param->opp_dis.duration = noa_attr.desc[0].duration;
+			param->opp_dis.interval = noa_attr.desc[0].interval;
+			param->opp_dis.start_time = noa_attr.desc[0].start_time;
+		}
+	}
+	wmm_ie = cfg80211_find_vendor_ie(WLAN_OUI_MICROSOFT,
+					 WLAN_OUI_TYPE_MICROSOFT_WMM,
+					 ies->data, ies->len);
+	if (wmm_ie) {
+		struct ieee80211_wmm_param_ie *ie;
+
+		ie = (struct ieee80211_wmm_param_ie *)wmm_ie;
+		if ((ie->oui_subtype == 0 || ie->oui_subtype == 1) &&
+		    ie->version == 1) {
+			param->wmm_cap = true;
+			if (ie->qos_info & BIT(7))
+				param->uapsd_cap = true;
+		}
+	}
+
+	wpa_ie = cfg80211_find_vendor_ie(WLAN_OUI_MICROSOFT,
+					 WLAN_OUI_TYPE_MICROSOFT_WPA,
+					 ies->data, ies->len);
+	if (wpa_ie) {
+		param->mode_802_11i = 1;
+		param->rsn_found = true;
+	}
+
+	rsn_ie = cfg80211_find_ie(WLAN_EID_RSN, ies->data, ies->len);
+	if (rsn_ie) {
+		int offset = 8;
+
+		param->mode_802_11i = 2;
+		param->rsn_found = true;
+		//extract RSN capabilities
+		offset += (rsn_ie[offset] * 4) + 2;
+		offset += (rsn_ie[offset] * 4) + 2;
+		memcpy(param->rsn_cap, &rsn_ie[offset], 2);
+	}
+
+	if (param->rsn_found) {
+		int i;
+
+		param->rsn_grp_policy = crypto->cipher_group & 0xFF;
+		for (i = 0; i < crypto->n_ciphers_pairwise && i < 3; i++)
+			param->p_suites[i] = crypto->ciphers_pairwise[i] & 0xFF;
+
+		for (i = 0; i < crypto->n_akm_suites && i < 3; i++)
+			param->akm_suites[i] = crypto->akm_suites[i] & 0xFF;
+	}
 
 	return (void *)param;
-}
-
-static inline u8 *get_bssid(struct ieee80211_mgmt *mgmt)
-{
-	if (ieee80211_has_fromds(mgmt->frame_control))
-		return mgmt->sa;
-	else if (ieee80211_has_tods(mgmt->frame_control))
-		return mgmt->da;
-	else
-		return mgmt->bssid;
-}
-
-static s32 wilc_parse_network_info(struct wilc_vif *vif, u8 *msg_buffer,
-				   struct network_info **ret_network_info)
-{
-	struct network_info *info;
-	struct ieee80211_mgmt *mgt;
-	u8 *wid_val, *msa, *ies;
-	u16 wid_len, rx_len, ies_len;
-	u8 msg_type;
-	size_t offset;
-	const u8 *ch_elm, *tim_elm, *ssid_elm;
-
-	msg_type = msg_buffer[0];
-	if ('N' != msg_type)
-		return -EFAULT;
-
-	wid_len = get_unaligned_le16(&msg_buffer[6]);
-	wid_val = &msg_buffer[8];
-
-	info = kzalloc(sizeof(*info), GFP_KERNEL);
-	if (!info)
-		return -ENOMEM;
-
-	info->rssi = wid_val[0];
-
-	msa = &wid_val[1];
-	mgt = (struct ieee80211_mgmt *)&wid_val[1];
-	rx_len = wid_len - 1;
-
-	if (ieee80211_is_probe_resp(mgt->frame_control)) {
-		info->cap_info = le16_to_cpu(mgt->u.probe_resp.capab_info);
-		info->beacon_period = le16_to_cpu(mgt->u.probe_resp.beacon_int);
-		info->tsf = le64_to_cpu(mgt->u.probe_resp.timestamp);
-		info->tsf_lo = (u32)info->tsf;
-		offset = offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
-	} else if (ieee80211_is_beacon(mgt->frame_control)) {
-		info->cap_info = le16_to_cpu(mgt->u.beacon.capab_info);
-		info->beacon_period = le16_to_cpu(mgt->u.beacon.beacon_int);
-		info->tsf = le64_to_cpu(mgt->u.beacon.timestamp);
-		info->tsf_lo = (u32)info->tsf;
-		offset = offsetof(struct ieee80211_mgmt, u.beacon.variable);
-	} else {
-		/* only process probe response and beacon frame */
-		kfree(info);
-		return -EIO;
-	}
-
-	PRINT_INFO(vif->ndev, CORECONFIG_DBG, "TSF :%x\n", info->tsf_lo);
-
-	ether_addr_copy(info->bssid, get_bssid(mgt));
-
-	ies = mgt->u.beacon.variable;
-	ies_len = rx_len - offset;
-	if (ies_len <= 0) {
-		kfree(info);
-		return -EIO;
-	}
-
-	info->ies = kmemdup(ies, ies_len, GFP_KERNEL);
-	if (!info->ies) {
-		kfree(info);
-		return -ENOMEM;
-	}
-
-	info->ies_len = ies_len;
-
-	ssid_elm = cfg80211_find_ie(WLAN_EID_SSID, ies, ies_len);
-	if (ssid_elm) {
-		info->ssid_len = ssid_elm[1];
-		if (info->ssid_len <= IEEE80211_MAX_SSID_LEN)
-			memcpy(info->ssid, ssid_elm + 2, info->ssid_len);
-		else
-			info->ssid_len = 0;
-	}
-
-	ch_elm = cfg80211_find_ie(WLAN_EID_DS_PARAMS, ies, ies_len);
-	if (ch_elm && ch_elm[1] > 0)
-		info->ch = ch_elm[2];
-
-	tim_elm = cfg80211_find_ie(WLAN_EID_TIM, ies, ies_len);
-	if (tim_elm && tim_elm[1] >= 2)
-		info->dtim_period = tim_elm[3];
-
-	*ret_network_info = info;
-
-	return 0;
 }
 
 static void handle_rcvd_ntwrk_info(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
-	struct wilc_vif *vif = msg->vif;
-	struct rcvd_net_info *rcvd_info = &msg->body.net_info;
-	u32 i;
-	bool found;
-	struct network_info *info = NULL;
-	void *params;
-	struct host_if_drv *hif_drv = vif->hif_drv;
-	struct user_scan_req *scan_req = &hif_drv->usr_scan_req;
-	int ret;
+	struct wilc_rcvd_net_info *rcvd_info = &msg->body.net_info;
+	struct user_scan_req *scan_req = &msg->vif->hif_drv->usr_scan_req;
+	const u8 *ch_elm;
+	u8 *ies;
+	int ies_len;
+	size_t offset;
 
-	found = true;
-	PRINT_D(vif->ndev, HOSTINF_DBG, "Handling received network info\n");
+	PRINT_D(msg->vif->ndev, HOSTINF_DBG,
+		"Handling received network info\n");
 
-	if (!scan_req->scan_result)
+	if (ieee80211_is_probe_resp(rcvd_info->mgmt->frame_control))
+		offset = offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+	else if (ieee80211_is_beacon(rcvd_info->mgmt->frame_control))
+		offset = offsetof(struct ieee80211_mgmt, u.beacon.variable);
+	else
 		goto done;
 
-	PRINT_INFO(vif->ndev, HOSTINF_DBG,
-		   "State: Scanning, parsing network information received\n");
-	ret = wilc_parse_network_info(vif, rcvd_info->buffer, &info);
-	if (ret || !info || !scan_req->scan_result) {
-		PRINT_ER(vif->ndev, "info or scan result NULL\n");
+	ies = rcvd_info->mgmt->u.beacon.variable;
+	ies_len = rcvd_info->frame_len - offset;
+	if (ies_len <= 0)
 		goto done;
-	}
 
-	for (i = 0; i < scan_req->ch_cnt; i++) {
-		if (memcmp(scan_req->net_info[i].bssid, info->bssid, 6) == 0) {
-			if (info->rssi <= scan_req->net_info[i].rssi) {
-				PRINT_INFO(vif->ndev, HOSTINF_DBG,
-					   "Network previously discovered\n");
-				goto done;
-			} else {
-				scan_req->net_info[i].rssi = info->rssi;
-				found = false;
-				break;
-			}
-		}
-	}
+	PRINT_INFO(msg->vif->ndev, HOSTINF_DBG, "New network found\n");
+	/* extract the channel from recevied mgmt frame */
+	ch_elm = cfg80211_find_ie(WLAN_EID_DS_PARAMS, ies, ies_len);
+	if (ch_elm && ch_elm[1] > 0)
+		rcvd_info->ch = ch_elm[2];
 
-	if (found) {
-		PRINT_INFO(vif->ndev, HOSTINF_DBG, "New network found\n");
-		if (scan_req->ch_cnt < MAX_NUM_SCANNED_NETWORKS) {
-			scan_req->net_info[scan_req->ch_cnt].rssi = info->rssi;
-
-			memcpy(scan_req->net_info[scan_req->ch_cnt].bssid,
-			       info->bssid, 6);
-
-			scan_req->ch_cnt++;
-
-			info->new_network = true;
-			params = host_int_parse_join_bss_param(info);
-
-			scan_req->scan_result(SCAN_EVENT_NETWORK_FOUND, info,
-					       scan_req->arg, params);
-		} else {
-			PRINT_WRN(vif->ndev, HOSTINF_DBG,
-				  "Discovered networks exceeded max. limit\n");
-		}
-	} else {
-		info->new_network = false;
-		scan_req->scan_result(SCAN_EVENT_NETWORK_FOUND, info,
-				      scan_req->arg, NULL);
-	}
+	if (scan_req->scan_result)
+		scan_req->scan_result(SCAN_EVENT_NETWORK_FOUND,
+				      rcvd_info, scan_req->arg);
 
 done:
-	kfree(rcvd_info->buffer);
-	rcvd_info->buffer = NULL;
-
-	if (info) {
-		kfree(info->ies);
-		kfree(info);
-	}
-
+	kfree(rcvd_info->mgmt);
 	kfree(msg);
 }
 
@@ -1443,8 +1158,7 @@ int wilc_disconnect(struct wilc_vif *vif)
 
 	if (scan_req->scan_result) {
 		del_timer(&hif_drv->scan_timer);
-		scan_req->scan_result(SCAN_EVENT_ABORTED, NULL, scan_req->arg,
-				      NULL);
+		scan_req->scan_result(SCAN_EVENT_ABORTED, NULL, scan_req->arg);
 		scan_req->scan_result = NULL;
 	}
 
@@ -2666,8 +2380,7 @@ int wilc_deinit(struct wilc_vif *vif)
 
 	if (hif_drv->usr_scan_req.scan_result) {
 		hif_drv->usr_scan_req.scan_result(SCAN_EVENT_ABORTED, NULL,
-						  hif_drv->usr_scan_req.arg,
-						  NULL);
+						  hif_drv->usr_scan_req.arg);
 		hif_drv->usr_scan_req.scan_result = NULL;
 	}
 
@@ -2689,10 +2402,7 @@ void wilc_network_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 	struct host_if_drv *hif_drv;
 	struct wilc_vif *vif;
 
-	id = buffer[length - 4];
-	id |= (buffer[length - 3] << 8);
-	id |= (buffer[length - 2] << 16);
-	id |= (buffer[length - 1] << 24);
+	id = get_unaligned_le32(&buffer[length - 4]);
 	vif = wilc_get_vif_from_idx(wilc, id);
 	if (!vif)
 		return;
@@ -2707,9 +2417,12 @@ void wilc_network_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 	if (IS_ERR(msg))
 		return;
 
-	msg->body.net_info.len = length;
-	msg->body.net_info.buffer = kmemdup(buffer, length, GFP_KERNEL);
-	if (!msg->body.net_info.buffer) {
+	msg->body.net_info.frame_len = get_unaligned_le16(&buffer[6]) - 1;
+	msg->body.net_info.rssi = buffer[8];
+	msg->body.net_info.mgmt = kmemdup(&buffer[9],
+					  msg->body.net_info.frame_len,
+					  GFP_KERNEL);
+	if (!msg->body.net_info.mgmt) {
 		kfree(msg);
 		return;
 	}
@@ -2717,7 +2430,7 @@ void wilc_network_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 	result = wilc_enqueue_work(msg);
 	if (result) {
 		PRINT_ER(vif->ndev, "message parameters (%d)\n", result);
-		kfree(msg->body.net_info.buffer);
+		kfree(msg->body.net_info.mgmt);
 		kfree(msg);
 	}
 }
@@ -2732,10 +2445,7 @@ void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 
 	mutex_lock(&hif_deinit_lock);
 
-	id = buffer[length - 4];
-	id |= (buffer[length - 3] << 8);
-	id |= (buffer[length - 2] << 16);
-	id |= (buffer[length - 1] << 24);
+	id = get_unaligned_le32(&buffer[length - 4]);
 	vif = wilc_get_vif_from_idx(wilc, id);
 	if (!vif) {
 		mutex_unlock(&hif_deinit_lock);
@@ -2789,10 +2499,7 @@ void wilc_scan_complete_received(struct wilc *wilc, u8 *buffer, u32 length)
 	struct host_if_drv *hif_drv;
 	struct wilc_vif *vif;
 
-	id = buffer[length - 4];
-	id |= buffer[length - 3] << 8;
-	id |= buffer[length - 2] << 16;
-	id |= buffer[length - 1] << 24;
+	id = get_unaligned_le32(&buffer[length - 4]);
 	vif = wilc_get_vif_from_idx(wilc, id);
 	if (!vif)
 		return;
