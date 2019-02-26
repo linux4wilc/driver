@@ -27,7 +27,7 @@ enum {
 #define IFC_1 "p2p0"
 
 #define WILC_MAX_NUM_STA			9
-#define MAX_NUM_SCANNED_NETWORKS		100
+#define WILC_MAX_NUM_SCANNED_CH			14
 #define WILC_MAX_NUM_PROBED_SSID		10
 
 #define TX_MIC_KEY_LEN				8
@@ -186,17 +186,6 @@ struct host_if_drv {
 	bool ifc_up;
 	int driver_handler_id;
 	u8 assoc_resp[WILC_MAX_ASSOC_RESP_FRAME_SIZE];
-};
-
-struct add_sta_param {
-	u8 bssid[ETH_ALEN];
-	u16 aid;
-	u8 rates_len;
-	const u8 *rates;
-	bool ht_supported;
-	struct ieee80211_ht_cap ht_capa;
-	u16 flags_mask;
-	u16 flags_set;
 };
 
 struct wilc_vif;

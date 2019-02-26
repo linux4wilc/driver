@@ -1801,7 +1801,7 @@ int cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 		ret_size = 0;
 
 	if (!wait_for_completion_timeout(&wilc->cfg_event,
-					 msecs_to_jiffies(CFG_PKTS_TIMEOUT))) {
+					 WILC_CFG_PKTS_TIMEOUT)) {
 		PRINT_ER(vif->ndev, "Timed Out\n");
 		ret_size = 0;
 	}
@@ -1839,7 +1839,7 @@ int cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 		ret_size = 0;
 
 	if (!wait_for_completion_timeout(&wilc->cfg_event,
-					 msecs_to_jiffies(CFG_PKTS_TIMEOUT))) {
+					 WILC_CFG_PKTS_TIMEOUT)) {
 		PRINT_INFO(vif->ndev, TX_DBG, "Timed Out\n");
 		ret_size = 0;
 	}

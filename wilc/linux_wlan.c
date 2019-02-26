@@ -22,7 +22,7 @@
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 bool g_ignore_PS_state;
-#define DURING_IP_TIME_OUT		15000
+#define WILC_IP_TIMEOUT_MS		15000
 
 void handle_pwrsave_for_IP(struct wilc_vif *vif, uint8_t state)
 {
@@ -82,7 +82,7 @@ void handle_pwrsave_for_IP(struct wilc_vif *vif, uint8_t state)
 		vif->during_ip_timer.data = (uint32_t)vif;
 	#endif
 		mod_timer(&vif->during_ip_timer,
-			  (jiffies + msecs_to_jiffies(DURING_IP_TIME_OUT)));
+			  (jiffies + msecs_to_jiffies(WILC_IP_TIMEOUT_MS)));
 
 		break;
 
@@ -236,9 +236,7 @@ static int dev_state_ev_handler(struct notifier_block *this,
 	struct wilc_priv *priv;
 	struct host_if_drv *hif_drv;
 	struct net_device *dev;
-	u8 *ip_addr_buf;
 	struct wilc_vif *vif;
-	u8 null_ip[4] = {0};
 
 	if (!dev_iface || !dev_iface->ifa_dev || !dev_iface->ifa_dev->dev) {
 		pr_err("dev_iface = NULL\n");
@@ -278,40 +276,19 @@ static int dev_state_ev_handler(struct notifier_block *this,
 		    vif->iftype == WILC_CLIENT_MODE) {
 			hif_drv->ifc_up = 1;
 
-			handle_pwrsave_for_IP(vif,
-							  IP_STATE_OBTAINED);
+			handle_pwrsave_for_IP(vif, IP_STATE_OBTAINED);
 		}
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "[%s] Up IP\n",
-			   dev_iface->ifa_label);
-
-		ip_addr_buf = (char *)&dev_iface->ifa_address;
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP add=%d:%d:%d:%d\n",
-			   ip_addr_buf[0], ip_addr_buf[1],
-			   ip_addr_buf[2], ip_addr_buf[3]);
-
 		break;
 
 	case NETDEV_DOWN:
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "event=NETDEV_DOWN %p\n",
 			   dev);
-		PRINT_D(vif->ndev, GENERIC_DBG,
-			"\n =========== IP Address Released ============\n\n");
 		if (vif->iftype == WILC_STATION_MODE ||
 		    vif->iftype == WILC_CLIENT_MODE) {
 			hif_drv->ifc_up = 0;
 			handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
 		}
-
-
 		wilc_resolve_disconnect_aberration(vif);
-
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "[%s] Down IP\n",
-			   dev_iface->ifa_label);
-
-		ip_addr_buf = null_ip;
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "IP add=%d:%d:%d:%d\n",
-			   ip_addr_buf[0], ip_addr_buf[1],
-			   ip_addr_buf[2], ip_addr_buf[3]);
 		break;
 
 	default:
@@ -751,194 +728,175 @@ fail:
 	return ret;
 }
 
-static int linux_wlan_init_test_config(struct net_device *dev,
-				       struct wilc_vif *vif)
+static int linux_wlan_init_fw_config(struct net_device *dev,
+				     struct wilc_vif *vif)
 {
-	unsigned char c_val[64];
 	struct wilc_priv *priv;
 	struct host_if_drv *hif_drv;
+	u8 b;
+	u16 hw;
+	u32 w;
 
 	PRINT_INFO(vif->ndev, INIT_DBG, "Start configuring Firmware\n");
 	priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
 	hif_drv = (struct host_if_drv *)priv->hif_drv;
 	PRINT_D(vif->ndev, INIT_DBG, "Host = %p\n", hif_drv);
 
-	*(int *)c_val = (unsigned int)vif->iftype;
-
-	if (!cfg_set(vif, 1, WID_SET_OPERATION_MODE, c_val, 4, 0, 0))
+	w = vif->iftype;
+	cpu_to_le32s(&w);
+	if (!cfg_set(vif, 1, WID_SET_OPERATION_MODE, (u8 *)&w, 4, 0, 0))
 		goto fail;
 
-	c_val[0] = 0;
-	if (!cfg_set(vif, 0, WID_PC_TEST_MODE, c_val, 1, 0, 0))
+	b = WILC_FW_BSS_TYPE_INFRA;
+	if (!cfg_set(vif, 0, WID_BSS_TYPE, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = WILC_FW_BSS_TYPE_INFRA;
-	if (!cfg_set(vif, 0, WID_BSS_TYPE, c_val, 1, 0, 0))
+	b = WILC_FW_TX_RATE_AUTO;
+	if (!cfg_set(vif, 0, WID_CURRENT_TX_RATE, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = WILC_FW_TX_RATE_AUTO;
-	if (!cfg_set(vif, 0, WID_CURRENT_TX_RATE, c_val, 1, 0, 0))
-		goto fail;
-
-	c_val[0] = WILC_FW_OPER_MODE_G_MIXED_11B_2;
-	if (!cfg_set(vif, 0, WID_11G_OPERATING_MODE, c_val, 1, 0,
+	b = WILC_FW_OPER_MODE_G_MIXED_11B_2;
+	if (!cfg_set(vif, 0, WID_11G_OPERATING_MODE, &b, 1, 0,
 			       0))
 		goto fail;
 
-	c_val[0] = WILC_FW_PREAMBLE_AUTO;
-	if (!cfg_set(vif, 0, WID_PREAMBLE, c_val, 1, 0, 0))
+	b = WILC_FW_PREAMBLE_AUTO;
+	if (!cfg_set(vif, 0, WID_PREAMBLE, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = WILC_FW_11N_PROT_AUTO;
-	if (!cfg_set(vif, 0, WID_11N_PROT_MECH, c_val, 1, 0, 0))
+	b = WILC_FW_11N_PROT_AUTO;
+	if (!cfg_set(vif, 0, WID_11N_PROT_MECH, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = WILC_FW_ACTIVE_SCAN;
-	if (!cfg_set(vif, 0, WID_SCAN_TYPE, c_val, 1, 0, 0))
+	b = WILC_FW_ACTIVE_SCAN;
+	if (!cfg_set(vif, 0, WID_SCAN_TYPE, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = WILC_FW_SITE_SURVEY_OFF;
-	if (!cfg_set(vif, 0, WID_SITE_SURVEY, c_val, 1, 0, 0))
+	b = WILC_FW_SITE_SURVEY_OFF;
+	if (!cfg_set(vif, 0, WID_SITE_SURVEY, &b, 1, 0, 0))
 		goto fail;
 
-	*((int *)c_val) = 0xffff;
-	if (!cfg_set(vif, 0, WID_RTS_THRESHOLD, c_val, 2, 0, 0))
+	hw = 0xffff;
+	cpu_to_le16s(&hw);
+	if (!cfg_set(vif, 0, WID_RTS_THRESHOLD, (u8 *)&hw, 2, 0, 0))
 		goto fail;
 
-	*((int *)c_val) = 2346;
-	if (!cfg_set(vif, 0, WID_FRAG_THRESHOLD, c_val, 2, 0, 0))
+	hw = 2346;
+	cpu_to_le16s(&hw);
+	if (!cfg_set(vif, 0, WID_FRAG_THRESHOLD, (u8 *)&hw, 2, 0, 0))
 		goto fail;
 
-	c_val[0] = 0;
-	if (!cfg_set(vif, 0, WID_BCAST_SSID, c_val, 1, 0, 0))
+	b = 0;
+	if (!cfg_set(vif, 0, WID_BCAST_SSID, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = 1;
-	if (!cfg_set(vif, 0, WID_QOS_ENABLE, c_val, 1, 0, 0))
+	b = 1;
+	if (!cfg_set(vif, 0, WID_QOS_ENABLE, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = WILC_FW_NO_POWERSAVE;
-	if (!cfg_set(vif, 0, WID_POWER_MANAGEMENT, c_val, 1, 0, 0))
+	b = WILC_FW_NO_POWERSAVE;
+	if (!cfg_set(vif, 0, WID_POWER_MANAGEMENT, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = WILC_FW_SEC_NO;
-	if (!cfg_set(vif, 0, WID_11I_MODE, c_val, 1, 0, 0))
+	b = WILC_FW_SEC_NO;
+	if (!cfg_set(vif, 0, WID_11I_MODE, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = WILC_FW_AUTH_OPEN_SYSTEM;
-	if (!cfg_set(vif, 0, WID_AUTH_TYPE, c_val, 1, 0, 0))
+	b = WILC_FW_AUTH_OPEN_SYSTEM;
+	if (!cfg_set(vif, 0, WID_AUTH_TYPE, &b, 1, 0, 0))
 		goto fail;
 
-	strcpy(c_val, "123456790abcdef1234567890");
-	if (!cfg_set(vif, 0, WID_WEP_KEY_VALUE, c_val,
-			       (strlen(c_val) + 1), 0, 0))
+	b = 3;
+	if (!cfg_set(vif, 0, WID_LISTEN_INTERVAL, &b, 1, 0, 0))
 		goto fail;
 
-	strcpy(c_val, "12345678");
-	if (!cfg_set(vif, 0, WID_11I_PSK, c_val, (strlen(c_val)), 0,
-			       0))
+	b = 3;
+	if (!cfg_set(vif, 0, WID_DTIM_PERIOD, &b, 1, 0, 0))
 		goto fail;
 
-	strcpy(c_val, "password");
-	if (!cfg_set(vif, 0, WID_1X_KEY, c_val, (strlen(c_val) + 1),
+	b = WILC_FW_ACK_POLICY_NORMAL;
+	if (!cfg_set(vif, 0, WID_ACK_POLICY, &b, 1, 0, 0))
+		goto fail;
+
+	b = 0;
+	if (!cfg_set(vif, 0, WID_USER_CONTROL_ON_TX_POWER, &b, 1,
 			       0, 0))
 		goto fail;
 
-	c_val[0] = 192;
-	c_val[1] = 168;
-	c_val[2] = 1;
-	c_val[3] = 112;
-	if (!cfg_set(vif, 0, WID_1X_SERV_ADDR, c_val, 4, 0, 0))
+	b = 48;
+	if (!cfg_set(vif, 0, WID_TX_POWER_LEVEL_11A, &b, 1, 0,
+			       0))
 		goto fail;
 
-	c_val[0] = 3;
-	if (!cfg_set(vif, 0, WID_LISTEN_INTERVAL, c_val, 1, 0, 0))
+	b = 28;
+	if (!cfg_set(vif, 0, WID_TX_POWER_LEVEL_11B, &b, 1, 0,
+			       0))
 		goto fail;
 
-	c_val[0] = 3;
-	if (!cfg_set(vif, 0, WID_DTIM_PERIOD, c_val, 1, 0, 0))
+	hw = 100;
+	cpu_to_le16s(&hw);
+	if (!cfg_set(vif, 0, WID_BEACON_INTERVAL, (u8 *)&hw, 2, 0, 0))
 		goto fail;
 
-	c_val[0] = WILC_FW_ACK_POLICY_NORMAL;
-	if (!cfg_set(vif, 0, WID_ACK_POLICY, c_val, 1, 0, 0))
+	b = WILC_FW_REKEY_POLICY_DISABLE;
+	if (!cfg_set(vif, 0, WID_REKEY_POLICY, &b, 1, 0, 0))
 		goto fail;
 
-	c_val[0] = 0;
-	if (!cfg_set(vif, 0, WID_USER_CONTROL_ON_TX_POWER, c_val, 1,
+	w = 84600;
+	cpu_to_le32s(&w);
+	if (!cfg_set(vif, 0, WID_REKEY_PERIOD, (u8 *)&w, 4, 0, 0))
+		goto fail;
+
+	w = 500;
+	cpu_to_le32s(&w);
+	if (!cfg_set(vif, 0, WID_REKEY_PACKET_COUNT, (u8 *)&w, 4, 0,
+			       0))
+		goto fail;
+
+	b = 1;
+	if (!cfg_set(vif, 0, WID_SHORT_SLOT_ALLOWED, &b, 1, 0,
+			       0))
+		goto fail;
+
+	b = WILC_FW_ERP_PROT_SELF_CTS;
+	if (!cfg_set(vif, 0, WID_11N_ERP_PROT_TYPE, &b, 1, 0, 0))
+		goto fail;
+
+	b = 1;
+	if (!cfg_set(vif, 0, WID_11N_ENABLE, &b, 1, 0, 0))
+		goto fail;
+
+	b = WILC_FW_11N_OP_MODE_HT_MIXED;
+	if (!cfg_set(vif, 0, WID_11N_OPERATING_MODE, &b, 1, 0,
+			       0))
+		goto fail;
+
+	b = 1;
+	if (!cfg_set(vif, 0, WID_11N_TXOP_PROT_DISABLE, &b, 1, 0,
+			       0))
+		goto fail;
+
+	b = WILC_FW_OBBS_NONHT_DETECT_PROTECT_REPORT;
+	if (!cfg_set(vif, 0, WID_11N_OBSS_NONHT_DETECTION, &b, 1,
 			       0, 0))
 		goto fail;
 
-	c_val[0] = 48;
-	if (!cfg_set(vif, 0, WID_TX_POWER_LEVEL_11A, c_val, 1, 0,
+	b = WILC_FW_HT_PROT_RTS_CTS_NONHT;
+	if (!cfg_set(vif, 0, WID_11N_HT_PROT_TYPE, &b, 1, 0, 0))
+		goto fail;
+
+	b = 0;
+	if (!cfg_set(vif, 0, WID_11N_RIFS_PROT_ENABLE, &b, 1, 0,
 			       0))
 		goto fail;
 
-	c_val[0] = 28;
-	if (!cfg_set(vif, 0, WID_TX_POWER_LEVEL_11B, c_val, 1, 0,
+	b = 7;
+	if (!cfg_set(vif, 0, WID_11N_CURRENT_TX_MCS, &b, 1, 0,
 			       0))
 		goto fail;
 
-	*((int *)c_val) = 100;
-	if (!cfg_set(vif, 0, WID_BEACON_INTERVAL, c_val, 2, 0, 0))
-		goto fail;
-
-	c_val[0] = WILC_FW_REKEY_POLICY_DISABLE;
-	if (!cfg_set(vif, 0, WID_REKEY_POLICY, c_val, 1, 0, 0))
-		goto fail;
-
-	*((int *)c_val) = 84600;
-	if (!cfg_set(vif, 0, WID_REKEY_PERIOD, c_val, 4, 0, 0))
-		goto fail;
-
-	*((int *)c_val) = 500;
-	if (!cfg_set(vif, 0, WID_REKEY_PACKET_COUNT, c_val, 4, 0,
-			       0))
-		goto fail;
-
-	c_val[0] = 1;
-	if (!cfg_set(vif, 0, WID_SHORT_SLOT_ALLOWED, c_val, 1, 0,
-			       0))
-		goto fail;
-
-	c_val[0] = WILC_FW_ERP_PROT_SELF_CTS;
-	if (!cfg_set(vif, 0, WID_11N_ERP_PROT_TYPE, c_val, 1, 0, 0))
-		goto fail;
-
-	c_val[0] = 1;
-	if (!cfg_set(vif, 0, WID_11N_ENABLE, c_val, 1, 0, 0))
-		goto fail;
-
-	c_val[0] = WILC_FW_11N_OP_MODE_HT_MIXED;
-	if (!cfg_set(vif, 0, WID_11N_OPERATING_MODE, c_val, 1, 0,
-			       0))
-		goto fail;
-
-	c_val[0] = 1;
-	if (!cfg_set(vif, 0, WID_11N_TXOP_PROT_DISABLE, c_val, 1, 0,
-			       0))
-		goto fail;
-
-	c_val[0] = WILC_FW_OBBS_NONHT_DETECT_PROTECT_REPORT;
-	if (!cfg_set(vif, 0, WID_11N_OBSS_NONHT_DETECTION, c_val, 1,
-			       0, 0))
-		goto fail;
-
-	c_val[0] = WILC_FW_HT_PROT_RTS_CTS_NONHT;
-	if (!cfg_set(vif, 0, WID_11N_HT_PROT_TYPE, c_val, 1, 0, 0))
-		goto fail;
-
-	c_val[0] = 0;
-	if (!cfg_set(vif, 0, WID_11N_RIFS_PROT_ENABLE, c_val, 1, 0,
-			       0))
-		goto fail;
-
-	c_val[0] = 7;
-	if (!cfg_set(vif, 0, WID_11N_CURRENT_TX_MCS, c_val, 1, 0,
-			       0))
-		goto fail;
-
-	c_val[0] = 1;
-	if (!cfg_set(vif, 0, WID_11N_IMMEDIATE_BA_ENABLED, c_val, 1,
+	b = 1;
+	if (!cfg_set(vif, 0, WID_11N_IMMEDIATE_BA_ENABLED, &b, 1,
 			       1, 0))
 		goto fail;
 
@@ -1167,8 +1125,8 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			PRINT_INFO(dev, INIT_DBG, "WILC Firmware Ver = %s\n",
 				   firmware_ver);
 		}
-		ret = linux_wlan_init_test_config(dev, vif);
 
+		ret = linux_wlan_init_fw_config(dev, vif);
 		if (ret < 0) {
 			PRINT_ER(dev, "Failed to configure firmware\n");
 			ret = -EIO;
@@ -1394,9 +1352,6 @@ netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 	struct wilc *wilc = vif->wilc;
 	struct tx_complete_data *tx_data = NULL;
 	int queue_count;
-	char *udp_buf;
-	struct iphdr *ih;
-	struct ethhdr *eth_h;
 
 	PRINT_INFO(vif->ndev, TX_DBG,
 		   "Sending packet just received from TCP/IP\n");
@@ -1416,19 +1371,6 @@ netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 	tx_data->buff = skb->data;
 	tx_data->size = skb->len;
 	tx_data->skb  = skb;
-
-	eth_h = (struct ethhdr *)(skb->data);
-	if (eth_h->h_proto == (0x8e88))
-		PRINT_INFO(ndev, TX_DBG, " EAPOL transmitted\n");
-
-	ih = (struct iphdr *)(skb->data + sizeof(struct ethhdr));
-
-	udp_buf = (char *)ih + sizeof(struct iphdr);
-	if ((udp_buf[1] == 68 && udp_buf[3] == 67) ||
-	    (udp_buf[1] == 67 && udp_buf[3] == 68))
-		PRINT_INFO(ndev, GENERIC_DBG,
-			   "DHCP Message transmitted, type:%x %x %x\n",
-			   udp_buf[248], udp_buf[249], udp_buf[250]);
 
 	PRINT_D(vif->ndev, TX_DBG, "Sending pkt Size= %d Add= %p SKB= %p\n",
 		tx_data->size, tx_data->buff, tx_data->skb);

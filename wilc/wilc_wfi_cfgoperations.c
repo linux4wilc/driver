@@ -300,10 +300,10 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 	u32 i;
 	int ret = 0;
-	u8 scan_ch_list[MAX_NUM_SCANNED_NETWORKS];
+	u8 scan_ch_list[WILC_MAX_NUM_SCANNED_CH];
 	struct wilc_probe_ssid probe_ssid;
 
-	if (request->n_channels > MAX_NUM_SCANNED_NETWORKS) {
+	if (request->n_channels > WILC_MAX_NUM_SCANNED_CH) {
 		PRINT_ER(priv->dev, "Requested scanned channels over\n");
 		return -EINVAL;
 	}
@@ -367,7 +367,8 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Connecting to SSID [%s] on netdev [%p] host if [%x]\n",
 		   sme->ssid, dev, (u32)priv->hif_drv);
-	if (!(strncmp(sme->ssid, "DIRECT-", 7))) {
+
+	if (vif->iftype == WILC_CLIENT_MODE) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Connected to Direct network,OBSS disabled\n");
 		wfi_drv->p2p_connect = 1;
