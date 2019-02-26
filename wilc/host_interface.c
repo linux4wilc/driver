@@ -2112,6 +2112,9 @@ int wilc_set_wfi_drv_handler(struct wilc_vif *vif, int index, u8 mode,
 	int result;
 	struct wilc_drv_handler drv;
 
+	if (!hif_drv)
+		return -EFAULT;
+
 	wid.id = WID_SET_DRV_HANDLER;
 	wid.type = WID_STR;
 	wid.size = sizeof(drv);
