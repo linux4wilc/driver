@@ -1023,7 +1023,7 @@ static bool wilc_spi_is_init(struct wilc *wilc)
 	return spi_priv->is_init;
 }
 
-static int _wilc_spi_deinit(struct wilc *wilc)
+static int wilc_spi_deinit(struct wilc *wilc)
 {
 	struct wilc_spi *spi_priv = wilc->bus_data;
 
@@ -1224,7 +1224,7 @@ static int wilc_spi_sync_ext(struct wilc *wilc, int nint)
 /* Global spi HIF function table */
 static const struct wilc_hif_func wilc_hif_spi = {
 	.hif_init = wilc_spi_init,
-	.hif_deinit = _wilc_spi_deinit,
+	.hif_deinit = wilc_spi_deinit,
 	.hif_read_reg = wilc_spi_read_reg,
 	.hif_write_reg = wilc_spi_write_reg,
 	.hif_block_rx = wilc_spi_read,

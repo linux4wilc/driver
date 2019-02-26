@@ -61,7 +61,7 @@ static int wilc_wlan_cfg_set_byte(u8 *frame, u32 offset, u16 id, u8 val8)
 {
 	u8 *buf;
 
-	if ((offset + 4) >= MAX_CFG_FRAME_SIZE)
+	if ((offset + 4) >= WILC_MAX_CFG_FRAME_SIZE)
 		return 0;
 
 	buf = &frame[offset];
@@ -78,7 +78,7 @@ static int wilc_wlan_cfg_set_hword(u8 *frame, u32 offset, u16 id, u16 val16)
 {
 	u8 *buf;
 
-	if ((offset + 5) >= MAX_CFG_FRAME_SIZE)
+	if ((offset + 5) >= WILC_MAX_CFG_FRAME_SIZE)
 		return 0;
 
 	buf = &frame[offset];
@@ -97,7 +97,7 @@ static int wilc_wlan_cfg_set_word(u8 *frame, u32 offset, u16 id, u32 val32)
 {
 	u8 *buf;
 
-	if ((offset + 7) >= MAX_CFG_FRAME_SIZE)
+	if ((offset + 7) >= WILC_MAX_CFG_FRAME_SIZE)
 		return 0;
 
 	buf = &frame[offset];
@@ -119,7 +119,7 @@ static int wilc_wlan_cfg_set_str(u8 *frame, u32 offset, u16 id, u8 *str,
 {
 	u8 *buf;
 
-	if ((offset + size + 4) >= MAX_CFG_FRAME_SIZE)
+	if ((offset + size + 4) >= WILC_MAX_CFG_FRAME_SIZE)
 		return 0;
 
 	buf = &frame[offset];
@@ -141,7 +141,7 @@ static int wilc_wlan_cfg_set_bin(u8 *frame, u32 offset, u16 id, u8 *b, u32 size)
 	u32 i;
 	u8 checksum = 0;
 
-	if ((offset + size + 5) >= MAX_CFG_FRAME_SIZE)
+	if ((offset + size + 5) >= WILC_MAX_CFG_FRAME_SIZE)
 		return 0;
 
 	buf = &frame[offset];
@@ -363,7 +363,7 @@ int cfg_get_wid(u8 *frame, u32 offset, u16 id)
 {
 	u8 *buf;
 
-	if ((offset + 2) >= MAX_CFG_FRAME_SIZE)
+	if ((offset + 2) >= WILC_MAX_CFG_FRAME_SIZE)
 		return 0;
 
 	buf = &frame[offset];

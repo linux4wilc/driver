@@ -24,6 +24,8 @@
 bool g_ignore_PS_state;
 #define WILC_IP_TIMEOUT_MS		15000
 
+#define WILC_MULTICAST_TABLE_SIZE	8
+
 void handle_pwrsave_for_IP(struct wilc_vif *vif, uint8_t state)
 {
 	struct wilc_priv *priv;

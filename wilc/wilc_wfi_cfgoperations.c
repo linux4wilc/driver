@@ -29,7 +29,7 @@
 #define GAS_INITIAL_REQ			0x0a
 #define GAS_INITIAL_RSP			0x0b
 
-#define INVALID_CHANNEL			0
+#define WILC_INVALID_CHANNEL		0
 
 static const struct ieee80211_txrx_stypes
 	wilc_wfi_cfg80211_mgmt_types[NUM_NL80211_IFTYPES] = {
@@ -64,7 +64,7 @@ static const struct wiphy_wowlan_support wowlan_support = {
 	.flags = WIPHY_WOWLAN_ANY
 };
 
-struct p2p_mgmt_data {
+struct wilc_p2p_mgmt_data {
 	int size;
 	u8 *buff;
 };
@@ -168,7 +168,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 			wilc_wlan_set_bssid(priv->dev, NULL, WILC_STATION_MODE);
 
 			if (vif->iftype != WILC_CLIENT_MODE)
-				vif->wilc->sta_ch = INVALID_CHANNEL;
+				vif->wilc->sta_ch = WILC_INVALID_CHANNEL;
 
 			PRINT_ER(dev, "Unspecified failure\n");
 		}
@@ -210,7 +210,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		wilc_wlan_set_bssid(priv->dev, NULL, WILC_STATION_MODE);
 
 		if (vif->iftype != WILC_CLIENT_MODE) {
-			vif->wilc->sta_ch = INVALID_CHANNEL;
+			vif->wilc->sta_ch = WILC_INVALID_CHANNEL;
 		} else {
 			if (wfi_drv->ifc_up)
 				reason = 3;
@@ -527,7 +527,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_ER(dev, "wilc_set_join_req(): Error(%d)\n", ret);
 		ret = -ENOENT;
 		if (vif->iftype != WILC_CLIENT_MODE)
-			vif->wilc->sta_ch = INVALID_CHANNEL;
+			vif->wilc->sta_ch = WILC_INVALID_CHANNEL;
 		wilc_wlan_set_bssid(dev, NULL, WILC_STATION_MODE);
 		wfi_drv->conn_info.conn_result = NULL;
 		kfree(join_params);
@@ -560,7 +560,7 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev,
 		return -EIO;
 	wfi_drv = (struct host_if_drv *)priv->hif_drv;
 	if (vif->iftype != WILC_CLIENT_MODE)
-		wilc->sta_ch = INVALID_CHANNEL;
+		wilc->sta_ch = WILC_INVALID_CHANNEL;
 	wilc_wlan_set_bssid(priv->dev, NULL, WILC_STATION_MODE);
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
@@ -1152,7 +1152,7 @@ static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 *buf,
 			op_channel_attr_index = index;
 		index += buf[index + 1] + 3;
 	}
-	if (sta_ch != INVALID_CHANNEL)
+	if (sta_ch != WILC_INVALID_CHANNEL)
 		wilc_wfi_cfg_parse_ch_attr(vif, buf, channel_list_attr_index,
 					   op_channel_attr_index, sta_ch);
 }
@@ -1182,7 +1182,7 @@ static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 *buf,
 			op_channel_attr_index = index;
 		index += buf[index + 1] + 3;
 	}
-	if (sta_ch != INVALID_CHANNEL && oper_ch)
+	if (sta_ch != WILC_INVALID_CHANNEL && oper_ch)
 		wilc_wfi_cfg_parse_ch_attr(vif, buf, channel_list_attr_index,
 					   op_channel_attr_index, sta_ch);
 }
@@ -1321,7 +1321,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 
 static void wilc_wfi_mgmt_tx_complete(void *priv, int status)
 {
-	struct p2p_mgmt_data *pv_data = priv;
+	struct wilc_p2p_mgmt_data *pv_data = priv;
 
 	kfree(pv_data->buff);
 	kfree(pv_data);
@@ -1414,12 +1414,12 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 
 #if KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE
 static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
-					struct p2p_mgmt_data *mgmt_tx,
+					struct wilc_p2p_mgmt_data *mgmt_tx,
 					struct cfg80211_mgmt_tx_params *params,
 					u8 iftype, u32 buf_len)
 #else
 static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
-					struct p2p_mgmt_data *mgmt_tx,
+					struct wilc_p2p_mgmt_data *mgmt_tx,
 					const u8 *buf, size_t len,
 					u8 iftype, u32 buf_len)
 #endif
@@ -1495,7 +1495,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 	size_t len = params->len;
 #endif
 	const struct ieee80211_mgmt *mgmt;
-	struct p2p_mgmt_data *mgmt_tx;
+	struct wilc_p2p_mgmt_data *mgmt_tx;
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct host_if_drv *wfi_drv = priv->hif_drv;
 	struct wilc_vif *vif = netdev_priv(wdev->netdev);

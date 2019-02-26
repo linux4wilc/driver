@@ -144,8 +144,8 @@ static inline bool is_wilc3000(u32 id)
 #define WILC_CFG_RSP_SCAN	3
 #define ABORT_INT		BIT(31)
 
-#define LINUX_RX_SIZE		(96 * 1024)
-#define LINUX_TX_SIZE		(64 * 1024)
+#define WILC_RX_BUFF_SIZE	(96 * 1024)
+#define WILC_TX_BUFF_SIZE	(64 * 1024)
 
 #define MODALIAS		"WILC_SPI"
 #define GPIO_NUM		0x5B
@@ -291,7 +291,15 @@ struct wilc_hif_func {
 	bool (*hif_is_init)(struct wilc *wilc);
 };
 
-#define MAX_CFG_FRAME_SIZE	1468
+#define WILC_MAX_CFG_FRAME_SIZE		1468
+
+struct tx_complete_data {
+	int size;
+	void *buff;
+	u8 *bssid;
+	struct sk_buff *skb;
+	struct wilc_vif *vif;
+};
 
 struct wilc_cfg_cmd_hdr {
 	u8 cmd_type;
@@ -302,7 +310,7 @@ struct wilc_cfg_cmd_hdr {
 
 struct wilc_cfg_frame {
 	struct wilc_cfg_cmd_hdr hdr;
-	u8 frame[MAX_CFG_FRAME_SIZE];
+	u8 frame[WILC_MAX_CFG_FRAME_SIZE];
 };
 
 struct wilc_cfg_rsp {

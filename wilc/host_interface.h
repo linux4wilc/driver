@@ -30,8 +30,8 @@ enum {
 #define WILC_MAX_NUM_SCANNED_CH			14
 #define WILC_MAX_NUM_PROBED_SSID		10
 
-#define TX_MIC_KEY_LEN				8
-#define RX_MIC_KEY_LEN				8
+#define WILC_TX_MIC_KEY_LEN			8
+#define WILC_RX_MIC_KEY_LEN			8
 
 #define WILC_MAX_NUM_PMKIDS			16
 #define WILC_ADD_STA_LENGTH			40
@@ -107,6 +107,18 @@ enum conn_event {
 	EVENT_FORCE_32BIT		= 0xFFFFFFFF
 };
 
+enum {
+	WILC_HIF_SDIO = 0,
+	WILC_HIF_SPI = BIT(0),
+	WILC_HIF_SDIO_GPIO_IRQ = BIT(1)
+};
+
+enum {
+	WILC_MAC_STATUS_INIT = -1,
+	WILC_MAC_STATUS_DISCONNECTED = 0,
+	WILC_MAC_STATUS_CONNECTED = 1
+};
+
 struct wilc_rcvd_net_info {
 	s8 rssi;
 	u8 ch;
@@ -127,7 +139,7 @@ struct wilc_probe_ssid {
 	u32 size;
 };
 
-struct user_scan_req {
+struct wilc_user_scan_req {
 	void (*scan_result)(enum scan_event evt,
 			    struct wilc_rcvd_net_info *info, void *priv);
 	void *arg;
@@ -149,7 +161,7 @@ struct wilc_conn_info {
 	void *param;
 };
 
-struct remain_ch {
+struct wilc_remain_ch {
 	u16 ch;
 	u32 duration;
 	void (*expired)(void *priv, u64 cookie);
@@ -158,9 +170,9 @@ struct remain_ch {
 };
 
 struct host_if_drv {
-	struct user_scan_req usr_scan_req;
+	struct wilc_user_scan_req usr_scan_req;
 	struct wilc_conn_info conn_info;
-	struct remain_ch remain_on_ch;
+	struct wilc_remain_ch remain_on_ch;
 	u64 p2p_timeout;
 
 	enum host_if_state hif_state;

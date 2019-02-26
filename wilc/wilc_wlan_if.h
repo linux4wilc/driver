@@ -16,43 +16,9 @@
  *
  ********************************************/
 
-enum {
-	WILC_HIF_SDIO = 0,
-	WILC_HIF_SPI = BIT(0),
-	WILC_HIF_SDIO_GPIO_IRQ = BIT(1)
-};
-
 #define	FW_WILC1000_WIFi		"mchp/wilc1000_wifi_firmware.bin"
 #define	FW_WILC3000_WIFI		"mchp/wilc3000_wifi_firmware.bin"
 #define	FW_WILC3000_BLE		"mchp/wilc3000_ble_firmware.bin"
-
-/********************************************
- *
- *      Wlan Interface Defines
- *
- ********************************************/
-
-enum {
-	WILC_MAC_STATUS_INIT = -1,
-	WILC_MAC_STATUS_DISCONNECTED = 0,
-	WILC_MAC_STATUS_CONNECTED = 1
-};
-
-struct tx_complete_data {
-	int size;
-	void *buff;
-	u8 *bssid;
-	struct sk_buff *skb;
-	struct wilc_vif *vif;
-};
-
-/********************************************
- *
- *      Wlan Configuration ID
- *
- ********************************************/
-#define WILC_MULTICAST_TABLE_SIZE	8
-#define MAX_RATES_SUPPORTED     12
 
 enum bss_types {
 	WILC_FW_BSS_TYPE_INFRA = 0,
