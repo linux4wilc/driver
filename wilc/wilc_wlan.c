@@ -277,7 +277,7 @@ static struct net_device *get_if_handler(struct wilc *wilc, u8 *mac_header)
 
 	bssid = mac_header + 10;
 	bssid1 = mac_header + 4;
-	for (i = 0; i <= wilc->vif_num; i++) {
+	for (i = 0; i < wilc->vif_num; i++) {
 		if (wilc->vif[i]->iftype == WILC_STATION_MODE)
 			if (ether_addr_equal_unaligned(bssid,
 						       wilc->vif[i]->bssid))

@@ -459,7 +459,7 @@ void wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
 	u8 i = 0;
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "set bssid on[%p]\n", wilc_netdev);
-	for (i = 0; i <= wilc->vif_num; i++) {
+	for (i = 0; i < wilc->vif_num; i++) {
 		if (wilc_netdev == wilc->vif[i]->ndev) {
 			if (bssid)
 				ether_addr_copy(wilc->vif[i]->bssid, bssid);
@@ -477,7 +477,7 @@ int wilc_wlan_get_num_conn_ifcs(struct wilc *wilc)
 	u8 i = 0;
 	u8 ret_val = 0;
 
-	for (i = 0; i <= wilc->vif_num; i++)
+	for (i = 0; i < wilc->vif_num; i++)
 		if (!is_zero_ether_addr(wilc->vif[i]->bssid))
 			ret_val++;
 
@@ -1187,7 +1187,7 @@ static int wilc_set_mac_addr(struct net_device *dev, void *p)
 		return -EINVAL;
 	}
 
-	for (i = 0; i <= wilc->vif_num; i++) {
+	for (i = 0; i < wilc->vif_num; i++) {
 		wilc_get_mac_address(wilc->vif[i], mac_addr);
 		if (ether_addr_equal(addr->sa_data, mac_addr)) {
 			if (vif != wilc->vif[i]) {
@@ -1435,7 +1435,7 @@ void wilc_wfi_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size)
 	int i = 0;
 	struct wilc_vif *vif;
 
-	for (i = 0; i <= wilc->vif_num; i++) {
+	for (i = 0; i < wilc->vif_num; i++) {
 		u16 type;
 
 		vif = netdev_priv(wilc->vif[i]->ndev);
@@ -1628,12 +1628,11 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		else
 			strcpy(ndev->name, "p2p%d");
 
-		wl->vif_num = i;
 		vif->idx = wl->vif_num;
 		vif->wilc = *wilc;
 		vif->ndev = ndev;
 		wl->vif[i] = vif;
-
+		wl->vif_num = i + 1;
 
 		ndev->netdev_ops = &wilc_netdev_ops;
 

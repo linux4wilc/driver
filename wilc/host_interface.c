@@ -2085,7 +2085,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 		return -ENOMEM;
 	}
 	*hif_drv_handler = hif_drv;
-	for (i = 0; i <= wilc->vif_num; i++)
+	for (i = 0; i < wilc->vif_num; i++)
 		if (dev == wilc->vif[i]->ndev) {
 			wilc->vif[i]->hif_drv = hif_drv;
 			hif_drv->driver_handler_id = i + 1;
