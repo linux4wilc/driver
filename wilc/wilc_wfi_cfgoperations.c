@@ -325,26 +325,17 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 		   request->ie_len);
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Number of SSIDs %d\n",
 		   request->n_ssids);
-	if (request->n_ssids >= 1) {
-		if (wilc_wfi_cfg_alloc_fill_ssid(vif, request, &probe_ssid)) {
-			ret = -ENOMEM;
-			goto out;
-		}
-
-		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Trigger Scan Request\n");
-		ret = wilc_scan(vif, WILC_FW_USER_SCAN, WILC_FW_ACTIVE_SCAN,
-				scan_ch_list, request->n_channels,
-				(const u8 *)request->ie, request->ie_len,
-				cfg_scan_result, (void *)priv, &probe_ssid);
-	} else {
-		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Trigger Scan Request\n");
-		ret = wilc_scan(vif, WILC_FW_USER_SCAN, WILC_FW_ACTIVE_SCAN,
-				scan_ch_list, request->n_channels,
-				(const u8 *)request->ie, request->ie_len,
-				cfg_scan_result, (void *)priv, NULL);
+	if (wilc_wfi_cfg_alloc_fill_ssid(vif, request, &probe_ssid)) {
+		ret = -ENOMEM;
+		goto out;
 	}
+
+	PRINT_INFO(vif->ndev, CFG80211_DBG,
+		   "Trigger Scan Request\n");
+	ret = wilc_scan(vif, WILC_FW_USER_SCAN, WILC_FW_ACTIVE_SCAN,
+			scan_ch_list, request->n_channels,
+			(const u8 *)request->ie, request->ie_len,
+			cfg_scan_result, (void *)priv, &probe_ssid);
 
 out:
 	if (ret) {
