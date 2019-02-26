@@ -215,8 +215,6 @@ struct wilc_join_bss_param {
 	};
 } __packed;
 
-static struct mutex hif_deinit_lock;
-
 /* 'msg' should be free by the caller for syc */
 static struct host_if_msg*
 wilc_alloc_work(struct wilc_vif *vif, void (*work_fun)(struct work_struct *),
@@ -2099,7 +2097,7 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 #endif
 
 	if (wilc->clients_count == 0)
-		mutex_init(&hif_deinit_lock);
+		mutex_init(&wilc->deinit_lock);
 
 	#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 		timer_setup(&vif->periodic_rssi, get_periodic_rssi, 0);
@@ -2139,7 +2137,7 @@ int wilc_deinit(struct wilc_vif *vif)
 		return -EFAULT;
 	}
 
-	mutex_lock(&hif_deinit_lock);
+	mutex_lock(&vif->wilc->deinit_lock);
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,
 		   "De-initializing host interface for client %d\n",
@@ -2162,7 +2160,7 @@ int wilc_deinit(struct wilc_vif *vif)
 	vif->hif_drv = NULL;
 
 	vif->wilc->clients_count--;
-	mutex_unlock(&hif_deinit_lock);
+	mutex_unlock(&vif->wilc->deinit_lock);
 	return result;
 }
 
@@ -2215,12 +2213,12 @@ void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 	struct host_if_drv *hif_drv;
 	struct wilc_vif *vif;
 
-	mutex_lock(&hif_deinit_lock);
+	mutex_lock(&wilc->deinit_lock);
 
 	id = get_unaligned_le32(&buffer[length - 4]);
 	vif = wilc_get_vif_from_idx(wilc, id);
 	if (!vif) {
-		mutex_unlock(&hif_deinit_lock);
+		mutex_unlock(&wilc->deinit_lock);
 		return;
 	}
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,
@@ -2230,19 +2228,19 @@ void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 
 	if (!hif_drv) {
 		PRINT_ER(vif->ndev, "hif driver is NULL\n");
-		mutex_unlock(&hif_deinit_lock);
+		mutex_unlock(&wilc->deinit_lock);
 		return;
 	}
 
 	if (!hif_drv->conn_info.conn_result) {
 		PRINT_ER(vif->ndev, "there is no current Connect Request\n");
-		mutex_unlock(&hif_deinit_lock);
+		mutex_unlock(&wilc->deinit_lock);
 		return;
 	}
 
 	msg = wilc_alloc_work(vif, handle_rcvd_gnrl_async_info, false);
 	if (IS_ERR(msg)) {
-		mutex_unlock(&hif_deinit_lock);
+		mutex_unlock(&wilc->deinit_lock);
 		return;
 	}
 
@@ -2256,7 +2254,7 @@ void wilc_gnrl_async_info_received(struct wilc *wilc, u8 *buffer, u32 length)
 		kfree(msg);
 	}
 
-	mutex_unlock(&hif_deinit_lock);
+	mutex_unlock(&wilc->deinit_lock);
 }
 
 void wilc_scan_complete_received(struct wilc *wilc, u8 *buffer, u32 length)

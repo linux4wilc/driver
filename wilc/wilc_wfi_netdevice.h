@@ -317,6 +317,10 @@ struct wilc {
 	struct wilc_cfg cfg;
 	void *bus_data;
 	struct net_device *monitor_dev;
+	/* deinit lock */
+	struct mutex deinit_lock;
+	u8 sta_ch;
+	u8 op_ch;
 };
 
 struct wilc_wfi_mon_priv {

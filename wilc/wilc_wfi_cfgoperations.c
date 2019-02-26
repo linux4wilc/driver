@@ -69,10 +69,8 @@ struct p2p_mgmt_data {
 	u8 *buff;
 };
 
-static u8 wlan_channel = INVALID_CHANNEL;
-static u8 curr_channel;
-static u8 p2p_oui[] = {0x50, 0x6f, 0x9A, 0x09};
-static u8 p2p_vendor_spec[] = {0xdd, 0x05, 0x00, 0x08, 0x40, 0x03};
+static const u8 p2p_oui[] = {0x50, 0x6f, 0x9A, 0x09};
+static const u8 p2p_vendor_spec[] = {0xdd, 0x05, 0x00, 0x08, 0x40, 0x03};
 
 static void cfg_scan_result(enum scan_event scan_event,
 			    struct wilc_rcvd_net_info *info, void *user_void)
@@ -170,7 +168,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 			wilc_wlan_set_bssid(priv->dev, NULL, WILC_STATION_MODE);
 
 			if (vif->iftype != WILC_CLIENT_MODE)
-				wlan_channel = INVALID_CHANNEL;
+				vif->wilc->sta_ch = INVALID_CHANNEL;
 
 			PRINT_ER(dev, "Unspecified failure\n");
 		}
@@ -212,7 +210,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		wilc_wlan_set_bssid(priv->dev, NULL, WILC_STATION_MODE);
 
 		if (vif->iftype != WILC_CLIENT_MODE) {
-			wlan_channel = INVALID_CHANNEL;
+			vif->wilc->sta_ch = INVALID_CHANNEL;
 		} else {
 			if (wfi_drv->ifc_up)
 				reason = 3;
@@ -240,7 +238,7 @@ static int set_channel(struct wiphy *wiphy,
 		   "Setting channel %d with frequency %d\n",
 		   channelnum, chandef->chan->center_freq);
 
-	curr_channel = channelnum;
+	vif->wilc->op_ch = channelnum;
 	result = wilc_set_mac_chnl_num(vif, channelnum);
 
 	if (result != 0)
@@ -361,6 +359,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 	u32 cipher_group;
 	struct cfg80211_bss *bss;
 	void *join_params;
+	u8 ch;
 
 	vif->connecting = true;
 
@@ -508,20 +507,17 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		ret = -EINVAL;
 		goto out_put_bss;
 	}
-	curr_channel =
-		ieee80211_frequency_to_channel(bss->channel->center_freq);
-	PRINT_D(vif->ndev, CFG80211_DBG, "Required Channel = %d\n",
-		curr_channel);
-
-
+	ch = ieee80211_frequency_to_channel(bss->channel->center_freq);
+	PRINT_D(vif->ndev, CFG80211_DBG, "Required Channel = %d\n", ch);
+	vif->wilc->op_ch = ch;
 	if (vif->iftype != WILC_CLIENT_MODE)
-		wlan_channel = curr_channel;
+		vif->wilc->sta_ch = ch;
 
 	wilc_wlan_set_bssid(dev, bss->bssid, WILC_STATION_MODE);
 
 	wfi_drv->conn_info.security = security;
 	wfi_drv->conn_info.auth_type = auth_type;
-	wfi_drv->conn_info.ch = curr_channel;
+	wfi_drv->conn_info.ch = ch;
 	wfi_drv->conn_info.conn_result = cfg_connect_result;
 	wfi_drv->conn_info.arg = priv;
 	wfi_drv->conn_info.param = join_params;
@@ -531,7 +527,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_ER(dev, "wilc_set_join_req(): Error(%d)\n", ret);
 		ret = -ENOENT;
 		if (vif->iftype != WILC_CLIENT_MODE)
-			wlan_channel = INVALID_CHANNEL;
+			vif->wilc->sta_ch = INVALID_CHANNEL;
 		wilc_wlan_set_bssid(dev, NULL, WILC_STATION_MODE);
 		wfi_drv->conn_info.conn_result = NULL;
 		kfree(join_params);
@@ -564,7 +560,7 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev,
 		return -EIO;
 	wfi_drv = (struct host_if_drv *)priv->hif_drv;
 	if (vif->iftype != WILC_CLIENT_MODE)
-		wlan_channel = INVALID_CHANNEL;
+		wilc->sta_ch = INVALID_CHANNEL;
 	wilc_wlan_set_bssid(priv->dev, NULL, WILC_STATION_MODE);
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
@@ -1105,7 +1101,7 @@ static int flush_pmksa(struct wiphy *wiphy, struct net_device *netdev)
 
 static inline void wilc_wfi_cfg_parse_ch_attr(struct wilc_vif *vif, u8 *buf,
 					      u8 ch_list_attr_idx,
-					      u8 op_ch_attr_idx)
+					      u8 op_ch_attr_idx, u8 sta_ch)
 {
 	int i = 0;
 	int j = 0;
@@ -1115,11 +1111,11 @@ static inline void wilc_wfi_cfg_parse_ch_attr(struct wilc_vif *vif, u8 *buf,
 
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "Modify channel list attribute [%d]\n",
-			   wlan_channel);
+			   sta_ch);
 		for (i = ch_list_attr_idx + 3; i < limit; i++) {
 			if (buf[i] == 0x51) {
 				for (j = i + 2; j < ((i + 2) + buf[i + 1]); j++)
-					buf[j] = wlan_channel;
+					buf[j] = sta_ch;
 				break;
 			}
 		}
@@ -1128,14 +1124,14 @@ static inline void wilc_wfi_cfg_parse_ch_attr(struct wilc_vif *vif, u8 *buf,
 	if (op_ch_attr_idx) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "Modify operating channel attribute %d\n",
-			   wlan_channel);
+			   sta_ch);
 		buf[op_ch_attr_idx + 6] = 0x51;
-		buf[op_ch_attr_idx + 7] = wlan_channel;
+		buf[op_ch_attr_idx + 7] = sta_ch;
 	}
 }
 
 static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 *buf,
-					 u32 len, bool p2p_mode)
+					 u32 len, u8 sta_ch, bool p2p_mode)
 {
 	u32 index = 0;
 	u8 op_channel_attr_index = 0;
@@ -1156,13 +1152,14 @@ static void wilc_wfi_cfg_parse_rx_action(struct wilc_vif *vif, u8 *buf,
 			op_channel_attr_index = index;
 		index += buf[index + 1] + 3;
 	}
-	if (wlan_channel != INVALID_CHANNEL)
+	if (sta_ch != INVALID_CHANNEL)
 		wilc_wfi_cfg_parse_ch_attr(vif, buf, channel_list_attr_index,
-					   op_channel_attr_index);
+					   op_channel_attr_index, sta_ch);
 }
 
 static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 *buf,
-					 u32 len, bool oper_ch, u8 p2p_mode)
+					 u32 len, bool oper_ch, u8 sta_ch,
+					 u8 p2p_mode)
 {
 	u32 index = 0;
 	u8 op_channel_attr_index = 0;
@@ -1185,9 +1182,9 @@ static void wilc_wfi_cfg_parse_tx_action(struct wilc_vif *vif, u8 *buf,
 			op_channel_attr_index = index;
 		index += buf[index + 1] + 3;
 	}
-	if (wlan_channel != INVALID_CHANNEL && oper_ch)
+	if (sta_ch != INVALID_CHANNEL && oper_ch)
 		wilc_wfi_cfg_parse_ch_attr(vif, buf, channel_list_attr_index,
-					   op_channel_attr_index);
+					   op_channel_attr_index, sta_ch);
 }
 
 static void wilc_wfi_cfg_parse_rx_vendor_spec(struct wilc_priv *priv, u8 *buff,
@@ -1228,6 +1225,7 @@ static void wilc_wfi_cfg_parse_rx_vendor_spec(struct wilc_priv *priv, u8 *buff,
 
 				wilc_wfi_cfg_parse_rx_action(vif, &buff[i + 6],
 							     size - (i + 6),
+							     vif->wilc->sta_ch,
 							     p2p_mode);
 				break;
 			}
@@ -1240,6 +1238,7 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 	struct wilc_priv *priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
 	struct host_if_drv *wfi_drv = priv->hif_drv;
 	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc *wl = vif->wilc;
 	u32 header, pkt_offset;
 	s32 freq;
 	__le16 fc;
@@ -1264,10 +1263,9 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 	PRINT_D(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n", fc);
 
 #if KERNEL_VERSION(4, 7, 0) <= LINUX_VERSION_CODE
-	freq = ieee80211_channel_to_frequency(curr_channel, NL80211_BAND_2GHZ);
+	freq = ieee80211_channel_to_frequency(wl->op_ch, NL80211_BAND_2GHZ);
  #else
-	freq = ieee80211_channel_to_frequency(curr_channel,
-					      IEEE80211_BAND_2GHZ);
+	freq = ieee80211_channel_to_frequency(wl->op_ch, IEEE80211_BAND_2GHZ);
  #endif
 	if (!ieee80211_is_action(fc)) {
 		cfg80211_rx_mgmt(priv->wdev, freq, 0, buff, size, 0);
@@ -1376,7 +1374,7 @@ static int remain_on_channel(struct wiphy *wiphy,
 	if (ret)
 		return ret;
 
-	curr_channel = chan->hw_value;
+	vif->wilc->op_ch = chan->hw_value;
 	priv->remain_on_ch_params.listen_ch = chan;
 	priv->remain_on_ch_params.listen_cookie = id;
 	*cookie = id;
@@ -1461,6 +1459,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 
 			wilc_wfi_cfg_parse_tx_action(vif, tx_buff,
 						     len - (i + 6), oper_ch,
+						     vif->wilc->sta_ch,
 						     vif->attr_sysfs.p2p_mode);
 			break;
 		}
@@ -1538,7 +1537,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "Setting channel: %d\n",
 			   chan->hw_value);
 		wilc_set_mac_chnl_num(vif, chan->hw_value);
-		curr_channel = chan->hw_value;
+		vif->wilc->op_ch = chan->hw_value;
 		goto out_txq_add_pkt;
 	}
 
@@ -1555,7 +1554,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 				   chan->hw_value);
 			wilc_set_mac_chnl_num(vif,
 					      chan->hw_value);
-			curr_channel = chan->hw_value;
+			vif->wilc->op_ch = chan->hw_value;
 		}
 		switch (buf[ACTION_SUBTYPE_ID]) {
 		case GAS_INITIAL_REQ:
