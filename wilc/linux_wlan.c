@@ -228,80 +228,6 @@ static int debug_thread(void *arg)
 	return 0;
 }
 
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-static int dev_state_ev_handler(struct notifier_block *this,
-				unsigned long event, void *ptr)
-{
-	struct in_ifaddr *dev_iface = ptr;
-	struct wilc_priv *priv;
-	struct host_if_drv *hif_drv;
-	struct net_device *dev;
-	struct wilc_vif *vif;
-
-	if (!dev_iface || !dev_iface->ifa_dev || !dev_iface->ifa_dev->dev) {
-		pr_err("dev_iface = NULL\n");
-		return NOTIFY_DONE;
-	}
-
-	dev  = (struct net_device *)dev_iface->ifa_dev->dev;
-	vif = netdev_priv(dev);
-	if (memcmp(dev_iface->ifa_label, IFC_0, 5) &&
-	    memcmp(dev_iface->ifa_label, IFC_1, 4)) {
-		pr_info("Interface is neither WLAN0 nor P2P0\n");
-		return NOTIFY_DONE;
-	}
-
-	if (!dev->ieee80211_ptr || !dev->ieee80211_ptr->wiphy) {
-		pr_err("No Wireless registerd\n");
-		return NOTIFY_DONE;
-	}
-
-	priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
-	if (!priv) {
-		pr_err("No Wireless Priv\n");
-		return NOTIFY_DONE;
-	}
-	hif_drv = (struct host_if_drv *)priv->hif_drv;
-	if (!vif || !hif_drv) {
-		PRINT_WRN(vif->ndev, GENERIC_DBG, "No Wireless Priv\n");
-		return NOTIFY_DONE;
-	}
-
-	switch (event) {
-	case NETDEV_UP:
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "event NETDEV_UP%p\n", dev);
-		PRINT_D(vif->ndev, GENERIC_DBG,
-			"\n =========== IP Address Obtained ============\n\n");
-		if (vif->iftype == WILC_STATION_MODE ||
-		    vif->iftype == WILC_CLIENT_MODE) {
-			hif_drv->ifc_up = 1;
-
-			handle_pwrsave_for_IP(vif, IP_STATE_OBTAINED);
-		}
-		break;
-
-	case NETDEV_DOWN:
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "event=NETDEV_DOWN %p\n",
-			   dev);
-		if (vif->iftype == WILC_STATION_MODE ||
-		    vif->iftype == WILC_CLIENT_MODE) {
-			hif_drv->ifc_up = 0;
-			handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
-		}
-		wilc_resolve_disconnect_aberration(vif);
-		break;
-
-	default:
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "[%s] unknown dev event %lu\n",
-			   dev_iface->ifa_label, event);
-		break;
-	}
-
-	return NOTIFY_DONE;
-}
-#endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
-
 void linux_wlan_disable_irq(struct wilc *wilc, int wait)
 {
 	if (wait) {
@@ -1384,8 +1310,10 @@ netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 						linux_wlan_tx_complete);
 
 	if (queue_count > FLOW_CTRL_UP_THRESHLD) {
-		netif_stop_queue(wilc->vif[0]->ndev);
-		netif_stop_queue(wilc->vif[1]->ndev);
+		if (wilc->vif[0]->mac_opened)
+			netif_stop_queue(wilc->vif[0]->ndev);
+		if (wilc->vif[1]->mac_opened)
+			netif_stop_queue(wilc->vif[1]->ndev);
 	}
 
 	return NETDEV_TX_OK;
@@ -1508,20 +1436,100 @@ void wilc_wfi_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size)
 	struct wilc_vif *vif;
 
 	for (i = 0; i <= wilc->vif_num; i++) {
+		u16 type;
+
 		vif = netdev_priv(wilc->vif[i]->ndev);
 		if (vif->monitor_flag) {
 			wilc_wfi_monitor_rx(wilc->monitor_dev, buff, size);
 			return;
 		}
+		type = le16_to_cpup((__le16 *)buff);
+		if ((type == vif->frame_reg[0].type && vif->frame_reg[0].reg) ||
+		    (type == vif->frame_reg[1].type && vif->frame_reg[1].reg))
+			wilc_wfi_p2p_rx(vif->ndev, buff, size);
 	}
-
-	vif = netdev_priv(wilc->vif[1]->ndev);
-	if ((buff[0] == vif->frame_reg[0].type && vif->frame_reg[0].reg) ||
-	    (buff[0] == vif->frame_reg[1].type && vif->frame_reg[1].reg))
-		wilc_wfi_p2p_rx(wilc->vif[1]->ndev, buff, size);
 }
 
+static const struct net_device_ops wilc_netdev_ops = {
+	.ndo_init = mac_init_fn,
+	.ndo_open = wilc_mac_open,
+	.ndo_stop = wilc_mac_close,
+	.ndo_set_mac_address = wilc_set_mac_addr,
+	.ndo_start_xmit = wilc_mac_xmit,
+	.ndo_get_stats = mac_stats,
+	.ndo_set_rx_mode  = wilc_set_multicast_list,
+};
+
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
+static int dev_state_ev_handler(struct notifier_block *this,
+				unsigned long event, void *ptr)
+{
+	struct in_ifaddr *dev_iface = ptr;
+	struct wilc_priv *priv;
+	struct host_if_drv *hif_drv;
+	struct net_device *dev;
+	struct wilc_vif *vif;
+
+	if (!dev_iface || !dev_iface->ifa_dev || !dev_iface->ifa_dev->dev) {
+		pr_err("dev_iface = NULL\n");
+		return NOTIFY_DONE;
+	}
+
+	dev  = (struct net_device *)dev_iface->ifa_dev->dev;
+	if (dev->netdev_ops != &wilc_netdev_ops) {
+		pr_info("interface is not ours\n");
+		return NOTIFY_DONE;
+	}
+
+	if (!dev->ieee80211_ptr || !dev->ieee80211_ptr->wiphy) {
+		pr_err("No Wireless registerd\n");
+		return NOTIFY_DONE;
+	}
+
+	priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
+	if (!priv) {
+		pr_err("No Wireless Priv\n");
+		return NOTIFY_DONE;
+	}
+	vif = netdev_priv(dev);
+	hif_drv = (struct host_if_drv *)priv->hif_drv;
+	if (!vif || !hif_drv) {
+		PRINT_WRN(vif->ndev, GENERIC_DBG, "No Wireless Priv\n");
+		return NOTIFY_DONE;
+	}
+
+	switch (event) {
+	case NETDEV_UP:
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "event NETDEV_UP%p\n", dev);
+		PRINT_D(vif->ndev, GENERIC_DBG,
+			"\n =========== IP Address Obtained ============\n\n");
+		if (vif->iftype == WILC_STATION_MODE ||
+		    vif->iftype == WILC_CLIENT_MODE) {
+			hif_drv->ifc_up = 1;
+
+			handle_pwrsave_for_IP(vif, IP_STATE_OBTAINED);
+		}
+		break;
+
+	case NETDEV_DOWN:
+		PRINT_INFO(vif->ndev, GENERIC_DBG, "event=NETDEV_DOWN %p\n",
+			   dev);
+		if (vif->iftype == WILC_STATION_MODE ||
+		    vif->iftype == WILC_CLIENT_MODE) {
+			hif_drv->ifc_up = 0;
+			handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
+		}
+		break;
+
+	default:
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
+			   "[%s] unknown dev event %lu\n",
+			   dev_iface->ifa_label, event);
+		break;
+	}
+
+	return NOTIFY_DONE;
+}
 static struct notifier_block g_dev_notifier = {
 	.notifier_call = dev_state_ev_handler
 };
@@ -1568,16 +1576,6 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	wilc_sysfs_exit();
 	pr_info("Module_exit Done.\n");
 }
-
-static const struct net_device_ops wilc_netdev_ops = {
-	.ndo_init = mac_init_fn,
-	.ndo_open = wilc_mac_open,
-	.ndo_stop = wilc_mac_close,
-	.ndo_set_mac_address = wilc_set_mac_addr,
-	.ndo_start_xmit = wilc_mac_xmit,
-	.ndo_get_stats = mac_stats,
-	.ndo_set_rx_mode  = wilc_set_multicast_list,
-};
 
 int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		     const struct wilc_hif_func *ops)

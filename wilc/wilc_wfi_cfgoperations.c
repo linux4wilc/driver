@@ -153,7 +153,6 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 	struct wilc_priv *priv = priv_data;
 	struct net_device *dev = priv->dev;
 	struct wilc_vif *vif = netdev_priv(dev);
-	struct wilc *wl = vif->wilc;
 	struct host_if_drv *wfi_drv = priv->hif_drv;
 	struct wilc_conn_info *conn_info = &wfi_drv->conn_info;
 
@@ -170,7 +169,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 			connect_status = WLAN_STATUS_UNSPECIFIED_FAILURE;
 			wilc_wlan_set_bssid(priv->dev, NULL, WILC_STATION_MODE);
 
-			if (!wfi_drv->p2p_connect)
+			if (vif->iftype != WILC_CLIENT_MODE)
 				wlan_channel = INVALID_CHANNEL;
 
 			PRINT_ER(dev, "Unspecified failure\n");
@@ -212,13 +211,14 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		eth_zero_addr(priv->associated_bss);
 		wilc_wlan_set_bssid(priv->dev, NULL, WILC_STATION_MODE);
 
-		if (!wfi_drv->p2p_connect)
+		if (vif->iftype != WILC_CLIENT_MODE) {
 			wlan_channel = INVALID_CHANNEL;
-		if (wfi_drv->ifc_up && dev == wl->vif[1]->ndev)
-			reason = 3;
-		else if (!wfi_drv->ifc_up && dev == wl->vif[1]->ndev)
-			reason = 1;
-
+		} else {
+			if (wfi_drv->ifc_up)
+				reason = 3;
+			else
+				reason = 1;
+		}
 #if KERNEL_VERSION(4, 2, 0) > LINUX_VERSION_CODE
 		cfg80211_disconnected(dev, reason, NULL, 0, GFP_KERNEL);
 #else
@@ -368,13 +368,10 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		   "Connecting to SSID [%s] on netdev [%p] host if [%x]\n",
 		   sme->ssid, dev, (u32)priv->hif_drv);
 
-	if (vif->iftype == WILC_CLIENT_MODE) {
+	if (vif->iftype == WILC_CLIENT_MODE)
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Connected to Direct network,OBSS disabled\n");
-		wfi_drv->p2p_connect = 1;
-	} else {
-		wfi_drv->p2p_connect = 0;
-	}
+
 	PRINT_D(vif->ndev, CFG80211_DBG, "Required SSID= %s\n, AuthType= %d\n",
 		sme->ssid, sme->auth_type);
 
@@ -517,7 +514,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		curr_channel);
 
 
-	if (!wfi_drv->p2p_connect)
+	if (vif->iftype != WILC_CLIENT_MODE)
 		wlan_channel = curr_channel;
 
 	wilc_wlan_set_bssid(dev, bss->bssid, WILC_STATION_MODE);
@@ -533,7 +530,7 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 	if (ret) {
 		PRINT_ER(dev, "wilc_set_join_req(): Error(%d)\n", ret);
 		ret = -ENOENT;
-		if (!wfi_drv->p2p_connect)
+		if (vif->iftype != WILC_CLIENT_MODE)
 			wlan_channel = INVALID_CHANNEL;
 		wilc_wlan_set_bssid(dev, NULL, WILC_STATION_MODE);
 		wfi_drv->conn_info.conn_result = NULL;
@@ -566,7 +563,7 @@ static int disconnect(struct wiphy *wiphy, struct net_device *dev,
 	if (!wilc)
 		return -EIO;
 	wfi_drv = (struct host_if_drv *)priv->hif_drv;
-	if (!wfi_drv->p2p_connect)
+	if (vif->iftype != WILC_CLIENT_MODE)
 		wlan_channel = INVALID_CHANNEL;
 	wilc_wlan_set_bssid(priv->dev, NULL, WILC_STATION_MODE);
 
