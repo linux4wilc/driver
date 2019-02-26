@@ -198,44 +198,32 @@ static int debug_thread(void *arg)
 					  "Couldn't restart ifc %d\n", i);
 		}
 		if (hif_drv->hif_state == HOST_IF_CONNECTED) {
-			struct disconnect_info disconnect;
-			struct user_conn_req *con_req = &hif_drv->usr_conn_req;
+			struct wilc_conn_info *conn_info = &hif_drv->conn_info;
 
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
 				   "notify the user with the Disconnection\n");
-			memset(&disconnect, 0, sizeof(struct disconnect_info));
 			if (hif_drv->usr_scan_req.scan_result) {
 				PRINT_INFO(vif->ndev, GENERIC_DBG,
 					   "Abort the running OBSS Scan\n");
 				del_timer(&hif_drv->scan_timer);
 				handle_scan_done(vif, SCAN_EVENT_ABORTED);
 			}
-			disconnect.reason = 0;
-			disconnect.ie = NULL;
-			disconnect.ie_len = 0;
-
-			if (con_req->conn_result) {
+			if (conn_info->conn_result) {
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 
 				handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
 #endif
 
-				con_req->conn_result(EVENT_DISCONN_NOTIF, NULL,
-						     0, &disconnect,
-						     con_req->arg);
+				conn_info->conn_result(EVENT_DISCONN_NOTIF,
+						       0, conn_info->arg);
 			} else {
 				PRINT_ER(vif->ndev, "Connect result NULL\n");
 			}
 			eth_zero_addr(hif_drv->assoc_bssid);
 
-			con_req->ssid_len = 0;
-			kfree(con_req->ssid);
-			con_req->ssid = NULL;
-			kfree(con_req->bssid);
-			con_req->bssid = NULL;
-			con_req->ies_len = 0;
-			kfree(con_req->ies);
-			con_req->ies = NULL;
+			conn_info->req_ies_len = 0;
+			kfree(conn_info->req_ies);
+			conn_info->req_ies = NULL;
 
 			hif_drv->hif_state = HOST_IF_IDLE;
 		}
