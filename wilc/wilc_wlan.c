@@ -478,7 +478,8 @@ static inline void ac_acm_bit(struct wilc *wilc, u32 reg)
 }
 
 int txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
-			      u32 buffer_size, wilc_tx_complete_func_t func)
+			      u32 buffer_size,
+			      void (*tx_complete_fn)(void *, int))
 {
 	struct txq_entry_t *tqe;
 	struct wilc_vif *vif = netdev_priv(dev);
@@ -496,14 +497,14 @@ int txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
 	if (wilc->quit) {
 		PRINT_INFO(vif->ndev, TX_DBG,
 			   "drv is quitting, return from net_pkt\n");
-		func(priv, 0);
+		tx_complete_fn(priv, 0);
 		return 0;
 	}
 
 	if (!(wilc->initialized)) {
 		PRINT_INFO(vif->ndev, TX_DBG,
 			   "not_init, return from net_pkt\n");
-		func(priv, 0);
+		tx_complete_fn(priv, 0);
 		return 0;
 	}
 
@@ -512,13 +513,13 @@ int txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
 	if (!tqe) {
 		PRINT_INFO(vif->ndev, TX_DBG,
 			   "malloc failed, return from net_pkt\n");
-		func(priv, 0);
+		tx_complete_fn(priv, 0);
 		return 0;
 	}
 	tqe->type = WILC_NET_PKT;
 	tqe->buffer = buffer;
 	tqe->buffer_size = buffer_size;
-	tqe->tx_complete_func = func;
+	tqe->tx_complete_func = tx_complete_fn;
 	tqe->priv = priv;
 
 	q_num = ac_classify(wilc, tqe);
@@ -551,7 +552,8 @@ int txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
 }
 
 int txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
-			       u32 buffer_size, wilc_tx_complete_func_t func)
+			       u32 buffer_size,
+			       void (*tx_complete_fn)(void *, int))
 {
 	struct txq_entry_t *tqe;
 	struct wilc_vif *vif = netdev_priv(dev);
@@ -561,26 +563,26 @@ int txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
 
 	if (wilc->quit) {
 		PRINT_INFO(vif->ndev, TX_DBG, "drv is quitting\n");
-		func(priv, 0);
+		tx_complete_fn(priv, 0);
 		return 0;
 	}
 
 	if (!(wilc->initialized)) {
 		PRINT_INFO(vif->ndev, TX_DBG, "wilc not_init\n");
-		func(priv, 0);
+		tx_complete_fn(priv, 0);
 		return 0;
 	}
 	tqe = kmalloc(sizeof(*tqe), GFP_KERNEL);
 
 	if (!tqe) {
 		PRINT_INFO(vif->ndev, TX_DBG, "Queue malloc failed\n");
-		func(priv, 0);
+		tx_complete_fn(priv, 0);
 		return 0;
 	}
 	tqe->type = WILC_MGMT_PKT;
 	tqe->buffer = buffer;
 	tqe->buffer_size = buffer_size;
-	tqe->tx_complete_func = func;
+	tqe->tx_complete_func = tx_complete_fn;
 	tqe->priv = priv;
 	tqe->q_num = AC_BE_Q;
 	tqe->ack_idx = NOT_TCP_ACK;

@@ -46,8 +46,6 @@ struct tx_complete_data {
 	struct wilc_vif *vif;
 };
 
-typedef void (*wilc_tx_complete_func_t)(void *, int);
-
 /********************************************
  *
  *      Wlan Configuration ID
