@@ -20,13 +20,8 @@ struct wfi_rtap_cb_hdr {
 	u16 tx_flags;
 } __packed;
 
-struct net_device *wilc_wfi_mon;
-
 static u8 srcadd[6];
 static u8 bssid[6];
-
-#define IEEE80211_RADIOTAP_F_TX_RTS	0x0004  /* used rts/cts handshake */
-#define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001  /* failed due to excessive*/
 
 #define TX_RADIOTAP_PRESENT ((1 << IEEE80211_RADIOTAP_RATE) |	\
 			     (1 << IEEE80211_RADIOTAP_TX_FLAGS))
@@ -83,20 +78,18 @@ void wilc_wfi_handle_monitor_rx(struct wilc *wilc, u8 *buff, u32 size)
 	netif_rx(skb);
 }
 
-void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
+void wilc_wfi_monitor_rx(struct net_device *mon_dev, u8 *buff, u32 size)
 {
 	u32 header, pkt_offset;
 	struct sk_buff *skb = NULL;
 	struct wfi_rtap_hdr *hdr;
 	struct wfi_rtap_cb_hdr *cb_hdr;
 
-	PRINT_D(vif->ndev, HOSTAPD_DBG,
-		"In monitor interface receive function\n");
-	if (!wilc_wfi_mon)
+	if (!mon_dev)
 		return;
 
-	if (!netif_running(wilc_wfi_mon)) {
-		PRINT_D(vif->ndev, HOSTAPD_DBG,
+	if (!netif_running(mon_dev)) {
+		PRINT_D(mon_dev, HOSTAPD_DBG,
 			"Monitor interface already RUNNING\n");
 		return;
 	}
@@ -115,7 +108,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 
 		skb = dev_alloc_skb(size + sizeof(*cb_hdr));
 		if (!skb) {
-			PRINT_D(vif->ndev, HOSTAPD_DBG,
+			PRINT_D(mon_dev, HOSTAPD_DBG,
 				"Monitor if : No memory to allocate skb");
 			return;
 		}
@@ -149,7 +142,7 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		skb = dev_alloc_skb(size + sizeof(*hdr));
 
 		if (!skb) {
-			PRINT_D(vif->ndev, HOSTAPD_DBG,
+			PRINT_D(mon_dev, HOSTAPD_DBG,
 				"Monitor if : No memory to allocate skb");
 			return;
 		}
@@ -164,16 +157,16 @@ void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 		memset(hdr, 0, sizeof(*hdr));
 		hdr->hdr.it_version = 0; /* PKTHDR_RADIOTAP_VERSION; */
 		hdr->hdr.it_len = cpu_to_le16(sizeof(*hdr));
-		PRINT_D(vif->ndev, HOSTAPD_DBG,
+		PRINT_D(mon_dev, HOSTAPD_DBG,
 			"Radiotap len %d\n", hdr->hdr.it_len);
 		hdr->hdr.it_present = cpu_to_le32
 				(1 << IEEE80211_RADIOTAP_RATE); /* | */
-		PRINT_D(vif->ndev, HOSTAPD_DBG, "Presentflags %d\n",
+		PRINT_D(mon_dev, HOSTAPD_DBG, "Presentflags %d\n",
 			hdr->hdr.it_present);
 		hdr->rate = 5;
 	}
 
-	skb->dev = wilc_wfi_mon;
+	skb->dev = mon_dev;
 	skb_reset_mac_header(skb);
 	skb->ip_summed = CHECKSUM_UNNECESSARY;
 	skb->pkt_type = PACKET_OTHERHOST;
@@ -195,13 +188,11 @@ static void mgmt_tx_complete(void *priv, int status)
 
 	if (status == 1) {
 		if (buf[0] == 0x10 || buf[0] == 0xb0)
-			PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
-				   "Packet sent Size = %d Add = %p.\n",
-				   pv_data->size, pv_data->buff);
+			pr_info("Packet sent Size = %d Add = %p.\n",
+				pv_data->size, pv_data->buff);
 	} else {
-		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
-			   "Couldn't send packet Size = %d Add = %p.\n",
-			   pv_data->size, pv_data->buff);
+		pr_info("Couldn't send packet Size = %d Add = %p.\n",
+			pv_data->size, pv_data->buff);
 	}
 	/*
 	 * in case of fully hosting mode, the freeing will be done
@@ -250,10 +241,7 @@ static netdev_tx_t wilc_wfi_mon_xmit(struct sk_buff *skb,
 	u32 rtap_len, ret = 0;
 	struct wilc_wfi_mon_priv  *mon_priv;
 
-	if (!wilc_wfi_mon)
-		return -EFAULT;
-
-	mon_priv = netdev_priv(wilc_wfi_mon);
+	mon_priv = netdev_priv(dev);
 	if (!mon_priv) {
 		PRINT_ER(dev, "Monitor interface private structure is NULL\n");
 		return -EFAULT;
@@ -295,30 +283,31 @@ static const struct net_device_ops wilc_wfi_netdev_ops = {
 
 };
 
-struct net_device *wilc_wfi_init_mon_interface(const char *name,
+struct net_device *wilc_wfi_init_mon_interface(struct wilc *wl,
+					       const char *name,
 					       struct net_device *real_dev)
 {
 	struct wilc_wfi_mon_priv *priv;
 
 	/*If monitor interface is already initialized, return it*/
-	if (wilc_wfi_mon)
-		return wilc_wfi_mon;
+	if (wl->monitor_dev)
+		return wl->monitor_dev;
 
-	wilc_wfi_mon = alloc_etherdev(sizeof(struct wilc_wfi_mon_priv));
-	if (!wilc_wfi_mon) {
+	wl->monitor_dev = alloc_etherdev(sizeof(struct wilc_wfi_mon_priv));
+	if (!wl->monitor_dev) {
 		PRINT_ER(real_dev, "failed to allocate memory\n");
 		return NULL;
 	}
-	wilc_wfi_mon->type = ARPHRD_IEEE80211_RADIOTAP;
-	strncpy(wilc_wfi_mon->name, name, IFNAMSIZ);
-	wilc_wfi_mon->name[IFNAMSIZ - 1] = 0;
-	wilc_wfi_mon->netdev_ops = &wilc_wfi_netdev_ops;
+	wl->monitor_dev->type = ARPHRD_IEEE80211_RADIOTAP;
+	strncpy(wl->monitor_dev->name, name, IFNAMSIZ);
+	wl->monitor_dev->name[IFNAMSIZ - 1] = 0;
+	wl->monitor_dev->netdev_ops = &wilc_wfi_netdev_ops;
 
-	if (register_netdevice(wilc_wfi_mon)) {
+	if (register_netdevice(wl->monitor_dev)) {
 		PRINT_ER(real_dev, "register_netdevice failed\n");
 		return NULL;
 	}
-	priv = netdev_priv(wilc_wfi_mon);
+	priv = netdev_priv(wl->monitor_dev);
 	if (!priv) {
 		PRINT_ER(real_dev, "private structure is NULL\n");
 		return NULL;
@@ -326,28 +315,20 @@ struct net_device *wilc_wfi_init_mon_interface(const char *name,
 
 	priv->real_ndev = real_dev;
 
-	return wilc_wfi_mon;
+	return wl->monitor_dev;
 }
 
-void wilc_wfi_deinit_mon_interface(void)
+void wilc_wfi_deinit_mon_interface(struct wilc *wl)
 {
-	bool rollback_lock = false;
+	if (!wl->monitor_dev)
+		return;
 
-	if (wilc_wfi_mon) {
-		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG,
-			   "In Deinit monitor interface\n");
-		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG, "Locking RTNL\n");
-		if (rtnl_is_locked()) {
-			rtnl_unlock();
-			rollback_lock = true;
-		}
-		PRINT_INFO(wilc_wfi_mon, HOSTAPD_DBG, "Unregister netdev\n");
-		unregister_netdev(wilc_wfi_mon);
-
-		if (rollback_lock) {
-			rtnl_lock();
-			rollback_lock = false;
-		}
-		wilc_wfi_mon = NULL;
-	}
+	PRINT_INFO(wl->monitor_dev, HOSTAPD_DBG,
+		   "In Deinit monitor interface\n");
+	PRINT_INFO(wl->monitor_dev, HOSTAPD_DBG, "Unregister monitor netdev\n");
+	unregister_netdev(wl->monitor_dev);
+	free_netdev(wl->monitor_dev);
+	PRINT_INFO(wl->monitor_dev, HOSTAPD_DBG,
+		   "Deinit monitor interface done\n");
+	wl->monitor_dev = NULL;
 }

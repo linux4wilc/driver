@@ -59,6 +59,6 @@ static inline bool ether_addr_equal_unaligned(const u8 *addr1, const u8 *addr2)
 
 int wilc_bt_power_up(struct wilc *wilc, int source);
 int wilc_bt_power_down(struct wilc *wilc, int source);
-void wilc_wfi_monitor_rx(struct wilc_vif *vif, u8 *buff, u32 size);
+void wilc_wfi_monitor_rx(struct net_device *mon_dev, u8 *buff, u32 size);
 
 #endif /* WILC_LINUX_WLAN_H */

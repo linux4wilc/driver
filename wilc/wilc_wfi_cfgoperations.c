@@ -2104,7 +2104,8 @@ static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 			   "Initializing mon ifc virtual device driver\n");
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Adding monitor interface[%p]\n", vif->ndev);
-		new_ifc = wilc_wfi_init_mon_interface(name, vif->ndev);
+		new_ifc = wilc_wfi_init_mon_interface(vif->wilc, name,
+						      vif->ndev);
 		if (new_ifc) {
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
 			"Setting monitor flag in private structure\n");

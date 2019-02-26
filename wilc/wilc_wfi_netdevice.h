@@ -316,6 +316,7 @@ struct wilc {
 
 	struct wilc_cfg cfg;
 	void *bus_data;
+	struct net_device *monitor_dev;
 };
 
 struct wilc_wfi_mon_priv {
