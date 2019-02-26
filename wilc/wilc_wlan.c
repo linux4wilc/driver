@@ -1600,12 +1600,11 @@ int wilc_wlan_start(struct wilc *wilc)
 	return (ret < 0) ? ret : 0;
 }
 
-int wilc_wlan_stop(struct wilc *wilc)
+int wilc_wlan_stop(struct wilc *wilc, struct wilc_vif *vif)
 {
 	u32 reg = 0;
 	int ret;
 	u8 timeout = 10;
-	struct wilc_vif *vif = wilc->vif[0];
 
 	acquire_bus(wilc, WILC_BUS_ACQUIRE_AND_WAKEUP, DEV_WIFI);
 

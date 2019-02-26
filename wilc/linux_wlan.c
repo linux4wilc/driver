@@ -626,9 +626,12 @@ static int linux_wlan_txq_task(void *vp)
 			ret = wilc_wlan_handle_txq(ndev, &txq_count);
 			if (txq_count < FLOW_CTRL_LOW_THRESHLD) {
 				PRINT_INFO(ndev, TX_DBG, "Waking up queue\n");
-				if (netif_queue_stopped(wl->vif[0]->ndev))
+				if (wl->vif[0]->mac_opened &&
+				    netif_queue_stopped(wl->vif[0]->ndev))
 					netif_wake_queue(wl->vif[0]->ndev);
-				if (netif_queue_stopped(wl->vif[1]->ndev))
+
+				if (wl->vif[1]->mac_opened &&
+				    netif_queue_stopped(wl->vif[1]->ndev))
 					netif_wake_queue(wl->vif[1]->ndev);
 			}
 
@@ -1021,7 +1024,7 @@ static void wilc_wlan_deinitialize(struct net_device *dev)
 		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing IRQ\n");
 		deinit_irq(dev);
 
-		ret = wilc_wlan_stop(wl);
+		ret = wilc_wlan_stop(wl, vif);
 		if (ret == 0)
 			PRINT_ER(dev, "failed in wlan_stop\n");
 
@@ -1176,7 +1179,7 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 		return 0;
 
 fail_fw_start:
-		wilc_wlan_stop(wl);
+		wilc_wlan_stop(wl, vif);
 
 fail_irq_enable:
 		if (wl->io_type == WILC_HIF_SDIO)
@@ -1595,7 +1598,7 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 		wilc->firmware = NULL;
 	}
 
-	for (i = 0; i < WILC_NUM_CONCURRENT_IFC; i++)
+	for (i = WILC_NUM_CONCURRENT_IFC - 1 ; i >= 0; i--)
 		if (wilc->vif[i] && wilc->vif[i]->ndev) {
 			PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG,
 				   "Unregistering netdev %p\n",
