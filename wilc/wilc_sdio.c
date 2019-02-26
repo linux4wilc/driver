@@ -8,6 +8,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
 #include <linux/module.h>
+#include <linux/pm_runtime.h>
 
 #include "wilc_wfi_netdevice.h"
 #include "wilc_wlan.h"
