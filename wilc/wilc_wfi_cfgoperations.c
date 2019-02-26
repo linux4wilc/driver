@@ -1117,7 +1117,8 @@ static inline void wilc_wfi_cfg_parse_ch_attr(struct wilc_vif *vif, u8 *buf,
 		u8 limit = ch_list_attr_idx + 3 + buf[ch_list_attr_idx + 1];
 
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Modify channel list attribute\n");
+			   "Modify channel list attribute [%d]\n",
+			   wlan_channel);
 		for (i = ch_list_attr_idx + 3; i < limit; i++) {
 			if (buf[i] == 0x51) {
 				for (j = i + 2; j < ((i + 2) + buf[i + 1]); j++)
@@ -1129,7 +1130,8 @@ static inline void wilc_wfi_cfg_parse_ch_attr(struct wilc_vif *vif, u8 *buf,
 
 	if (op_ch_attr_idx) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Modify operating channel attribute\n");
+			   "Modify operating channel attribute %d\n",
+			   wlan_channel);
 		buf[op_ch_attr_idx + 6] = 0x51;
 		buf[op_ch_attr_idx + 7] = wlan_channel;
 	}
@@ -1330,41 +1332,21 @@ static void wilc_wfi_mgmt_tx_complete(void *priv, int status)
 	kfree(pv_data);
 }
 
-static void wilc_wfi_remain_on_channel_ready(void *priv_data)
-{
-	struct wilc_priv *priv;
-
-	priv = priv_data;
-
-	PRINT_INFO(priv->dev, HOSTINF_DBG, "Remain on channel ready\n");
-	priv->p2p_listen_state = true;
-
-	cfg80211_ready_on_channel(priv->wdev,
-				  priv->remain_on_ch_params.listen_cookie,
-				  priv->remain_on_ch_params.listen_ch,
-				  priv->remain_on_ch_params.listen_duration,
-				  GFP_KERNEL);
-}
-
-static void wilc_wfi_remain_on_channel_expired(void *data, u32 session_id)
+static void wilc_wfi_remain_on_channel_expired(void *data, u64 cookie)
 {
 	struct wilc_priv *priv = data;
 	struct wilc_wfi_p2p_listen_params *params = &priv->remain_on_ch_params;
 
-	if (session_id != params->listen_session_id) {
+	if (cookie != priv->remain_on_ch_params.listen_cookie) {
 		PRINT_INFO(priv->dev, GENERIC_DBG,
-			   "Received ID 0x%x Expected ID 0x%x (No match)\n",
-			   session_id,
-			   priv->remain_on_ch_params.listen_session_id);
+			   "Received cookies didn't match received[%llu] Expected[%llu]\n",
+			   cookie, priv->remain_on_ch_params.listen_cookie);
 		return;
 	}
 
-
-	PRINT_INFO(priv->dev, GENERIC_DBG,
-		   "Remain on channel expired\n");
 	priv->p2p_listen_state = false;
 
-	cfg80211_remain_on_channel_expired(priv->wdev, params->listen_cookie,
+	cfg80211_remain_on_channel_expired(priv->wdev, cookie,
 					   params->listen_ch, GFP_KERNEL);
 }
 
@@ -1376,8 +1358,9 @@ static int remain_on_channel(struct wiphy *wiphy,
 	int ret = 0;
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
+	u64 id;
 
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "Remaining on channel %d\n",
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "Remaining on channel [%d]\n",
 		   chan->hw_value);
 
 	if (wdev->iftype == NL80211_IFTYPE_AP) {
@@ -1386,18 +1369,36 @@ static int remain_on_channel(struct wiphy *wiphy,
 		return ret;
 	}
 
+	id = ++priv->inc_roc_cookie;
+	if (id == 0)
+		id = ++priv->inc_roc_cookie;
+
+	ret = wilc_remain_on_channel(vif, id, duration, chan->hw_value,
+				     wilc_wfi_remain_on_channel_expired,
+				     (void *)priv);
+	if (ret)
+		return ret;
+
 	curr_channel = chan->hw_value;
-
 	priv->remain_on_ch_params.listen_ch = chan;
-	priv->remain_on_ch_params.listen_cookie = *cookie;
+	priv->remain_on_ch_params.listen_cookie = id;
+	*cookie = id;
 	priv->remain_on_ch_params.listen_duration = duration;
-	priv->remain_on_ch_params.listen_session_id++;
+	priv->p2p_listen_state = true;
 
-	return wilc_remain_on_channel(vif,
-				priv->remain_on_ch_params.listen_session_id,
-				duration, chan->hw_value,
-				wilc_wfi_remain_on_channel_expired,
-				wilc_wfi_remain_on_channel_ready, (void *)priv);
+	cfg80211_ready_on_channel(wdev, *cookie, chan, duration, GFP_KERNEL);
+
+#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
+	vif->hif_drv->remain_on_ch_timer.data = (unsigned long)vif->hif_drv;
+#endif
+	mod_timer(&vif->hif_drv->remain_on_ch_timer,
+		  jiffies + msecs_to_jiffies(duration));
+
+	PRINT_INFO(vif->ndev, GENERIC_DBG,
+		   "Remaining on duration [%d] [%llu]\n",
+		   duration, priv->remain_on_ch_params.listen_cookie);
+
+	return ret;
 }
 
 static int cancel_remain_on_channel(struct wiphy *wiphy,
@@ -1407,10 +1408,13 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(priv->dev);
 
-	PRINT_INFO(vif->ndev, CFG80211_DBG, "Cancel remain on channel\n");
+	PRINT_INFO(vif->ndev, CFG80211_DBG,
+		   "cookie received[%llu] expected[%llu]\n",
+		   cookie, priv->remain_on_ch_params.listen_cookie);
+	if (cookie != priv->remain_on_ch_params.listen_cookie)
+		return -ENOENT;
 
-	return wilc_listen_state_expired(vif,
-			priv->remain_on_ch_params.listen_session_id);
+	return wilc_listen_state_expired(vif, cookie);
 }
 
 #if KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE
@@ -1503,7 +1507,7 @@ static int mgmt_tx(struct wiphy *wiphy,
 		      sizeof(priv->p2p.local_random);
 	int ret = 0;
 
-	*cookie = (unsigned long)buf;
+	*cookie = prandom_u32();
 	priv->tx_cookie = *cookie;
 	mgmt = (const struct ieee80211_mgmt *)buf;
 

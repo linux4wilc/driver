@@ -1189,31 +1189,18 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 		return -EFAULT;
 	}
 
-	if (!hif_drv->remain_on_ch_pending) {
-		hif_drv->remain_on_ch.arg = hif_remain_ch->arg;
-		hif_drv->remain_on_ch.expired = hif_remain_ch->expired;
-		hif_drv->remain_on_ch.ready = hif_remain_ch->ready;
-		hif_drv->remain_on_ch.ch = hif_remain_ch->ch;
-		hif_drv->remain_on_ch.id = hif_remain_ch->id;
-	} else {
-		hif_remain_ch->ch = hif_drv->remain_on_ch.ch;
-	}
-
 	if (hif_drv_p2p != NULL) {
 		if (hif_drv_p2p->hif_state == HOST_IF_SCANNING) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
 				   "IFC busy scanning P2P_IFC state %d\n",
 				   hif_drv_p2p->hif_state);
-			hif_drv->remain_on_ch_pending = 1;
-			result = -EBUSY;
-			goto error;
+			return -EBUSY;
 		} else if ((hif_drv_p2p->hif_state != HOST_IF_IDLE) &&
 		(hif_drv_p2p->hif_state != HOST_IF_CONNECTED)) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
 				   "IFC busy connecting. P2P_IFC state %d\n",
 				   hif_drv_p2p->hif_state);
-			result = -EBUSY;
-			goto error;
+			return -EBUSY;
 		}
 	}
 	if (hif_drv_wlan != NULL) {
@@ -1221,45 +1208,40 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
 				   "IFC busy scanning. WLAN_IFC state %d\n",
 				   hif_drv_wlan->hif_state);
-			hif_drv->remain_on_ch_pending = 1;
-			result = -EBUSY;
-			goto error;
+			return -EBUSY;
 		} else if ((hif_drv_wlan->hif_state != HOST_IF_IDLE) &&
 		(hif_drv_wlan->hif_state != HOST_IF_CONNECTED)) {
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
 				   "IFC busy connecting. WLAN_IFC %d\n",
 				   hif_drv_wlan->hif_state);
-			result = -EBUSY;
-			goto error;
+			return -EBUSY;
 		}
 	}
 
 	if (vif->connecting) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "Don't do scan in (CONNECTING) state\n");
-		result = -EBUSY;
-		goto error;
+		return -EBUSY;
 	}
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	if (vif->obtaining_ip) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "Don't obss scan until IP adresss is obtained\n");
-		result = -EBUSY;
-		goto error;
+		return -EBUSY;
 	}
 #endif
 
-	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting channel :%d\n",
-		   hif_remain_ch->ch);
+	PRINT_INFO(vif->ndev, HOSTINF_DBG,
+		   "Setting channel [%d] duration[%d] [%llu]\n",
+		   hif_remain_ch->ch, hif_remain_ch->duration,
+		   hif_remain_ch->cookie);
 	remain_on_chan_flag = true;
 	wid.id = WID_REMAIN_ON_CHAN;
 	wid.type = WID_STR;
 	wid.size = 2;
 	wid.val = kmalloc(wid.size, GFP_KERNEL);
-	if (!wid.val) {
-		result = -ENOMEM;
-		goto error;
-	}
+	if (!wid.val)
+		return -ENOMEM;
 
 	wid.val[0] = remain_on_chan_flag;
 	wid.val[1] = (s8)hif_remain_ch->ch;
@@ -1267,24 +1249,18 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 	result = wilc_send_config_pkt(vif, WILC_SET_CFG, &wid, 1,
 				      wilc_get_vif_idx(vif));
 	kfree(wid.val);
-	if (result != 0)
+	if (result) {
 		PRINT_ER(vif->ndev, "Failed to set remain on channel\n");
+		return -EBUSY;
+	}
 
+	hif_drv->remain_on_ch.arg = hif_remain_ch->arg;
+	hif_drv->remain_on_ch.expired = hif_remain_ch->expired;
+	hif_drv->remain_on_ch.ch = hif_remain_ch->ch;
+	hif_drv->remain_on_ch.cookie = hif_remain_ch->cookie;
 	hif_drv->hif_state = HOST_IF_P2P_LISTEN;
-error:
 
 	hif_drv->remain_on_ch_timer_vif = vif;
-#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
-	hif_drv->remain_on_ch_timer.data = (unsigned long)hif_drv;
-#endif
-	mod_timer(&hif_drv->remain_on_ch_timer,
-		  jiffies + msecs_to_jiffies(hif_remain_ch->duration));
-
-	if (hif_drv->remain_on_ch.ready)
-		hif_drv->remain_on_ch.ready(hif_drv->remain_on_ch.arg);
-
-	if (hif_drv->remain_on_ch_pending)
-		hif_drv->remain_on_ch_pending = 0;
 
 	return result;
 }
@@ -1327,7 +1303,7 @@ static void handle_listen_state_expired(struct work_struct *work)
 
 		if (hif_drv->remain_on_ch.expired)
 			hif_drv->remain_on_ch.expired(hif_drv->remain_on_ch.arg,
-						      hif_remain_ch->id);
+						      hif_remain_ch->cookie);
 
 		if (memcmp(hif_drv->assoc_bssid, null_bssid, ETH_ALEN) == 0)
 			hif_drv->hif_state = HOST_IF_IDLE;
@@ -1363,7 +1339,7 @@ static void listen_timer_cb(unsigned long arg)
 	if (IS_ERR(msg))
 		return;
 
-	msg->body.remain_on_ch.id = vif->hif_drv->remain_on_ch.id;
+	msg->body.remain_on_ch.cookie = vif->hif_drv->remain_on_ch.cookie;
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
@@ -1450,9 +1426,6 @@ static void handle_scan_complete(struct work_struct *work)
 
 	handle_scan_done(msg->vif, SCAN_EVENT_DONE);
 
-	if (msg->vif->hif_drv->remain_on_ch_pending)
-		handle_remain_on_chan(msg->vif,
-				      &msg->vif->hif_drv->remain_on_ch);
 	kfree(msg);
 }
 
@@ -2320,10 +2293,9 @@ void wilc_scan_complete_received(struct wilc *wilc, u8 *buffer, u32 length)
 	}
 }
 
-int wilc_remain_on_channel(struct wilc_vif *vif, u32 session_id,
+int wilc_remain_on_channel(struct wilc_vif *vif, u64 cookie,
 			   u32 duration, u16 chan,
-			   void (*expired)(void *, u32),
-			   void (*ready)(void *), void *user_arg)
+			   void (*expired)(void *, u64), void *user_arg)
 {
 	struct remain_ch roc;
 	int result;
@@ -2331,10 +2303,9 @@ int wilc_remain_on_channel(struct wilc_vif *vif, u32 session_id,
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "%s called\n", __func__);
 	roc.ch = chan;
 	roc.expired = expired;
-	roc.ready = ready;
 	roc.arg = user_arg;
 	roc.duration = duration;
-	roc.id = session_id;
+	roc.cookie = cookie;
 	result = handle_remain_on_chan(vif, &roc);
 	if (result)
 		PRINT_ER(vif->ndev, "%s: failed to set remain on channel\n",
@@ -2343,7 +2314,7 @@ int wilc_remain_on_channel(struct wilc_vif *vif, u32 session_id,
 	return result;
 }
 
-int wilc_listen_state_expired(struct wilc_vif *vif, u32 session_id)
+int wilc_listen_state_expired(struct wilc_vif *vif, u64 cookie)
 {
 	int result;
 	struct host_if_msg *msg;
@@ -2360,7 +2331,7 @@ int wilc_listen_state_expired(struct wilc_vif *vif, u32 session_id)
 	if (IS_ERR(msg))
 		return PTR_ERR(msg);
 
-	msg->body.remain_on_ch.id = session_id;
+	msg->body.remain_on_ch.cookie = cookie;
 
 	result = wilc_enqueue_work(msg);
 	if (result) {
