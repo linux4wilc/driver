@@ -7,7 +7,7 @@
 #include <linux/etherdevice.h>
 
 #include "wilc_wfi_cfgoperations.h"
-#include "linux_wlan.h"
+#include "wilc_netdev.h"
 
 #define ACTION_CAT_ID			24
 #define ACTION_SUBTYPE_ID		25

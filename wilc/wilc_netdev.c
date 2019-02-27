@@ -17,7 +17,7 @@
 #include <linux/inetdevice.h>
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
-#include "linux_wlan.h"
+#include "wilc_netdev.h"
 #include "wilc_wfi_cfgoperations.h"
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
@@ -128,8 +128,6 @@ void clear_during_ip(unsigned long arg)
 }
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
-void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size,
-			u32 pkt_offset, u8 status);
 static int wilc_mac_open(struct net_device *ndev);
 static int wilc_mac_close(struct net_device *ndev);
 
@@ -230,7 +228,7 @@ static int debug_thread(void *arg)
 	return 0;
 }
 
-void linux_wlan_disable_irq(struct wilc *wilc, int wait)
+void wilc_disable_irq(struct wilc *wilc, int wait)
 {
 	if (wait) {
 		PRINT_INFO(wilc->vif[0]->ndev, INT_DBG, "Disabling IRQ ...\n");
@@ -403,6 +401,83 @@ void wilc_mac_indicate(struct wilc *wilc)
 	}
 }
 
+void wilc_frmw_to_host(struct wilc_vif *vif, u8 *buff, u32 size,
+		       u32 pkt_offset, u8 status)
+{
+	unsigned int frame_len = 0;
+	int stats;
+	unsigned char *buff_to_send = NULL;
+	struct sk_buff *skb;
+	struct wilc_priv *priv;
+	u8 null_bssid[ETH_ALEN] = {0};
+
+	buff += pkt_offset;
+	priv = wiphy_priv(vif->ndev->ieee80211_ptr->wiphy);
+
+	if (size == 0) {
+		PRINT_ER(vif->ndev,
+			 "Discard sending packet with len = %d\n", size);
+		return;
+	}
+
+	frame_len = size;
+	buff_to_send = buff;
+
+	if (status == PKT_STATUS_NEW && buff_to_send[12] == 0x88 &&
+	   buff_to_send[13] == 0x8e &&
+	   (vif->iftype == WILC_STATION_MODE ||
+	    vif->iftype == WILC_CLIENT_MODE) &&
+	   ether_addr_equal_unaligned(priv->associated_bss, null_bssid)) {
+		if (!priv->buffered_eap) {
+			priv->buffered_eap = kmalloc(sizeof(struct
+							    wilc_buffered_eap),
+						     GFP_ATOMIC);
+			if (priv->buffered_eap) {
+				priv->buffered_eap->buff = NULL;
+				priv->buffered_eap->size = 0;
+				priv->buffered_eap->pkt_offset = 0;
+			} else {
+				PRINT_ER(vif->ndev,
+					 "failed to alloc buffered_eap\n");
+				return;
+			}
+		} else {
+			kfree(priv->buffered_eap->buff);
+		}
+		priv->buffered_eap->buff = kmalloc(size + pkt_offset,
+						   GFP_ATOMIC);
+		priv->buffered_eap->size = size;
+		priv->buffered_eap->pkt_offset = pkt_offset;
+		memcpy(priv->buffered_eap->buff, buff -
+		       pkt_offset, size + pkt_offset);
+	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
+		priv->eap_buff_timer.data = (unsigned long) priv;
+	#endif
+		mod_timer(&priv->eap_buff_timer, (jiffies +
+			  msecs_to_jiffies(10)));
+		return;
+	}
+	skb = dev_alloc_skb(frame_len);
+	if (!skb) {
+		PRINT_ER(vif->ndev, "Low memory - packet droped\n");
+		return;
+	}
+
+	skb->dev = vif->ndev;
+#if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
+	skb_put_data(skb, buff_to_send, frame_len);
+#else
+	memcpy(skb_put(skb, frame_len), buff_to_send, frame_len);
+#endif
+
+	skb->protocol = eth_type_trans(skb, vif->ndev);
+	vif->netstats.rx_packets++;
+	vif->netstats.rx_bytes += frame_len;
+	skb->ip_summed = CHECKSUM_UNNECESSARY;
+	stats = netif_rx(skb);
+	PRINT_D(vif->ndev, RX_DBG, "netif_rx ret value: %d\n", stats);
+}
+
 void free_eap_buff_params(void *vp)
 {
 	struct wilc_priv *priv;
@@ -444,7 +519,7 @@ void eap_buff_timeout(unsigned long user)
 	del_timer(&priv->eap_buff_timer);
 	timeout = 5;
 
-	status = wilc_send_buffered_eap(vif, wilc_frmw_to_linux,
+	status = wilc_send_buffered_eap(vif, wilc_frmw_to_host,
 					free_eap_buff_params,
 					priv->buffered_eap->buff,
 					priv->buffered_eap->size,
@@ -503,7 +578,7 @@ struct host_if_drv *get_drv_hndl_by_ifc(struct wilc *wilc, uint8_t ifc)
 #define TX_BCKOFF_WGHT_MS (1)
 
 
-static int linux_wlan_txq_task(void *vp)
+static int wilc_txq_task(void *vp)
 {
 	int ret;
 	u32 txq_count;
@@ -606,7 +681,7 @@ fail:
 	return ret;
 }
 
-static int linux_wlan_start_firmware(struct net_device *dev)
+static int wilc_start_firmware(struct net_device *dev)
 {
 	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wilc = vif->wilc;
@@ -656,8 +731,7 @@ fail:
 	return ret;
 }
 
-static int linux_wlan_init_fw_config(struct net_device *dev,
-				     struct wilc_vif *vif)
+static int wilc_init_fw_config(struct net_device *dev, struct wilc_vif *vif)
 {
 	struct wilc_priv *priv;
 	struct host_if_drv *hif_drv;
@@ -895,7 +969,7 @@ static void wilc_wlan_deinitialize(struct net_device *dev)
 		PRINT_INFO(vif->ndev, INIT_DBG, "Disabling IRQ\n");
 		if (wl->io_type == WILC_HIF_SPI ||
 			wl->io_type == WILC_HIF_SDIO_GPIO_IRQ) {
-			linux_wlan_disable_irq(wl, 1);
+			wilc_disable_irq(wl, 1);
 		} else {
 			if (wl->hif_func->disable_interrupt) {
 				mutex_lock(&wl->hif_cs);
@@ -956,7 +1030,7 @@ static int wlan_initialize_threads(struct net_device *dev)
 
 	PRINT_INFO(vif->ndev, INIT_DBG, "Initializing Threads ...\n");
 	PRINT_INFO(vif->ndev, INIT_DBG, "Creating kthread for transmission\n");
-	wilc->txq_thread = kthread_run(linux_wlan_txq_task, (void *)dev,
+	wilc->txq_thread = kthread_run(wilc_txq_task, (void *)dev,
 				       "K_TXQ_TASK");
 	if (IS_ERR(wilc->txq_thread)) {
 		PRINT_ER(dev, "couldn't create TXQ thread\n");
@@ -1035,7 +1109,7 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			goto fail_irq_enable;
 		}
 
-		ret = linux_wlan_start_firmware(dev);
+		ret = wilc_start_firmware(dev);
 		if (ret < 0) {
 			PRINT_ER(dev, "Failed to start firmware\n");
 			ret = -EIO;
@@ -1054,7 +1128,7 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 				   firmware_ver);
 		}
 
-		ret = linux_wlan_init_fw_config(dev, vif);
+		ret = wilc_init_fw_config(dev, vif);
 		if (ret < 0) {
 			PRINT_ER(dev, "Failed to configure firmware\n");
 			ret = -EIO;
@@ -1258,7 +1332,7 @@ static void wilc_set_multicast_list(struct net_device *dev)
 		kfree(mc_list);
 }
 
-static void linux_wlan_tx_complete(void *priv, int status)
+static void wilc_tx_complete(void *priv, int status)
 {
 	struct tx_complete_data *pv_data = priv;
 
@@ -1308,8 +1382,8 @@ netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 	tx_data->bssid = wilc->vif[vif->idx]->bssid;
 	tx_data->vif = vif;
 	queue_count = txq_add_net_pkt(ndev, (void *)tx_data,
-						tx_data->buff, tx_data->size,
-						linux_wlan_tx_complete);
+				      tx_data->buff, tx_data->size,
+				      wilc_tx_complete);
 
 	if (queue_count > FLOW_CTRL_UP_THRESHLD) {
 		if (wilc->vif[0]->mac_opened)
@@ -1351,85 +1425,6 @@ static int wilc_mac_close(struct net_device *ndev)
 	vif->mac_opened = 0;
 
 	return 0;
-}
-
-void wilc_frmw_to_linux(struct wilc_vif *vif, u8 *buff, u32 size,
-			u32 pkt_offset, u8 status)
-{
-	unsigned int frame_len = 0;
-	int stats;
-	unsigned char *buff_to_send = NULL;
-	struct sk_buff *skb;
-	struct wilc_priv *priv;
-	u8 null_bssid[ETH_ALEN] = {0};
-
-	buff += pkt_offset;
-	priv = wiphy_priv(vif->ndev->ieee80211_ptr->wiphy);
-
-	if (size == 0) {
-		PRINT_ER(vif->ndev,
-			 "Discard sending packet with len = %d\n", size);
-		return;
-	}
-
-	frame_len = size;
-	buff_to_send = buff;
-
-	if (status == PKT_STATUS_NEW && buff_to_send[12] == 0x88 &&
-	   buff_to_send[13] == 0x8e &&
-	   (vif->iftype == WILC_STATION_MODE ||
-	    vif->iftype == WILC_CLIENT_MODE) &&
-	   !memcmp(priv->associated_bss, null_bssid, ETH_ALEN)) {
-		if (!priv->buffered_eap) {
-			priv->buffered_eap = kmalloc(sizeof(struct
-							    wilc_buffered_eap),
-						     GFP_ATOMIC);
-			if (priv->buffered_eap) {
-				priv->buffered_eap->buff = NULL;
-				priv->buffered_eap->size = 0;
-				priv->buffered_eap->pkt_offset = 0;
-			} else {
-				PRINT_ER(vif->ndev,
-					 "failed to alloc buffered_eap\n");
-				return;
-			}
-		} else {
-			kfree(priv->buffered_eap->buff);
-		}
-		priv->buffered_eap->buff = kmalloc(size + pkt_offset,
-						   GFP_ATOMIC);
-		priv->buffered_eap->size = size;
-		priv->buffered_eap->pkt_offset = pkt_offset;
-		memcpy(priv->buffered_eap->buff, buff -
-		       pkt_offset, size + pkt_offset);
-	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
-		priv->eap_buff_timer.data = (unsigned long) priv;
-	#endif
-		mod_timer(&priv->eap_buff_timer, (jiffies +
-			  msecs_to_jiffies(10)));
-		return;
-	}
-	skb = dev_alloc_skb(frame_len);
-	if (!skb) {
-		PRINT_ER(vif->ndev, "Low memory - packet droped\n");
-		return;
-	}
-
-	skb->dev = vif->ndev;
-	if (skb->dev == NULL)
-		PRINT_ER(vif->ndev, "skb->dev is NULL\n");
-#if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
-	skb_put_data(skb, buff_to_send, frame_len);
-#else
-	memcpy(skb_put(skb, frame_len), buff_to_send, frame_len);
-#endif
-
-	skb->protocol = eth_type_trans(skb, vif->ndev);
-	vif->netstats.rx_packets++;
-	vif->netstats.rx_bytes += frame_len;
-	skb->ip_summed = CHECKSUM_UNNECESSARY;
-	stats = netif_rx(skb);
-	PRINT_D(vif->ndev, RX_DBG, "netif_rx ret value: %d\n", stats);
 }
 
 void wilc_wfi_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size)

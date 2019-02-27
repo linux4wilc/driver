@@ -10,7 +10,7 @@
 
 #include "wilc_wfi_netdevice.h"
 #include "wilc_wlan_cfg.h"
-#include "linux_wlan.h"
+#include "wilc_netdev.h"
 
 #define WAKUP_TRAILS_TIMEOUT		(10000)
 
@@ -1346,10 +1346,8 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 				return;
 			}
 			vif = netdev_priv(wilc_netdev);
-			wilc_frmw_to_linux(vif, buff_ptr,
-					pkt_len,
-					pkt_offset,
-					PKT_STATUS_NEW);
+			wilc_frmw_to_host(vif, buff_ptr, pkt_len,
+					  pkt_offset, PKT_STATUS_NEW);
 		}
 
 		offset += tp_len;

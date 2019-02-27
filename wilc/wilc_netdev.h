@@ -4,8 +4,8 @@
  * All rights reserved.
  */
 
-#ifndef WILC_LINUX_WLAN_H
-#define WILC_LINUX_WLAN_H
+#ifndef WILC_NETDEV_H
+#define WILC_NETDEV_H
 #include <linux/types.h>
 #include <linux/skbuff.h>
 #include <linux/netdevice.h>
@@ -61,4 +61,4 @@ int wilc_bt_power_up(struct wilc *wilc, int source);
 int wilc_bt_power_down(struct wilc *wilc, int source);
 void wilc_wfi_monitor_rx(struct net_device *mon_dev, u8 *buff, u32 size);
 
-#endif /* WILC_LINUX_WLAN_H */
+#endif /* WILC_NETDEV_H */

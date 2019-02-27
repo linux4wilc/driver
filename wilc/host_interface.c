@@ -7,7 +7,7 @@
 #include <linux/etherdevice.h>
 
 #include "wilc_wfi_netdevice.h"
-#include "linux_wlan.h"
+#include "wilc_netdev.h"
 #include "wilc_wfi_cfgoperations.h"
 
 #define WILC_HIF_SCAN_TIMEOUT_MS                    4000
@@ -69,7 +69,7 @@ struct ieee80211_wmm_param_ie {
 #endif
 
 struct send_buffered_eap {
-	void (*frmw_to_linux)(struct wilc_vif *vif, u8 *buff, u32 size,
+	void (*deliver_to_stack)(struct wilc_vif *vif, u8 *buff, u32 size,
 			      u32 pkt_offset, u8 status);
 	void (*eap_buf_param)(void *priv);
 	u8 *buff;
@@ -285,11 +285,11 @@ static void handle_send_buffered_eap(struct work_struct *work)
 	if (!hif_buff_eap->buff)
 		goto out;
 
-	if (hif_buff_eap->frmw_to_linux)
-		hif_buff_eap->frmw_to_linux(vif, hif_buff_eap->buff,
-					    hif_buff_eap->size,
-					    hif_buff_eap->pkt_offset,
-					    PKT_STATUS_BUFFERED);
+	if (hif_buff_eap->deliver_to_stack)
+		hif_buff_eap->deliver_to_stack(vif, hif_buff_eap->buff,
+					       hif_buff_eap->size,
+					       hif_buff_eap->pkt_offset,
+					       PKT_STATUS_BUFFERED);
 	if (hif_buff_eap->eap_buf_param)
 		hif_buff_eap->eap_buf_param(hif_buff_eap->user_arg);
 
@@ -1477,8 +1477,8 @@ static void timer_connect_cb(unsigned long arg)
 }
 
 signed int wilc_send_buffered_eap(struct wilc_vif *vif,
-				  void (*frmw_to_linux)(struct wilc_vif *, u8 *,
-							u32, u32, u8),
+				  void (*deliver_to_stack)(struct wilc_vif *,
+							   u8 *, u32, u32, u8),
 				  void (*eap_buf_param)(void *), u8 *buff,
 				  unsigned int size, unsigned int pkt_offset,
 				  void *user_arg)
@@ -1486,13 +1486,13 @@ signed int wilc_send_buffered_eap(struct wilc_vif *vif,
 	int result;
 	struct host_if_msg *msg;
 
-	if (!vif || !frmw_to_linux || !eap_buf_param)
+	if (!vif || !deliver_to_stack || !eap_buf_param)
 		return -EFAULT;
 
 	msg = wilc_alloc_work(vif, handle_send_buffered_eap, false);
 	if (IS_ERR(msg))
 		return PTR_ERR(msg);
-	msg->body.send_buff_eap.frmw_to_linux = frmw_to_linux;
+	msg->body.send_buff_eap.deliver_to_stack = deliver_to_stack;
 	msg->body.send_buff_eap.eap_buf_param = eap_buf_param;
 	msg->body.send_buff_eap.size = size;
 	msg->body.send_buff_eap.pkt_offset = pkt_offset;

@@ -2,7 +2,7 @@
 ccflags-y += -I$(src)/ -DWILC_ASIC_A0 -DWILC_DEBUGFS
 ccflags-y += -DDISABLE_PWRSAVE_AND_SCAN_DURING_IP
 
-wilc-objs := wilc_wfi_cfgoperations.o linux_wlan.o linux_mon.o \
+wilc-objs := wilc_wfi_cfgoperations.o wilc_netdev.o wilc_mon.o \
 			host_interface.o wilc_wlan_cfg.o wilc_debugfs.o \
 			wilc_wlan.o sysfs.o wilc_bt.o
 

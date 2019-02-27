@@ -6,7 +6,7 @@
 
 #include <linux/etherdevice.h>
 
-#include "linux_wlan.h"
+#include "wilc_netdev.h"
 #include "wilc_wfi_cfgoperations.h"
 
 struct wfi_rtap_hdr {
@@ -47,7 +47,7 @@ void wilc_wfi_handle_monitor_rx(struct wilc *wilc, u8 *buff, u32 size)
 
 	if (!skb) {
 		PRINT_D(vif->ndev, HOSTAPD_DBG,
-			"Monitor if : No memory to allocate skb");
+			"Monitor if: No memory to allocate skb");
 		return;
 	}
 #if KERNEL_VERSION(4, 13, 0) <= LINUX_VERSION_CODE
