@@ -140,8 +140,6 @@ static int wilc_bus_probe(struct spi_device *spi)
 		init_power = 1;
 	}
 
-	mutex_init(&wilc->hif_cs);
-	mutex_init(&wilc->cs);
 	wilc_bt_init(wilc);
 
 	dev_info(dev, "WILC SPI probe success\n");

@@ -908,12 +908,9 @@ fail:
 	return -1;
 }
 
-static void wlan_deinit_locks(struct net_device *dev)
+static void wlan_deinit_locks(struct wilc *wilc)
 {
-	struct wilc_vif *vif = netdev_priv(dev);
-	struct wilc *wilc = vif->wilc;
-
-	PRINT_INFO(vif->ndev, INIT_DBG, "De-Initializing Locks\n");
+	pr_info("De-Initializing Locks\n");
 
 	mutex_destroy(&wilc->hif_cs);
 	mutex_destroy(&wilc->rxq_cs);
@@ -991,9 +988,6 @@ static void wilc_wlan_deinitialize(struct net_device *dev)
 		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing WILC Wlan\n");
 		wilc_wlan_cleanup(dev);
 
-		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing Locks\n");
-		wlan_deinit_locks(dev);
-
 		wl->initialized = false;
 
 		PRINT_INFO(dev, INIT_DBG, "wilc deinitialization Done\n");
@@ -1002,18 +996,17 @@ static void wilc_wlan_deinitialize(struct net_device *dev)
 	}
 }
 
-static void wlan_init_locks(struct net_device *dev)
+static void wlan_init_locks(struct wilc *wl)
 {
-	struct wilc_vif *vif = netdev_priv(dev);
-	struct wilc *wl = vif->wilc;
-
-	PRINT_INFO(vif->ndev, INIT_DBG, "Initializing Locks ...\n");
+	pr_info("Initializing Locks ...\n");
 
 	mutex_init(&wl->rxq_cs);
 	mutex_init(&wl->cfg_cmd_lock);
 
 	spin_lock_init(&wl->txq_spinlock);
 	mutex_init(&wl->txq_add_to_head_cs);
+	mutex_init(&wl->hif_cs);
+	mutex_init(&wl->cs);
 
 	init_completion(&wl->txq_event);
 
@@ -1067,19 +1060,17 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 		wl->close = 0;
 		wl->initialized = 0;
 
-		wlan_init_locks(dev);
-
 		ret = wilc_wlan_init(dev);
 		if (ret < 0) {
 			PRINT_ER(dev, "Initializing WILC_Wlan FAILED\n");
 			ret = -EIO;
-			goto fail_locks;
+			goto fail;
 		}
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "WILC Initialization done\n");
 		if (init_irq(dev)) {
 			ret = -EIO;
-			goto fail_locks;
+			goto fail;
 		}
 
 		ret = wlan_initialize_threads(dev);
@@ -1150,8 +1141,7 @@ fail_irq_init:
 		wlan_deinitialize_threads(dev);
 fail_wilc_wlan:
 		wilc_wlan_cleanup(dev);
-fail_locks:
-		wlan_deinit_locks(dev);
+fail:
 		PRINT_ER(dev, "WLAN initialization FAILED\n");
 	} else {
 		PRINT_WRN(vif->ndev, INIT_DBG, "wilc already initialized\n");
@@ -1567,10 +1557,11 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	destroy_workqueue(wilc->hif_workqueue);
 	wilc->hif_workqueue = NULL;
 	cfg_deinit(wilc);
-	kfree(wilc->bus_data);
-	kfree(wilc);
 	wilc_debugfs_remove();
 	wilc_sysfs_exit();
+	wlan_deinit_locks(wilc);
+	kfree(wilc->bus_data);
+	kfree(wilc);
 	pr_info("Module_exit Done.\n");
 }
 
@@ -1587,14 +1578,21 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	if (!wl)
 		return -ENOMEM;
 
+	*wilc = wl;
+
+	wlan_init_locks(wl);
+
 	ret = cfg_init(wl);
 	if (ret)
-		goto free_wl;
+		goto free_locks;
 
-	wilc_debugfs_init();
-	*wilc = wl;
+	if (wilc_debugfs_init()) {
+		ret = -ENOMEM;
+		goto free_cfg;
+	}
 	wl->io_type = io_type;
 	wl->hif_func = ops;
+
 	for (i = 0; i < NQUEUES; i++)
 		INIT_LIST_HEAD(&wl->txq[i].txq_head.list);
 
@@ -1603,7 +1601,7 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	wl->hif_workqueue = create_singlethread_workqueue("WILC_wq");
 	if (!wl->hif_workqueue) {
 		ret = -ENOMEM;
-		goto free_cfg;
+		goto free_debug_fs;
 	}
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
@@ -1677,9 +1675,13 @@ free_ndev:
 	}
 	unregister_inetaddr_notifier(&g_dev_notifier);
 	destroy_workqueue(wl->hif_workqueue);
+
+free_debug_fs:
+	wilc_debugfs_remove();
 free_cfg:
 	cfg_deinit(wl);
-free_wl:
+free_locks:
+	wlan_deinit_locks(wl);
 	kfree(wl);
 	return ret;
 }
