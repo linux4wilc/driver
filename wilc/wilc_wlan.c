@@ -903,11 +903,9 @@ void chip_wakeup_wilc3000(struct wilc *wilc, int source)
 		/* in case of failure, Reset the wakeup bit to introduce a new
 		 * edge on the next loop
 		 */
-		if ((clk_status_reg_val & clk_status_bit) == 0) {
-			dev_warn(wilc->dev, "clocks still OFF. Retrying\n");
+		if ((clk_status_reg_val & clk_status_bit) == 0)
 			hif_func->hif_write_reg(wilc, wakeup_reg,
 						wakeup_reg_val & (~wakeup_bit));
-		}
 	} while (((clk_status_reg_val & clk_status_bit) == 0)
 		 && (wake_seq_trials-- > 0));
 	if (!wake_seq_trials)
