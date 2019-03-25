@@ -303,10 +303,10 @@ out:
 }
 
 int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
-	      u8 *ch_freq_list, u8 ch_list_len, const u8 *ies, size_t ies_len,
+	      u8 *ch_freq_list, u8 ch_list_len,
 	      void (*scan_result_fn)(enum scan_event,
 				     struct wilc_rcvd_net_info *, void *),
-	      void *user_arg, struct wilc_probe_ssid *search)
+	      void *user_arg, struct cfg80211_scan_request *request)
 {
 	int result = 0;
 	struct wid wid_list[5];
@@ -363,9 +363,9 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting SCAN params\n");
 	hif_drv->usr_scan_req.ch_cnt = 0;
 
-	if (search) {
-		for (i = 0; i < search->n_ssids; i++)
-			valuesize += ((search->ssid_info[i].ssid_len) + 1);
+	if (request->n_ssids) {
+		for (i = 0; i < request->n_ssids; i++)
+			valuesize += ((request->ssids[i].ssid_len) + 1);
 		search_ssid_vals = kmalloc(valuesize + 1, GFP_KERNEL);
 		if (search_ssid_vals) {
 			wid_list[index].id = WID_SSID_PROBE_REQ;
@@ -373,16 +373,16 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 			wid_list[index].val = search_ssid_vals;
 			buffer = wid_list[index].val;
 
-			*buffer++ = search->n_ssids;
+			*buffer++ = request->n_ssids;
 
 		PRINT_INFO(vif->ndev, HOSTINF_DBG,
 			   "In Handle_ProbeRequest number of ssid %d\n",
-			 search->n_ssids);
-			for (i = 0; i < search->n_ssids; i++) {
-				*buffer++ = search->ssid_info[i].ssid_len;
-				memcpy(buffer, search->ssid_info[i].ssid,
-				       search->ssid_info[i].ssid_len);
-				buffer += search->ssid_info[i].ssid_len;
+			 request->n_ssids);
+			for (i = 0; i < request->n_ssids; i++) {
+				*buffer++ = request->ssids[i].ssid_len;
+				memcpy(buffer, request->ssids[i].ssid,
+				       request->ssids[i].ssid_len);
+				buffer += request->ssids[i].ssid_len;
 			}
 
 			wid_list[index].size = (s32)(valuesize + 1);
@@ -392,8 +392,8 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 
 	wid_list[index].id = WID_INFO_ELEMENT_PROBE;
 	wid_list[index].type = WID_BIN_DATA;
-	wid_list[index].val = (s8 *)ies;
-	wid_list[index].size = ies_len;
+	wid_list[index].val = (s8 *)request->ie;
+	wid_list[index].size = request->ie_len;
 	index++;
 
 	wid_list[index].id = WID_SCAN_TYPE;
@@ -443,10 +443,8 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	}
 
 error:
-	if (search) {
-		kfree(search->ssid_info);
-		kfree(search_ssid_vals);
-	}
+
+	kfree(search_ssid_vals);
 
 	return result;
 }
