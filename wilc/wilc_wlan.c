@@ -588,7 +588,7 @@ int txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
 	tqe->ack_idx = NOT_TCP_ACK;
 
 	PRINT_INFO(vif->ndev, TX_DBG, "Adding Mgmt packet to Queue tail\n");
-	wilc_wlan_txq_add_to_tail(dev, AC_BE_Q, tqe);
+	wilc_wlan_txq_add_to_tail(dev, AC_VO_Q, tqe);
 	return 1;
 }
 
