@@ -421,7 +421,8 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	wid_list[index].size = sizeof(char);
 	wid_list[index].val = (s8 *)&scan_source;
 	index++;
-
+	hif_drv->usr_scan_req.scan_result = scan_result_fn;
+	hif_drv->usr_scan_req.arg = user_arg;
 	result = wilc_send_config_pkt(vif, WILC_SET_CFG, wid_list,
 				      index,
 				      wilc_get_vif_idx(vif));
@@ -430,8 +431,6 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 		PRINT_ER(vif->ndev, "Failed to send scan parameters\n");
 		goto error;
 	} else {
-		hif_drv->usr_scan_req.scan_result = scan_result_fn;
-		hif_drv->usr_scan_req.arg = user_arg;
 		hif_drv->scan_timer_vif = vif;
 		PRINT_INFO(vif->ndev, HOSTINF_DBG,
 			   ">> Starting the SCAN timer\n");
