@@ -508,7 +508,7 @@ int txq_add_net_pkt(struct net_device *dev, void *priv, u8 *buffer,
 		return 0;
 	}
 
-	tqe = kmalloc(sizeof(*tqe), GFP_KERNEL);
+	tqe = kmalloc(sizeof(*tqe), GFP_ATOMIC);
 
 	if (!tqe) {
 		PRINT_INFO(vif->ndev, TX_DBG,
@@ -572,7 +572,7 @@ int txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
 		tx_complete_fn(priv, 0);
 		return 0;
 	}
-	tqe = kmalloc(sizeof(*tqe), GFP_KERNEL);
+	tqe = kmalloc(sizeof(*tqe), GFP_ATOMIC);
 
 	if (!tqe) {
 		PRINT_INFO(vif->ndev, TX_DBG, "Queue malloc failed\n");
