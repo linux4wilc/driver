@@ -12,12 +12,12 @@
 
 static inline bool is_wilc1000(u32 id)
 {
-	return ((id & 0xfffff000) == 0x100000 ? true : false);
+	return (id & 0xfffff000) == 0x100000;
 }
 
 static inline bool is_wilc3000(u32 id)
 {
-	return ((id & 0xfffff000) == 0x300000 ? true : false);
+	return (id & 0xfffff000) == 0x300000;
 }
 
 /********************************************
