@@ -1131,20 +1131,13 @@ static int wilc_spi_read_size(struct wilc *wilc, u32 *size)
 
 static int wilc_spi_read_int(struct wilc *wilc, u32 *int_status)
 {
-	int ret;
-
-	ret = spi_internal_read(wilc, 0xe840 - WILC_SPI_REG_BASE,
+	return spi_internal_read(wilc, 0xe840 - WILC_SPI_REG_BASE,
 				int_status);
-
-	return ret;
 }
 
 static int wilc_spi_clear_int_ext(struct wilc *wilc, u32 val)
 {
-	int ret;
-
-	ret = spi_internal_write(wilc, 0xe844 - WILC_SPI_REG_BASE, val);
-	return ret;
+	return spi_internal_write(wilc, 0xe844 - WILC_SPI_REG_BASE, val);
 }
 
 static int wilc_spi_sync_ext(struct wilc *wilc, int nint)
