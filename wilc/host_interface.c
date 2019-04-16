@@ -1016,7 +1016,7 @@ int wilc_disconnect(struct wilc_vif *vif)
 				      wilc_get_vif_idx(vif));
 
 	if (result) {
-		PRINT_ER(vif->ndev, "Failed to send dissconect\n");
+		PRINT_ER(vif->ndev, "Failed to send disconnect\n");
 		return -ENOMEM;
 	}
 
