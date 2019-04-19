@@ -886,8 +886,8 @@ void chip_wakeup_wilc3000(struct wilc *wilc, int source)
 		 * if still off, wait for another 1ms, for a total wait of 3ms.
 		 * If still off, redo the wake up sequence
 		 */
-		while (((clk_status_reg_val & clk_status_bit) == 0) &&
-		       (((++trials) % 3) != 0)) {
+		while ((clk_status_reg_val & clk_status_bit) == 0 &&
+		       (++trials % 4) != 0) {
 			/* Wait for the chip to stabilize*/
 			usleep_range(1000, 1100);
 
@@ -898,7 +898,6 @@ void chip_wakeup_wilc3000(struct wilc *wilc, int source)
 			 */
 			hif_func->hif_read_reg(wilc, clk_status_reg,
 					       &clk_status_reg_val);
-
 		}
 		/* in case of failure, Reset the wakeup bit to introduce a new
 		 * edge on the next loop
