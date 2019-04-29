@@ -20,11 +20,11 @@
 #include "wilc_netdev.h"
 #include "wilc_wfi_cfgoperations.h"
 
+#define WILC_MULTICAST_TABLE_SIZE	8
+
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 bool g_ignore_PS_state;
 #define WILC_IP_TIMEOUT_MS		15000
-
-#define WILC_MULTICAST_TABLE_SIZE	8
 
 void handle_pwrsave_for_IP(struct wilc_vif *vif, uint8_t state)
 {
@@ -1557,7 +1557,9 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	destroy_workqueue(wilc->hif_workqueue);
 	wilc->hif_workqueue = NULL;
 	cfg_deinit(wilc);
+#ifdef WILC_DEBUGFS
 	wilc_debugfs_remove();
+#endif
 	wilc_sysfs_exit();
 	wlan_deinit_locks(wilc);
 	kfree(wilc->bus_data);
@@ -1586,10 +1588,12 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 	if (ret)
 		goto free_locks;
 
+#ifdef WILC_DEBUGFS
 	if (wilc_debugfs_init()) {
 		ret = -ENOMEM;
 		goto free_cfg;
 	}
+#endif
 	wl->io_type = io_type;
 	wl->hif_func = ops;
 
@@ -1673,12 +1677,16 @@ free_ndev:
 			}
 		}
 	}
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	unregister_inetaddr_notifier(&g_dev_notifier);
+#endif
 	destroy_workqueue(wl->hif_workqueue);
 
 free_debug_fs:
+#ifdef WILC_DEBUGFS
 	wilc_debugfs_remove();
 free_cfg:
+#endif
 	cfg_deinit(wl);
 free_locks:
 	wlan_deinit_locks(wl);

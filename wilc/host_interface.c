@@ -2589,8 +2589,10 @@ int wilc_set_power_mgmt(struct wilc_vif *vif, bool enabled, u32 timeout)
 				      wilc_get_vif_idx(vif));
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to send power management\n");
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	else
 		store_power_save_current_state(vif, power_mode);
+#endif
 
 	return result;
 }
@@ -2619,6 +2621,7 @@ int wilc_setup_multicast_filter(struct wilc_vif *vif, u32 enabled, u32 count,
 	return result;
 }
 
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 void handle_powersave_state_changes(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
@@ -2646,6 +2649,7 @@ void wilc_powersave_state_changes(struct wilc_vif *vif)
 		kfree(msg);
 	}
 }
+#endif
 
 int wilc_set_tx_power(struct wilc_vif *vif, u8 tx_power)
 {

@@ -4,17 +4,17 @@
  * All rights reserved.
  */
 
-#if defined(WILC_DEBUGFS)
 #include <linux/module.h>
 #include <linux/debugfs.h>
 
 #include "wilc_debugfs.h"
 
-static struct dentry *wilc_dir;
-
 atomic_t WILC_DEBUG_REGION = ATOMIC_INIT(INIT_DBG | GENERIC_DBG |
 					 CFG80211_DBG | HOSTAPD_DBG |
 					 PWRDEV_DBG);
+
+#if defined(WILC_DEBUGFS)
+static struct dentry *wilc_dir;
 
 static ssize_t wilc_debug_region_read(struct file *file, char __user *userbuf,
 				     size_t count, loff_t *ppos)

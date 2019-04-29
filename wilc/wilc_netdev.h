@@ -20,6 +20,7 @@
 
 extern int wait_for_recovery;
 
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 void handle_pwrsave_for_IP(struct wilc_vif *vif, uint8_t state);
 void store_power_save_current_state(struct wilc_vif *vif, bool val);
 #if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
@@ -27,7 +28,7 @@ void clear_during_ip(struct timer_list *t);
 #else
 void clear_during_ip(unsigned long arg);
 #endif
-
+#endif //DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc);
 struct host_if_drv *get_drv_hndl_by_ifc(struct wilc *wilc, uint8_t ifc);
 

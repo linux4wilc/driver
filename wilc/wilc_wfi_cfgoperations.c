@@ -1661,6 +1661,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 		return -EIO;
 	}
 
+#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	/* Can't set PS during obtaining IP */
 	if (vif->obtaining_ip == true) {
 		PRINT_ER(dev,
@@ -1673,7 +1674,7 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 
 		return 0;
 	}
-
+#endif
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   " Power save Enabled= %d , TimeOut = %d\n", enabled,
 		   timeout);
