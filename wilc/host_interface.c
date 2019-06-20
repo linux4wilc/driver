@@ -10,7 +10,7 @@
 #include "wilc_netdev.h"
 #include "wilc_wfi_cfgoperations.h"
 
-#define WILC_HIF_SCAN_TIMEOUT_MS                    4000
+#define WILC_HIF_SCAN_TIMEOUT_MS                    5000
 #define WILC_HIF_CONNECT_TIMEOUT_MS                 9500
 
 #define WILC_FALSE_FRMWR_CHANNEL		    100
@@ -311,7 +311,7 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	int result = 0;
 	struct wid wid_list[5];
 	u32 index = 0;
-	u32 i;
+	u32 i, scan_timeout;
 	u8 *buffer;
 	u8 valuesize = 0;
 	u8 *search_ssid_vals = NULL;
@@ -384,7 +384,6 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 				       request->ssids[i].ssid_len);
 				buffer += request->ssids[i].ssid_len;
 			}
-
 			wid_list[index].size = (s32)(valuesize + 1);
 			index++;
 		}
@@ -402,6 +401,21 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	wid_list[index].val = (s8 *)&scan_type;
 	index++;
 
+#if KERNEL_VERSION(4, 8, 0) > LINUX_VERSION_CODE
+	scan_timeout = WILC_HIF_SCAN_TIMEOUT_MS;
+#else
+	if (scan_type == WILC_FW_PASSIVE_SCAN && request->duration) {
+		wid_list[index].id = WID_PASSIVE_SCAN_TIME;
+		wid_list[index].type = WID_SHORT;
+		wid_list[index].size = sizeof(u16);
+		wid_list[index].val = (s8 *)&request->duration;
+		index++;
+
+		scan_timeout = (request->duration * ch_list_len) + 500;
+	} else {
+		scan_timeout = WILC_HIF_SCAN_TIMEOUT_MS;
+	}
+#endif
 	wid_list[index].id = WID_SCAN_CHANNEL_LIST;
 	wid_list[index].type = WID_BIN_DATA;
 
@@ -421,12 +435,13 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	wid_list[index].size = sizeof(char);
 	wid_list[index].val = (s8 *)&scan_source;
 	index++;
+
 	hif_drv->usr_scan_req.scan_result = scan_result_fn;
 	hif_drv->usr_scan_req.arg = user_arg;
+
 	result = wilc_send_config_pkt(vif, WILC_SET_CFG, wid_list,
 				      index,
 				      wilc_get_vif_idx(vif));
-
 	if (result) {
 		PRINT_ER(vif->ndev, "Failed to send scan parameters\n");
 		goto error;
@@ -438,7 +453,7 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 		hif_drv->scan_timer.data = (unsigned long)hif_drv;
 #endif
 		mod_timer(&hif_drv->scan_timer,
-			  jiffies + msecs_to_jiffies(WILC_HIF_SCAN_TIMEOUT_MS));
+			  jiffies + msecs_to_jiffies(scan_timeout));
 	}
 
 error:

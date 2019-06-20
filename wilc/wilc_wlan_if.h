@@ -27,10 +27,10 @@ enum bss_types {
 };
 
 enum {
-	WILC_FW_OPER_MODE_B_ONLY = 0,	/* 1, 2 M, otherwise 5, 11 M */
-	WILC_FW_OPER_MODE_G_ONLY,	/* 6,12,24 otherwise 9,18,36,48,54 */
-	WILC_FW_OPER_MODE_G_MIXED_11B_1,/* 1,2,5.5,11 otherwise all on */
-	WILC_FW_OPER_MODE_G_MIXED_11B_2,/* 1,2,5,11,6,12,24 otherwise all on */
+	WILC_FW_OPER_MODE_B_ONLY = 0,	 /* 1, 2 M, otherwise 5, 11 M */
+	WILC_FW_OPER_MODE_G_ONLY,	 /* 6,12,24 otherwise 9,18,36,48,54 */
+	WILC_FW_OPER_MODE_G_MIXED_11B_1, /* 1,2,5.5,11 otherwise all on */
+	WILC_FW_OPER_MODE_G_MIXED_11B_2, /* 1,2,5,11,6,12,24 otherwise all on */
 };
 
 enum {
@@ -266,7 +266,6 @@ enum {
 	 *  -----------------------------------------------------------
 	 */
 	WID_STATUS			= 0x0005,
-	WID_BT_COEX_MODE		= 0x0006,
 
 	/*
 	 *  Scan type
@@ -361,15 +360,6 @@ enum {
 	 *  -----------------------------------------------------------
 	 */
 	WID_ACK_POLICY			= 0x0011,
-
-	/*
-	 *  Set coex null frames transmission mode
-	 * --------------------------------------------------------------
-	 *  Configuration :   Enable	Disable
-	 *  Values to set :       1			0
-	 * --------------------------------------------------------------
-	 */
-	WID_COEX_NULL_FRAMES_MODE               = 0x0013,
 
 	/*
 	 *  Reset MAC (Set only)
@@ -705,7 +695,7 @@ enum {
 	WID_LONG_RETRY_LIMIT		= 0x1003,
 	WID_BEACON_INTERVAL		= 0x1006,
 	WID_MEMORY_ACCESS_16BIT		= 0x1008,
-
+	WID_PASSIVE_SCAN_TIME           = 0x100D,
 	WID_JOIN_START_TIMEOUT		= 0x100F,
 	WID_ASOC_TIMEOUT		= 0x1011,
 	WID_11I_PROTOCOL_TIMEOUT	= 0x1012,
