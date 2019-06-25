@@ -1620,7 +1620,6 @@ int wilc_netdev_init(struct wilc **wilc, struct device *dev, int io_type,
 		}
 
 		vif = netdev_priv(ndev);
-		memset(vif, 0, sizeof(struct wilc_vif));
 
 		if (i == 0)
 			strcpy(ndev->name, "wlan%d");
