@@ -9,7 +9,7 @@
 
 static struct kobject *wilc_kobj;
 static int device_created;
-static struct wilc_vif *vif[WILC_NUM_CONCURRENT_IFC];
+static struct wilc *wl;
 
 static ssize_t wilc_sysfs_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
@@ -17,13 +17,13 @@ static ssize_t wilc_sysfs_show(struct kobject *kobj,
 	int attr_val = -1;
 
 	if (strcmp(attr->attr.name, "p2p_mode") == 0)
-		attr_val = vif[0]->attr_sysfs.p2p_mode;
+		attr_val = wl->attr_sysfs.p2p_mode;
 	if (strcmp(attr->attr.name, "ant_swtch_mode") == 0)
-		attr_val = vif[0]->attr_sysfs.ant_swtch_mode;
+		attr_val = wl->attr_sysfs.ant_swtch_mode;
 	else if (strcmp(attr->attr.name, "antenna1") == 0)
-		attr_val = vif[0]->attr_sysfs.antenna1;
+		attr_val = wl->attr_sysfs.antenna1;
 	else if (strcmp(attr->attr.name, "antenna2") == 0)
-		attr_val = vif[0]->attr_sysfs.antenna2;
+		attr_val = wl->attr_sysfs.antenna2;
 
 	return sprintf(buf, "%d\n", attr_val);
 }
@@ -33,25 +33,20 @@ static ssize_t wilc_sysfs_store(struct kobject *kobj,
 				size_t count)
 {
 	int attr_val;
-	int i;
 
-	for (i = 0; i < WILC_NUM_CONCURRENT_IFC; i++) {
-		if (kstrtoint(buf, 10, &attr_val))
-			PRINT_ER(vif[i]->ndev,
-				 "Failed to convert p2p_mode string");
-		if (strcmp(attr->attr.name, "p2p_mode") == 0) {
-			vif[i]->attr_sysfs.p2p_mode = (attr_val?1:0);
-		} else if (strcmp(attr->attr.name, "ant_swtch_mode") == 0) {
-			if (attr_val > ANT_SWTCH_DUAL_GPIO_CTRL)
-				PRINT_ER(vif[i]->ndev,
-					 "Valid antenna switch modes:\n1-Single Antenna, 2-Dual Antenna\n");
-			else
-				vif[i]->attr_sysfs.ant_swtch_mode = attr_val;
-		} else if (strcmp(attr->attr.name, "antenna1") == 0) {
-			vif[i]->attr_sysfs.antenna1 = attr_val;
-		} else if (strcmp(attr->attr.name, "antenna2") == 0) {
-			vif[i]->attr_sysfs.antenna2 = attr_val;
-		}
+	if (kstrtoint(buf, 10, &attr_val))
+		pr_err("Failed to convert p2p_mode string");
+	if (strcmp(attr->attr.name, "p2p_mode") == 0) {
+		wl->attr_sysfs.p2p_mode = (attr_val?1:0);
+	} else if (strcmp(attr->attr.name, "ant_swtch_mode") == 0) {
+		if (attr_val > ANT_SWTCH_DUAL_GPIO_CTRL)
+			pr_err("Valid antenna switch modes:\n1-Single Antenna, 2-Dual Antenna\n");
+		else
+			wl->attr_sysfs.ant_swtch_mode = attr_val;
+	} else if (strcmp(attr->attr.name, "antenna1") == 0) {
+		wl->attr_sysfs.antenna1 = attr_val;
+	} else if (strcmp(attr->attr.name, "antenna2") == 0) {
+		wl->attr_sysfs.antenna2 = attr_val;
 	}
 
 	return count;
@@ -82,13 +77,9 @@ static struct attribute_group attr_group = {
 	.attrs = wilc_attrs,
 };
 
-void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2)
+void wilc_sysfs_init(struct wilc *wilc)
 {
 	int retval;
-	int i;
-
-	vif[0] = vif1;
-	vif[1] = vif2;
 
 	if (device_created)
 		return;
@@ -99,15 +90,14 @@ void wilc_sysfs_init(struct wilc_vif *vif1, struct wilc_vif *vif2)
 		return;
 	}
 
-	for (i = 0; i < WILC_NUM_CONCURRENT_IFC; i++) {
-		/* By default p2p mode is Group Owner */
-		vif[i]->attr_sysfs.p2p_mode = 1;
-		vif[i]->attr_sysfs.ant_swtch_mode = ANT_SWTCH_INVALID_GPIO_CTRL;
-		vif[i]->attr_sysfs.antenna1 = 0xFF;
-		vif[i]->attr_sysfs.antenna2 = 0xFF;
-	}
 	retval = sysfs_create_group(wilc_kobj, &attr_group);
 	device_created = 1;
+	wl = wilc;
+	/* By default p2p mode is Group Owner */
+	wl->attr_sysfs.p2p_mode = 1;
+	wl->attr_sysfs.ant_swtch_mode = ANT_SWTCH_INVALID_GPIO_CTRL;
+	wl->attr_sysfs.antenna1 = 0xFF;
+	wl->attr_sysfs.antenna2 = 0xFF;
 }
 
 void wilc_sysfs_exit(void)
@@ -116,4 +106,3 @@ void wilc_sysfs_exit(void)
 	sysfs_remove_group(wilc_kobj, &attr_group);
 	kobject_put(wilc_kobj);
 }
-

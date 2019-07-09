@@ -57,7 +57,7 @@ static const struct ieee80211_txrx_stypes
 			BIT(IEEE80211_STYPE_DISASSOC >> 4) |
 			BIT(IEEE80211_STYPE_AUTH >> 4) |
 			BIT(IEEE80211_STYPE_DEAUTH >> 4)
-	}
+	},
 };
 
 static const struct wiphy_wowlan_support wowlan_support = {
@@ -77,8 +77,10 @@ static void cfg_scan_result(enum scan_event scan_event,
 {
 	struct wilc_priv *priv = user_void;
 
-	if (!priv->cfg_scanning)
+	if (!priv || !priv->cfg_scanning) {
+		pr_err("%s is NULL\n", __func__);
 		return;
+	}
 
 	if (scan_event == SCAN_EVENT_NETWORK_FOUND) {
 		s32 freq;
@@ -225,33 +227,51 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 	}
 }
 
+static struct wilc_vif *wilc_get_wl_to_vif(struct wilc *wl)
+{
+	int i;
+
+	for (i = 0; i < wl->vif_num; i++)
+		if (wl->vif[i])
+			return wl->vif[i];
+
+	return ERR_PTR(-EINVAL);
+}
+
 static int set_channel(struct wiphy *wiphy,
 		       struct cfg80211_chan_def *chandef)
 {
+	struct wilc *wl = wiphy_priv(wiphy);
+	struct wilc_vif *vif;
 	u32 channelnum = 0;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
 	int result = 0;
+
+	mutex_lock(&wl->vif_mutex);
+	vif = wilc_get_wl_to_vif(wl);
+	if (IS_ERR(vif)) {
+		mutex_unlock(&wl->vif_mutex);
+		return 0;
+	}
 
 	channelnum = ieee80211_frequency_to_channel(chandef->chan->center_freq);
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Setting channel %d with frequency %d\n",
 		   channelnum, chandef->chan->center_freq);
 
-	vif->wilc->op_ch = channelnum;
+	wl->op_ch = channelnum;
 	result = wilc_set_mac_chnl_num(vif, channelnum);
-
 	if (result != 0)
-		PRINT_ER(priv->dev, "Error in setting channel %d\n",
+		PRINT_ER(vif->ndev, "Error in setting channel %d\n",
 			 channelnum);
 
+	mutex_unlock(&wl->vif_mutex);
 	return result;
 }
 
 static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(request->wdev->netdev);
+	struct wilc_priv *priv = &vif->priv;
 	u32 i;
 	int ret = 0;
 	u8 scan_ch_list[WILC_MAX_NUM_SCANNED_CH];
@@ -305,8 +325,8 @@ static int scan(struct wiphy *wiphy, struct cfg80211_scan_request *request)
 static int connect(struct wiphy *wiphy, struct net_device *dev,
 		   struct cfg80211_connect_params *sme)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc_priv *priv = &vif->priv;
 	struct host_if_drv *wfi_drv = priv->hif_drv;
 	int ret;
 	u32 i;
@@ -451,7 +471,6 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		ret = -EINVAL;
 		goto out_error;
 	}
-
 	if (ether_addr_equal_unaligned(vif->bssid, bss->bssid)) {
 		ret = -EALREADY;
 		goto out_put_bss;
@@ -464,7 +483,6 @@ static int connect(struct wiphy *wiphy, struct net_device *dev,
 		ret = -EINVAL;
 		goto out_put_bss;
 	}
-
 	ch = ieee80211_frequency_to_channel(bss->channel->center_freq);
 	PRINT_D(vif->ndev, CFG80211_DBG, "Required Channel = %d\n", ch);
 	vif->wilc->op_ch = ch;
@@ -506,8 +524,8 @@ out_error:
 static int disconnect(struct wiphy *wiphy, struct net_device *dev,
 		      u16 reason_code)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc_priv *priv = &vif->priv;
 	struct wilc *wilc = vif->wilc;
 	struct host_if_drv *wfi_drv;
 	int ret;
@@ -595,13 +613,13 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 
 {
 	int ret = 0, keylen = params->key_len;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
 	const u8 *rx_mic = NULL;
 	const u8 *tx_mic = NULL;
 	u8 mode = WILC_FW_SEC_NO;
 	u8 op_mode;
 	int i;
 	struct wilc_vif *vif = netdev_priv(netdev);
+	struct wilc_priv *priv = &vif->priv;
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "Adding key with cipher suite = %x\n", params->cipher);
@@ -613,7 +631,7 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 	switch (params->cipher) {
 	case WLAN_CIPHER_SUITE_WEP40:
 	case WLAN_CIPHER_SUITE_WEP104:
-		if (priv->wdev->iftype == NL80211_IFTYPE_AP) {
+		if (priv->wdev.iftype == NL80211_IFTYPE_AP) {
 			wilc_wfi_cfg_copy_wep_info(priv, key_index, params);
 
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
@@ -658,8 +676,8 @@ static int add_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 
 	case WLAN_CIPHER_SUITE_TKIP:
 	case WLAN_CIPHER_SUITE_CCMP:
-		if (priv->wdev->iftype == NL80211_IFTYPE_AP ||
-		    priv->wdev->iftype == NL80211_IFTYPE_P2P_GO) {
+		if (priv->wdev.iftype == NL80211_IFTYPE_AP ||
+		    priv->wdev.iftype == NL80211_IFTYPE_P2P_GO) {
 			struct wilc_wfi_key *key;
 
 			ret = wilc_wfi_cfg_allocate_wpa_entry(priv, key_index);
@@ -737,10 +755,11 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 		   const u8 *mac_addr)
 {
 	int ret = 0;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
+	struct wilc *wl = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(netdev);
-	struct wilc *wl = vif->wilc;
+	struct wilc_priv *priv = &vif->priv;
 
+	//TODO: Why to compare with only interface vif[0]
 	if (netdev == wl->vif[0]->ndev) {
 		if (priv->wilc_gtk[key_index]) {
 			kfree(priv->wilc_gtk[key_index]->key);
@@ -766,8 +785,7 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 		memset(priv->wep_key[key_index], 0,
 		       priv->wep_key_len[key_index]);
 		priv->wep_key_len[key_index] = 0;
-		PRINT_INFO(vif->ndev, CFG80211_DBG,
-			   "Removing WEP key with index = %d\n",
+		pr_info("%s: Removing WEP key with index = %d\n", __func__,
 			   key_index);
 		ret = wilc_remove_wep_key(vif, key_index);
 	}
@@ -779,9 +797,9 @@ static int get_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 		   bool pairwise, const u8 *mac_addr, void *cookie,
 		   void (*callback)(void *cookie, struct key_params *))
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct  key_params key_params;
 	struct wilc_vif *vif = netdev_priv(netdev);
+	struct wilc_priv *priv = &vif->priv;
+	struct  key_params key_params;
 
 	if (!pairwise) {
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
@@ -808,8 +826,7 @@ static int get_key(struct wiphy *wiphy, struct net_device *netdev, u8 key_index,
 static int set_default_key(struct wiphy *wiphy, struct net_device *netdev,
 			   u8 key_index, bool unicast, bool multicast)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(netdev);
 
 	wilc_set_wep_default_keyid(vif, key_index);
 
@@ -824,8 +841,8 @@ static int get_station(struct wiphy *wiphy, struct net_device *dev,
 		       u8 *mac, struct station_info *sinfo)
 #endif
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc_priv *priv = &vif->priv;
 	struct wilc *wilc = vif->wilc;
 	u32 i = 0;
 	u32 associatedsta = ~0;
@@ -907,12 +924,29 @@ static int change_bss(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
+struct wilc_vif *wilc_get_interface(struct wilc *wl)
+{
+	int i;
+	struct wilc_vif *vif = NULL;
+
+	mutex_lock(&wl->vif_mutex);
+	for (i = 0; i < wl->vif_num; i++) {
+		if (wl->vif[i]) {
+			vif = wl->vif[i];
+			break;
+		}
+	}
+	mutex_unlock(&wl->vif_mutex);
+	return vif;
+}
+
 static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 {
 	int ret;
 	struct cfg_param_attr cfg_param_val;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc *wl = wiphy_priv(wiphy);
+	struct wilc_vif *vif = wilc_get_interface(wl);
+	struct wilc_priv *priv = &vif->priv;
 
 	cfg_param_val.flag = 0;
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting Wiphy params\n");
@@ -971,8 +1005,8 @@ static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 static int set_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 		     struct cfg80211_pmksa *pmksa)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(netdev);
+	struct wilc_priv *priv = &vif->priv;
 	u32 i;
 	int ret = 0;
 	u8 flag = 0;
@@ -1015,7 +1049,8 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 {
 	u32 i;
 	int ret = 0;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
+	struct wilc_vif *vif = netdev_priv(netdev);
+	struct wilc_priv *priv = &vif->priv;
 
 	PRINT_INFO(netdev, CFG80211_DBG, "Deleting PMKSA keys\n");
 
@@ -1049,7 +1084,8 @@ static int del_pmksa(struct wiphy *wiphy, struct net_device *netdev,
 
 static int flush_pmksa(struct wiphy *wiphy, struct net_device *netdev)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
+	struct wilc_vif *vif = netdev_priv(netdev);
+	struct wilc_priv *priv = &vif->priv;
 
 	PRINT_INFO(netdev, CFG80211_DBG, "Flushing  PMKID key values\n");
 	memset(&priv->pmkid_list, 0, sizeof(struct wilc_pmkid_attr));
@@ -1067,9 +1103,6 @@ static inline void wilc_wfi_cfg_parse_ch_attr(struct wilc_vif *vif, u8 *buf,
 	if (ch_list_attr_idx) {
 		u8 limit = ch_list_attr_idx + 3 + buf[ch_list_attr_idx + 1];
 
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Modify channel list attribute [%d]\n",
-			   sta_ch);
 		for (i = ch_list_attr_idx + 3; i < limit; i++) {
 			if (buf[i] == 0x51) {
 				for (j = i + 2; j < ((i + 2) + buf[i + 1]); j++)
@@ -1080,9 +1113,6 @@ static inline void wilc_wfi_cfg_parse_ch_attr(struct wilc_vif *vif, u8 *buf,
 	}
 
 	if (op_ch_attr_idx) {
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Modify operating channel attribute %d\n",
-			   sta_ch);
 		buf[op_ch_attr_idx + 6] = 0x51;
 		buf[op_ch_attr_idx + 7] = sta_ch;
 	}
@@ -1179,7 +1209,7 @@ static void wilc_wfi_cfg_parse_rx_vendor_spec(struct wilc_priv *priv, u8 *buff,
 		for (i = P2P_PUB_ACTION_SUBTYPE + 2; i < size; i++) {
 			if (buff[i] == P2PELEM_ATTR_ID &&
 			    !(memcmp(p2p_oui, &buff[i + 2], 4))) {
-				bool p2p_mode = vif->attr_sysfs.p2p_mode;
+				bool p2p_mode = vif->wilc->attr_sysfs.p2p_mode;
 
 				wilc_wfi_cfg_parse_rx_action(vif, &buff[i + 6],
 							     size - (i + 6),
@@ -1191,15 +1221,15 @@ static void wilc_wfi_cfg_parse_rx_vendor_spec(struct wilc_priv *priv, u8 *buff,
 	}
 }
 
-void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
+bool wilc_wfi_p2p_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 {
-	struct wilc_priv *priv = wiphy_priv(dev->ieee80211_ptr->wiphy);
-	struct host_if_drv *wfi_drv = priv->hif_drv;
-	struct wilc_vif *vif = netdev_priv(dev);
 	struct wilc *wl = vif->wilc;
+	struct wilc_priv *priv = &vif->priv;
+	struct host_if_drv *wfi_drv = priv->hif_drv;
 	u32 header, pkt_offset;
 	s32 freq;
 	__le16 fc;
+	int ret;
 
 	memcpy(&header, (buff - HOST_HDR_OFFSET), HOST_HDR_OFFSET);
 
@@ -1213,9 +1243,9 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 		    pkt_offset & IS_MGMT_STATUS_SUCCES)
 			ack = true;
 
-		cfg80211_mgmt_tx_status(priv->wdev, priv->tx_cookie, buff, size,
-					ack, GFP_KERNEL);
-		return;
+		cfg80211_mgmt_tx_status(&vif->priv.wdev, priv->tx_cookie, buff,
+					size, ack, GFP_KERNEL);
+		return true;
 	}
 
 	PRINT_D(vif->ndev, GENERIC_DBG, "Rx Frame Type:%x\n", fc);
@@ -1226,8 +1256,8 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 	freq = ieee80211_channel_to_frequency(wl->op_ch, IEEE80211_BAND_2GHZ);
  #endif
 	if (!ieee80211_is_action(fc)) {
-		cfg80211_rx_mgmt(priv->wdev, freq, 0, buff, size, 0);
-		return;
+		ret = cfg80211_rx_mgmt(&vif->priv.wdev, freq, 0, buff, size, 0);
+		return ret;
 	}
 
 	PRINT_D(vif->ndev, GENERIC_DBG,
@@ -1236,8 +1266,9 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 		   buff[P2P_PUB_ACTION_SUBTYPE]);
 	if (priv->cfg_scanning &&
 	    time_after_eq(jiffies, (unsigned long)wfi_drv->p2p_timeout)) {
-		PRINT_WRN(dev, GENERIC_DBG, "Receiving action wrong ch\n");
-		return;
+		PRINT_WRN(vif->ndev, GENERIC_DBG,
+			  "Receiving action wrong ch\n");
+		return false;
 	}
 	if (buff[ACTION_CAT_ID] == PUB_ACTION_ATTR_ID) {
 		u8 subtype = buff[P2P_PUB_ACTION_SUBTYPE];
@@ -1267,14 +1298,13 @@ void wilc_wfi_p2p_rx(struct net_device *dev, u8 *buff, u32 size)
 			break;
 
 		default:
-			PRINT_WRN(dev, GENERIC_DBG,
-				   "Not handled action frame type:%x\n",
+			pr_err("Not handled action frame type:%x\n",
 				   buff[ACTION_SUBTYPE_ID]);
 			break;
 		}
 	}
-
-	cfg80211_rx_mgmt(priv->wdev, freq, 0, buff, size, 0);
+	ret = cfg80211_rx_mgmt(&vif->priv.wdev, freq, 0, buff, size, 0);
+	return ret;
 }
 
 static void wilc_wfi_mgmt_tx_complete(void *priv, int status)
@@ -1287,7 +1317,8 @@ static void wilc_wfi_mgmt_tx_complete(void *priv, int status)
 
 static void wilc_wfi_remain_on_channel_expired(void *data, u64 cookie)
 {
-	struct wilc_priv *priv = data;
+	struct wilc_vif *vif = data;
+	struct wilc_priv *priv = &vif->priv;
 	struct wilc_wfi_p2p_listen_params *params = &priv->remain_on_ch_params;
 
 	if (cookie != priv->remain_on_ch_params.listen_cookie) {
@@ -1297,9 +1328,9 @@ static void wilc_wfi_remain_on_channel_expired(void *data, u64 cookie)
 		return;
 	}
 
-	priv->p2p_listen_state = false;
+	vif->wilc->p2p_listen_state = false;
 
-	cfg80211_remain_on_channel_expired(priv->wdev, cookie,
+	cfg80211_remain_on_channel_expired(&vif->priv.wdev, cookie,
 					   params->listen_ch, GFP_KERNEL);
 }
 
@@ -1309,16 +1340,12 @@ static int remain_on_channel(struct wiphy *wiphy,
 			     unsigned int duration, u64 *cookie)
 {
 	int ret = 0;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(wdev->netdev);
+	struct wilc_priv *priv = &vif->priv;
 	u64 id;
 
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "Remaining on channel [%d]\n",
-		   chan->hw_value);
-
 	if (wdev->iftype == NL80211_IFTYPE_AP) {
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Required while in AP mode\n");
+		pr_err("Required while in AP mode\n");
 		return ret;
 	}
 
@@ -1328,7 +1355,7 @@ static int remain_on_channel(struct wiphy *wiphy,
 
 	ret = wilc_remain_on_channel(vif, id, duration, chan->hw_value,
 				     wilc_wfi_remain_on_channel_expired,
-				     (void *)priv);
+				     (void *)vif);
 	if (ret)
 		return ret;
 
@@ -1337,8 +1364,7 @@ static int remain_on_channel(struct wiphy *wiphy,
 	priv->remain_on_ch_params.listen_cookie = id;
 	*cookie = id;
 	priv->remain_on_ch_params.listen_duration = duration;
-	priv->p2p_listen_state = true;
-
+	vif->wilc->p2p_listen_state = true;
 	cfg80211_ready_on_channel(wdev, *cookie, chan, duration, GFP_KERNEL);
 
 #if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
@@ -1350,7 +1376,6 @@ static int remain_on_channel(struct wiphy *wiphy,
 	PRINT_INFO(vif->ndev, GENERIC_DBG,
 		   "Remaining on duration [%d] [%llu]\n",
 		   duration, priv->remain_on_ch_params.listen_cookie);
-
 	return ret;
 }
 
@@ -1358,8 +1383,8 @@ static int cancel_remain_on_channel(struct wiphy *wiphy,
 				    struct wireless_dev *wdev,
 				    u64 cookie)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(wdev->netdev);
+	struct wilc_priv *priv = &vif->priv;
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   "cookie received[%llu] expected[%llu]\n",
@@ -1410,6 +1435,7 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 		if (buf[i] == P2PELEM_ATTR_ID &&
 		    !memcmp(p2p_oui, &buf[i + 2], 4)) {
 			bool oper_ch = false;
+			struct wilc *wl = vif->wilc;
 			u8 *tx_buff = &mgmt_tx->buff[i + 6];
 
 			if (subtype == P2P_INV_REQ || subtype == P2P_INV_RSP)
@@ -1417,8 +1443,8 @@ static void wilc_wfi_cfg_tx_vendor_spec(struct wilc_priv *priv,
 
 			wilc_wfi_cfg_parse_tx_action(vif, tx_buff,
 						     len - (i + 6), oper_ch,
-						     vif->wilc->sta_ch,
-						     vif->attr_sysfs.p2p_mode);
+						     wl->sta_ch,
+						     wl->attr_sysfs.p2p_mode);
 			break;
 		}
 	}
@@ -1454,9 +1480,9 @@ static int mgmt_tx(struct wiphy *wiphy,
 #endif
 	const struct ieee80211_mgmt *mgmt;
 	struct wilc_p2p_mgmt_data *mgmt_tx;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct host_if_drv *wfi_drv = priv->hif_drv;
 	struct wilc_vif *vif = netdev_priv(wdev->netdev);
+	struct wilc_priv *priv = &vif->priv;
+	struct host_if_drv *wfi_drv = priv->hif_drv;
 	u32 buf_len = len + sizeof(p2p_vendor_spec) +
 		      sizeof(priv->p2p.local_random);
 	int ret = 0;
@@ -1552,7 +1578,6 @@ static int mgmt_tx(struct wiphy *wiphy,
 			break;
 		}
 	}
-
 	PRINT_INFO(vif->ndev, GENERIC_DBG,
 		   "TX: ACTION FRAME Type:%x : Chan:%d\n",
 		   buf[ACTION_SUBTYPE_ID], chan->hw_value);
@@ -1560,7 +1585,8 @@ static int mgmt_tx(struct wiphy *wiphy,
 
 out_txq_add_pkt:
 
-	txq_add_mgmt_pkt(wdev->netdev, mgmt_tx,	 mgmt_tx->buff, mgmt_tx->size,
+	txq_add_mgmt_pkt(priv->wdev.netdev, mgmt_tx,
+			 mgmt_tx->buff, mgmt_tx->size,
 			 wilc_wfi_mgmt_tx_complete);
 
 out:
@@ -1572,17 +1598,19 @@ static int mgmt_tx_cancel_wait(struct wiphy *wiphy,
 			       struct wireless_dev *wdev,
 			       u64 cookie)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
+	struct wilc *wl = wiphy_priv(wiphy);
+	struct wilc_vif *vif = netdev_priv(wdev->netdev);
+	struct wilc_priv *priv = &vif->priv;
 	struct host_if_drv *wfi_drv = priv->hif_drv;
 
 	wfi_drv->p2p_timeout = jiffies;
 
-	if (!priv->p2p_listen_state) {
+	if (!wl->p2p_listen_state) {
 		struct wilc_wfi_p2p_listen_params *params;
 
 		params = &priv->remain_on_ch_params;
 
-		cfg80211_remain_on_channel_expired(priv->wdev,
+		cfg80211_remain_on_channel_expired(wdev,
 						   params->listen_cookie,
 						   params->listen_ch,
 						   GFP_KERNEL);
@@ -1594,9 +1622,8 @@ static int mgmt_tx_cancel_wait(struct wiphy *wiphy,
 void wilc_mgmt_frame_register(struct wiphy *wiphy, struct wireless_dev *wdev,
 			      u16 frame_type, bool reg)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->wdev->netdev);
-	struct wilc *wl = vif->wilc;
+	struct wilc *wl = wiphy_priv(wiphy);
+	struct wilc_vif *vif = netdev_priv(wdev->netdev);
 
 	if (!frame_type)
 		return;
@@ -1637,8 +1664,7 @@ static int set_cqm_rssi_config(struct wiphy *wiphy, struct net_device *dev,
 static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 			int idx, u8 *mac, struct station_info *sinfo)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(dev);
 	int ret;
 
 	if (idx != 0)
@@ -1662,9 +1688,10 @@ static int dump_station(struct wiphy *wiphy, struct net_device *dev,
 static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 			  bool enabled, int timeout)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc_priv *priv = &vif->priv;
 
+	PRINT_INFO(vif->ndev, GENERIC_DBG, "dev [%s]\n", dev->name);
 	if (!priv->hif_drv) {
 		PRINT_ER(dev, "hif driver is NULL\n");
 		return -EIO;
@@ -1693,6 +1720,15 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
+static void set_interfaces_psm_mode(struct wilc *wl, bool enabled, u32 timeout)
+{
+	int i;
+
+	/* TODO: Need to  lock this part of call */
+	for (i = 0; i < wl->vif_num; i++)
+		wilc_set_power_mgmt(wl->vif[i], enabled, timeout);
+}
+
 #if KERNEL_VERSION(4, 11, 0) <= LINUX_VERSION_CODE
 static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			       enum nl80211_iftype type,
@@ -1703,13 +1739,9 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			       struct vif_params *params)
 #endif
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
+	struct wilc *wl = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(dev);
-	struct wilc *wl = vif->wilc;
-	struct net_device *net_device_1 = wilc_get_if_netdev(wl, WILC_P2P_IFC);
-	struct net_device *net_device_2 = wilc_get_if_netdev(wl, WILC_WLAN_IFC);
-	struct wilc_vif *vif_1 = netdev_priv(net_device_1);
-	struct wilc_vif *vif_2 = netdev_priv(net_device_2);
+	struct wilc_priv *priv = &vif->priv;
 
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 		   "In Change virtual interface function\n");
@@ -1730,18 +1762,19 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 			   "Interface type = NL80211_IFTYPE_STATION\n");
 		dev->ieee80211_ptr->iftype = type;
-		priv->wdev->iftype = type;
+		priv->wdev.iftype = type;
 		vif->monitor_flag = 0;
+		if (vif->iftype == WILC_AP_MODE || vif->iftype == WILC_GO_MODE)
+			wilc_wfi_deinit_mon_interface(wl, true);
 		vif->iftype = WILC_STATION_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 WILC_STATION_MODE, vif->ifc_id);
+					 WILC_STATION_MODE, vif->idx);
 		wilc_set_operation_mode(vif, WILC_STATION_MODE);
 
 		memset(priv->assoc_stainfo.sta_associated_bss, 0,
 		       WILC_MAX_NUM_STA * ETH_ALEN);
 
-		wilc_set_power_mgmt(vif_1, 1, 0);
-		wilc_set_power_mgmt(vif_2, 1, 0);
+		set_interfaces_psm_mode(wl, 1, 0);
 		break;
 
 	case NL80211_IFTYPE_P2P_CLIENT:
@@ -1749,29 +1782,27 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 			   "Interface type = NL80211_IFTYPE_P2P_CLIENT\n");
 		dev->ieee80211_ptr->iftype = type;
-		priv->wdev->iftype = type;
+		priv->wdev.iftype = type;
 		vif->monitor_flag = 0;
 		vif->iftype = WILC_CLIENT_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					 WILC_STATION_MODE, vif->ifc_id);
+					 WILC_STATION_MODE, vif->idx);
 		wilc_set_operation_mode(vif, WILC_STATION_MODE);
 
-		wilc_set_power_mgmt(vif_1, 0, 0);
-		wilc_set_power_mgmt(vif_2, 0, 0);
+		set_interfaces_psm_mode(wl, 0, 0);
 		break;
 
 	case NL80211_IFTYPE_AP:
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 			   "Interface type = NL80211_IFTYPE_AP\n");
 		dev->ieee80211_ptr->iftype = type;
-		priv->wdev->iftype = type;
+		priv->wdev.iftype = type;
 		vif->iftype = WILC_AP_MODE;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-						 WILC_AP_MODE, vif->ifc_id);
+						 WILC_AP_MODE, vif->idx);
 			wilc_set_operation_mode(vif, WILC_AP_MODE);
-			wilc_set_power_mgmt(vif_1, 0, 0);
-			wilc_set_power_mgmt(vif_2, 0, 0);
+			set_interfaces_psm_mode(wl, 0, 0);
 		}
 		break;
 
@@ -1784,29 +1815,27 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		handle_pwrsave_for_IP(vif, IP_STATE_GO_ASSIGNING);
 #endif
 		dev->ieee80211_ptr->iftype = type;
-		priv->wdev->iftype = type;
+		priv->wdev.iftype = type;
 		vif->iftype = WILC_GO_MODE;
 		wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
-					WILC_AP_MODE, vif->ifc_id);
+					WILC_AP_MODE, vif->idx);
 		wilc_set_operation_mode(vif, WILC_AP_MODE);
-		wilc_set_power_mgmt(vif_1, 0, 0);
-		wilc_set_power_mgmt(vif_2, 0, 0);
+		set_interfaces_psm_mode(wl, 0, 0);
 		break;
 	case NL80211_IFTYPE_MONITOR:
 		PRINT_INFO(vif->ndev, HOSTAPD_DBG,
 			   "Interface type = NL80211_IFTYPE_MONITOR\n");
 		dev->ieee80211_ptr->iftype = type;
 		dev->type = ARPHRD_IEEE80211_RADIOTAP;
-		priv->wdev->iftype = type;
+		priv->wdev.iftype = type;
 		vif->iftype = WILC_MONITOR_MODE;
 		if (wl->initialized) {
 			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
 						 WILC_MONITOR_MODE,
-						 vif->ifc_id);
+						 vif->idx);
 
 			wilc_set_operation_mode(vif, WILC_MONITOR_MODE);
-			wilc_set_power_mgmt(vif_1, 0, 0);
-			wilc_set_power_mgmt(vif_2, 0, 0);
+			set_interfaces_psm_mode(wl, 0, 0);
 		}
 		break;
 
@@ -1821,17 +1850,21 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 		    struct cfg80211_ap_settings *settings)
 {
-	struct wilc_vif *vif = netdev_priv(dev);
 	int ret;
+	struct wilc_vif *vif = netdev_priv(dev);
+	int freq = settings->chandef.chan->center_freq;
+	int channelnum = ieee80211_frequency_to_channel(freq);
+
+	pr_info("%s,dev[%s]\n", __func__, dev->name);
 
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Starting ap\n");
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
-		   "Interval= %d\n DTIM period= %d\n Head length= %d Tail length= %d\n",
+		   "Interval= %d\n DTIM period= %d\n Head length= %d Tail length= %d channelnum[%d]\n",
 		   settings->beacon_interval, settings->dtim_period,
-		   settings->beacon.head_len, settings->beacon.tail_len);
-	ret = set_channel(wiphy, &settings->chandef);
-
+		   settings->beacon.head_len, settings->beacon.tail_len,
+		   channelnum);
+	ret = wilc_set_mac_chnl_num(vif, channelnum);
 	if (ret != 0)
 		PRINT_ER(dev, "Error in setting channel\n");
 
@@ -1845,8 +1878,7 @@ static int start_ap(struct wiphy *wiphy, struct net_device *dev,
 static int change_beacon(struct wiphy *wiphy, struct net_device *dev,
 			 struct cfg80211_beacon_data *beacon)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(dev);
 
 	PRINT_INFO(vif->ndev, HOSTAPD_DBG, "Setting beacon\n");
 
@@ -1856,8 +1888,7 @@ static int change_beacon(struct wiphy *wiphy, struct net_device *dev,
 static int stop_ap(struct wiphy *wiphy, struct net_device *dev)
 {
 	int ret;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(dev);
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Deleting beacon\n");
 
@@ -1867,7 +1898,6 @@ static int stop_ap(struct wiphy *wiphy, struct net_device *dev)
 
 	if (ret)
 		PRINT_ER(dev, "Host delete beacon fail\n");
-
 	return ret;
 }
 
@@ -1880,8 +1910,8 @@ static int add_station(struct wiphy *wiphy, struct net_device *dev,
 #endif
 {
 	int ret = 0;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc_priv *priv = &vif->priv;
 	u8 *assoc_bss = priv->assoc_stainfo.sta_associated_bss[params->aid];
 
 	if (vif->iftype == WILC_AP_MODE || vif->iftype == WILC_GO_MODE) {
@@ -1946,8 +1976,8 @@ static int del_station(struct wiphy *wiphy, struct net_device *dev,
 	const u8 *mac = params->mac;
 #endif
 	int ret = 0;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(dev);
+	struct wilc_priv *priv = &vif->priv;
 	struct sta_info *info;
 
 	if (!(vif->iftype == WILC_AP_MODE || vif->iftype == WILC_GO_MODE))
@@ -2025,6 +2055,21 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 	return ret;
 }
 
+int wilc_get_vif_from_type(struct wilc *wl, int type)
+{
+	int i;
+
+	mutex_lock(&wl->vif_mutex);
+	for (i = 0; i < wl->vif_num; i++) {
+		if (wl->vif[i]->iftype == type) {
+			mutex_unlock(&wl->vif_mutex);
+			return i;
+		}
+	}
+	mutex_unlock(&wl->vif_mutex);
+	return -1;
+}
+
 #if KERNEL_VERSION(4, 12, 0) <= LINUX_VERSION_CODE
 static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 					     const char *name,
@@ -2052,71 +2097,147 @@ static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 					     struct vif_params *params)
 #endif
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->wdev->netdev);
-	struct net_device *new_ifc;
+	struct wilc *wl = wiphy_priv(wiphy);
+	struct wilc_vif *vif;
+	struct wireless_dev *wdev;
+	u8 iftype;
 
-	PRINT_INFO(vif->ndev, CFG80211_DBG, "Adding monitor interface[%p]\n",
-		   priv->wdev->netdev);
-
+	/* check if interface type is mointor because AP mode is supported over
+	 * monitor interface. No need to increment interface count check if
+	 * monitor mode is associated with AP interface. The same approach is
+	 * applied with p2p_device interface
+	 */
 	if (type == NL80211_IFTYPE_MONITOR) {
+		struct wilc_vif *vif;
+		struct net_device *ndev;
+		int ap_index = wilc_get_vif_from_type(wl, WILC_AP_MODE);
+
+		if (ap_index < 0) {
+			ap_index = wilc_get_vif_from_type(wl, WILC_GO_MODE);
+			if (ap_index < 0)
+				goto validate_interface;
+		}
+
+		vif  = wl->vif[ap_index];
+		if (vif->monitor_flag)
+			goto validate_interface;
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Initializing mon ifc virtual device driver\n");
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Adding monitor interface[%p]\n", vif->ndev);
-		new_ifc = wilc_wfi_init_mon_interface(vif->wilc, name,
-						      vif->ndev);
-		if (new_ifc) {
+		ndev = wilc_wfi_init_mon_interface(vif->wilc, name, vif->ndev);
+		if (ndev) {
 			PRINT_INFO(vif->ndev, CFG80211_DBG,
 			"Setting monitor flag in private structure\n");
-			vif = netdev_priv(priv->wdev->netdev);
 			vif->monitor_flag = 1;
 		} else {
 			PRINT_ER(vif->ndev,
 				 "Error in initializing monitor interface\n");
 		}
+		wdev = &vif->priv.wdev;
+		return wdev;
 	}
-	return priv->wdev;
+
+validate_interface:
+	mutex_lock(&wl->vif_mutex);
+	if (wl->vif_num == WILC_NUM_CONCURRENT_IFC) {
+		pr_err("Reached maximum number of supported vif\n");
+		mutex_unlock(&wl->vif_mutex);
+		return ERR_PTR(-EINVAL);
+	}
+
+	pr_info("add_interaface [%d] name[%s] type[%d]\n", wl->vif_num,
+	       name, type);
+
+	switch (type) {
+	case NL80211_IFTYPE_STATION:
+		iftype = WILC_STATION_MODE;
+		break;
+	case NL80211_IFTYPE_AP:
+		iftype = WILC_AP_MODE;
+		break;
+	case NL80211_IFTYPE_MONITOR:
+		iftype = WILC_MONITOR_MODE;
+		break;
+	default:
+		mutex_unlock(&wl->vif_mutex);
+		return ERR_PTR(-EINVAL);
+	}
+
+	vif = wilc_netdev_ifc_init(wl, name, iftype, type, true);
+	if (IS_ERR(vif)) {
+		mutex_unlock(&wl->vif_mutex);
+		return ERR_PTR(-EINVAL);
+	}
+	mutex_unlock(&wl->vif_mutex);
+
+	return &vif->priv.wdev;
 }
 
 static int del_virtual_intf(struct wiphy *wiphy, struct wireless_dev *wdev)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
+	struct wilc *wl = wiphy_priv(wiphy);
+	struct wilc_vif *vif;
+	int i;
 
-	PRINT_INFO(priv->dev, HOSTAPD_DBG, "Deleting virtual interface\n");
+	/* delete the monitor mode interface */
+	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
+		wilc_wfi_deinit_mon_interface(wl, true);
+		return 0;
+	}
+	/* delete the AP monitor mode interface */
+	if (wdev->iftype == NL80211_IFTYPE_AP ||
+	    wdev->iftype == NL80211_IFTYPE_P2P_GO)
+		wilc_wfi_deinit_mon_interface(wl, true);
+	vif = netdev_priv(wdev->netdev);
+	unregister_netdevice(vif->ndev);
+	vif->monitor_flag = 0;
+
+	/* update the vif list */
+	mutex_lock(&wl->vif_mutex);
+	wilc_set_wfi_drv_handler(vif, 0, 0, 0);
+	/* if the index is deleted inbetween shift it accordingly */
+	for (i = vif->idx; i < wl->vif_num; i++) {
+		if ((i + 1) >= wl->vif_num) {
+			wl->vif[i] = NULL;
+		} else {
+			vif = wl->vif[i + 1];
+			vif->idx = i;
+			wl->vif[i] = vif;
+			wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
+						 vif->iftype, vif->idx);
+		}
+	}
+	wl->vif_num--;
+	mutex_unlock(&wl->vif_mutex);
 	return 0;
 }
 
 static int wilc_suspend(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-
-	if (!wow)
-		PRINT_INFO(priv->dev, GENERIC_DBG,
-			   "No wake up triggers defined\n");
-	else if (wow->any == 0)
-		PRINT_INFO(priv->dev, GENERIC_DBG,
-			   "The only supported wake up trigger (any) is not set\n");
-
 	return 0;
 }
 
 static int wilc_resume(struct wiphy *wiphy)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
-
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "cfg resume\n");
 	return 0;
 }
 
 static void wilc_set_wakeup(struct wiphy *wiphy, bool enabled)
 {
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc *wl = wiphy_priv(wiphy);
+	struct wilc_vif *vif;
+
+	mutex_lock(&wl->vif_mutex);
+	vif = wilc_get_wl_to_vif(wl);
+	if (IS_ERR(vif)) {
+		mutex_unlock(&wl->vif_mutex);
+		return;
+	}
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "cfg set wake up = %d\n", enabled);
 	wilc_set_wowlan_trigger(vif, (u8)enabled);
+	mutex_unlock(&wl->vif_mutex);
 }
 
 static int set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
@@ -2124,8 +2245,7 @@ static int set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
 {
 	int ret;
 	s32 tx_power = MBM_TO_DBM(mbm);
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(wdev->netdev);
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting tx power %d\n", tx_power);
 	if (tx_power < 0)
@@ -2143,8 +2263,7 @@ static int get_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
 			int *dbm)
 {
 	int ret;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(wdev->netdev);
 	struct wilc *wl = vif->wilc;
 
 	/* If firmware is not started, return. */
@@ -2163,17 +2282,23 @@ static int get_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
 static int set_antenna(struct wiphy *wiphy, u32 tx_ant, u32 rx_ant)
 {
 	int ret;
-	struct wilc_priv *priv = wiphy_priv(wiphy);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc *wl = wiphy_priv(wiphy);
+	struct wilc_vif *vif;
+
+	mutex_lock(&wl->vif_mutex);
+	vif = wilc_get_wl_to_vif(wl);
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Select antenna mode %d\n", tx_ant);
-	if (!tx_ant || !rx_ant)
+	if (!tx_ant || !rx_ant) {
+		mutex_unlock(&wl->vif_mutex);
 		return -EINVAL;
+	}
 
 	ret = wilc_set_antenna(vif, (u8)(tx_ant-1));
 	if (ret)
 		PRINT_ER(vif->ndev, "Failed to set tx antenna\n");
 
+	mutex_unlock(&wl->vif_mutex);
 	return ret;
 }
 
@@ -2220,120 +2345,172 @@ static const struct cfg80211_ops wilc_cfg80211_ops = {
 	.set_antenna = set_antenna,
 };
 
-static struct wireless_dev *wilc_wfi_cfg_alloc(struct net_device *net)
+static void wlan_init_locks(struct wilc *wl)
 {
-	struct wireless_dev *wdev;
+	pr_info("Initializing Locks ...\n");
+	mutex_init(&wl->vif_mutex);
+	mutex_init(&wl->rxq_cs);
+	mutex_init(&wl->cfg_cmd_lock);
+	mutex_init(&wl->deinit_lock);
+	mutex_init(&wl->hif_cs);
+	mutex_init(&wl->cs);
 
-	PRINT_INFO(net, CFG80211_DBG, "Allocating wireless device\n");
-	wdev = kzalloc(sizeof(*wdev), GFP_KERNEL);
-	if (!wdev) {
-		PRINT_ER(net, "Cannot allocate wireless device\n");
-		goto out;
-	}
+	spin_lock_init(&wl->txq_spinlock);
+	mutex_init(&wl->txq_add_to_head_cs);
 
-	wdev->wiphy = wiphy_new(&wilc_cfg80211_ops, sizeof(struct wilc_priv));
-	if (!wdev->wiphy) {
-		PRINT_ER(net, "Cannot allocate wiphy\n");
-		goto free_mem;
-	}
+	init_completion(&wl->txq_event);
 
-	return wdev;
-
-free_mem:
-	kfree(wdev);
-out:
-	return NULL;
+	init_completion(&wl->cfg_event);
+	init_completion(&wl->sync_event);
+	init_completion(&wl->txq_thread_started);
+	init_completion(&wl->debug_thread_started);
 }
 
-struct wireless_dev *wilc_create_wiphy(struct net_device *net,
-				       struct device *dev)
+void wlan_deinit_locks(struct wilc *wl)
 {
-	struct wilc_priv *priv;
-	struct wireless_dev *wdev;
-	int ret;
+	pr_info("De-Initializing Locks\n");
+	mutex_destroy(&wl->hif_cs);
+	mutex_destroy(&wl->rxq_cs);
+	mutex_destroy(&wl->cfg_cmd_lock);
+	mutex_destroy(&wl->vif_mutex);
+	mutex_destroy(&wl->txq_add_to_head_cs);
+	mutex_destroy(&wl->cs);
+	mutex_destroy(&wl->deinit_lock);
+}
 
-	PRINT_INFO(net, CFG80211_DBG, "Registering wifi device\n");
-	wdev = wilc_wfi_cfg_alloc(net);
-	if (!wdev) {
-		PRINT_ER(net, "wiphy new allocate failed\n");
-		return NULL;
+int wilc_cfg80211_init(struct wilc **wilc, struct device *dev, int io_type,
+		       const struct wilc_hif_func *ops)
+{
+	int i, ret;
+	struct wilc *wl;
+	struct wilc_vif *vif;
+
+	wl = wilc_create_wiphy(dev);
+	if (!wl) {
+		pr_err("failed to create wiphy\n");
+		return -EINVAL;
 	}
 
-	priv = wdev_priv(wdev);
-	priv->wdev = wdev;
+	wlan_init_locks(wl);
 
-	memcpy(priv->bitrates, wilc_bitrates, sizeof(wilc_bitrates));
-	memcpy(priv->channels, wilc_2ghz_channels, sizeof(wilc_2ghz_channels));
-	priv->band.bitrates = priv->bitrates;
-	priv->band.n_bitrates = ARRAY_SIZE(priv->bitrates);
-	priv->band.channels = priv->channels;
-	priv->band.n_channels = ARRAY_SIZE(wilc_2ghz_channels);
+	ret = cfg_init(wl);
+	if (ret)
+		goto free_wl;
 
-	priv->band.ht_cap.ht_supported = 1;
-	priv->band.ht_cap.cap |= (1 << IEEE80211_HT_CAP_RX_STBC_SHIFT);
-	priv->band.ht_cap.mcs.rx_mask[0] = 0xff;
-	priv->band.ht_cap.ampdu_factor = IEEE80211_HT_MAX_AMPDU_8K;
-	priv->band.ht_cap.ampdu_density = IEEE80211_HT_MPDU_DENSITY_NONE;
+	wilc_debugfs_init();
+	*wilc = wl;
+	wl->io_type = io_type;
+	wl->hif_func = ops;
+	for (i = 0; i < NQUEUES; i++)
+		INIT_LIST_HEAD(&wl->txq[i].txq_head.list);
+
+	INIT_LIST_HEAD(&wl->rxq_head.list);
+
+	wl->hif_workqueue = create_singlethread_workqueue("WILC_wq");
+	if (!wl->hif_workqueue) {
+		ret = -ENOMEM;
+		goto free_debug_fs;
+	}
+	vif = wilc_netdev_ifc_init(wl, "wlan%d", WILC_STATION_MODE,
+				   NL80211_IFTYPE_STATION, false);
+	if (IS_ERR(vif)) {
+		ret = PTR_ERR(vif);
+		goto free_wq;
+	}
+
+	wilc_sysfs_init(wl);
+
+	return 0;
+free_wq:
+	destroy_workqueue(wl->hif_workqueue);
+free_debug_fs:
+	wilc_debugfs_remove();
+	cfg_deinit(wl);
+free_wl:
+	wlan_deinit_locks(wl);
+	wiphy_unregister(wl->wiphy);
+	wiphy_free(wl->wiphy);
+	return ret;
+}
+
+struct wilc *wilc_create_wiphy(struct device *dev)
+{
+	struct wiphy *wiphy;
+	struct wilc *wl;
+	int ret;
+
+	wiphy = wiphy_new(&wilc_cfg80211_ops, sizeof(struct wilc));
+	if (!wiphy) {
+		pr_err("wiphy new allocate failed\n");
+		return ERR_PTR(-EFAULT);
+	}
+
+	wl = wiphy_priv(wiphy);
+	pr_info("Registering wifi device\n");
+
+	memcpy(wl->bitrates, wilc_bitrates, sizeof(wilc_bitrates));
+	memcpy(wl->channels, wilc_2ghz_channels, sizeof(wilc_2ghz_channels));
+	wl->band.bitrates = wl->bitrates;
+	wl->band.n_bitrates = ARRAY_SIZE(wl->bitrates);
+	wl->band.channels = wl->channels;
+	wl->band.n_channels = ARRAY_SIZE(wilc_2ghz_channels);
+
+	wl->band.ht_cap.ht_supported = 1;
+	wl->band.ht_cap.cap |= (1 << IEEE80211_HT_CAP_RX_STBC_SHIFT);
+	wl->band.ht_cap.mcs.rx_mask[0] = 0xff;
+	wl->band.ht_cap.ampdu_factor = IEEE80211_HT_MAX_AMPDU_8K;
+	wl->band.ht_cap.ampdu_density = IEEE80211_HT_MPDU_DENSITY_NONE;
 
 #if KERNEL_VERSION(4, 7, 0) <= LINUX_VERSION_CODE
-	wdev->wiphy->bands[NL80211_BAND_2GHZ] = &priv->band;
+	wiphy->bands[NL80211_BAND_2GHZ] = &wl->band;
 #else
-	wdev->wiphy->bands[IEEE80211_BAND_2GHZ] = &priv->band;
+	wiphy->bands[IEEE80211_BAND_2GHZ] = &wl->band;
 #endif
 
-	wdev->wiphy->max_scan_ssids = WILC_MAX_NUM_PROBED_SSID;
+	wiphy->max_scan_ssids = WILC_MAX_NUM_PROBED_SSID;
 #if KERNEL_VERSION(3, 11, 0) <= LINUX_VERSION_CODE
-	wdev->wiphy->wowlan = &wowlan_support;
+	wiphy->wowlan = &wowlan_support;
 #else
-	wdev->wiphy->wowlan = wowlan_support;
+	wiphy->wowlan = wowlan_support;
 #endif
-	wdev->wiphy->max_num_pmkids = WILC_MAX_NUM_PMKIDS;
-	PRINT_D(net, CFG80211_DBG, "Max number of PMKIDs = %d\n",
-		wdev->wiphy->max_num_pmkids);
-	wdev->wiphy->max_scan_ie_len = 1000;
-	wdev->wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
-	memcpy(priv->cipher_suites, wilc_cipher_suites,
+	wiphy->max_num_pmkids = WILC_MAX_NUM_PMKIDS;
+	wiphy->max_scan_ie_len = 1000;
+	wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
+	memcpy(wl->cipher_suites, wilc_cipher_suites,
 	       sizeof(wilc_cipher_suites));
-	wdev->wiphy->cipher_suites = priv->cipher_suites;
-	wdev->wiphy->n_cipher_suites = ARRAY_SIZE(wilc_cipher_suites);
-	wdev->wiphy->available_antennas_tx = 0x3;
-	wdev->wiphy->available_antennas_rx = 0x3;
-	wdev->wiphy->mgmt_stypes = wilc_wfi_cfg80211_mgmt_types;
+	wiphy->cipher_suites = wl->cipher_suites;
+	wiphy->n_cipher_suites = ARRAY_SIZE(wilc_cipher_suites);
+	wiphy->available_antennas_tx = 0x3;
+	wiphy->available_antennas_rx = 0x3;
+	wiphy->mgmt_stypes = wilc_wfi_cfg80211_mgmt_types;
 
-	wdev->wiphy->max_remain_on_channel_duration = 500;
-	wdev->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
+	wiphy->max_remain_on_channel_duration = 500;
+	wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
 					BIT(NL80211_IFTYPE_AP) |
 					BIT(NL80211_IFTYPE_MONITOR) |
 					BIT(NL80211_IFTYPE_P2P_GO) |
 					BIT(NL80211_IFTYPE_P2P_CLIENT);
-	wdev->wiphy->flags |= WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
-	wdev->iftype = NL80211_IFTYPE_STATION;
+	wiphy->flags |= WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
+	pr_info("Max scan ids= %d,Max scan IE len= %d,Signal Type= %d,Interface Modes= %d\n",
+		wiphy->max_scan_ssids, wiphy->max_scan_ie_len,
+		wiphy->signal_type, wiphy->interface_modes);
 
-	PRINT_D(net, CFG80211_DBG,
-		"Max scan ids= %d,Max scan IE len= %d,Signal Type= %d,Interface Modes= %d,Interface Type= %d\n",
-		wdev->wiphy->max_scan_ssids, wdev->wiphy->max_scan_ie_len,
-		wdev->wiphy->signal_type, wdev->wiphy->interface_modes,
-		wdev->iftype);
-
-	set_wiphy_dev(wdev->wiphy, dev);
-
-	ret = wiphy_register(wdev->wiphy);
+	set_wiphy_dev(wiphy, dev);
+	wl->wiphy = wiphy;
+	ret = wiphy_register(wiphy);
 	if (ret) {
-		PRINT_ER(net, "Cannot register wiphy device\n");
-		wiphy_free(wdev->wiphy);
-		kfree(wdev);
-		return NULL;
+		pr_err("Cannot register wiphy device\n");
+		wiphy_free(wiphy);
+		return ERR_PTR(-EFAULT);
 	}
-
-	priv->dev = net;
-	return wdev;
+	return wl;
 }
 
 int wilc_init_host_int(struct net_device *net)
 {
 	int ret;
-	struct wilc_priv *priv = wdev_priv(net->ieee80211_ptr);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(net);
+	struct wilc_priv *priv = &vif->priv;
 
 	PRINT_INFO(net, INIT_DBG, "Host[%p][%p]\n", net, net->ieee80211_ptr);
 
@@ -2349,7 +2526,7 @@ int wilc_init_host_int(struct net_device *net)
 	setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #endif
 
-	priv->p2p_listen_state = false;
+	vif->wilc->p2p_listen_state = false;
 
 	mutex_init(&priv->scan_req_lock);
 	ret = wilc_init(net, &priv->hif_drv);
@@ -2362,10 +2539,10 @@ int wilc_init_host_int(struct net_device *net)
 void wilc_deinit_host_int(struct net_device *net)
 {
 	int ret;
-	struct wilc_priv *priv = wdev_priv(net->ieee80211_ptr);
-	struct wilc_vif *vif = netdev_priv(priv->dev);
+	struct wilc_vif *vif = netdev_priv(net);
+	struct wilc_priv *priv = &vif->priv;
 
-	priv->p2p_listen_state = false;
+	vif->wilc->p2p_listen_state = false;
 
 	mutex_destroy(&priv->scan_req_lock);
 	ret = wilc_deinit(vif);

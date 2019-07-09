@@ -12,6 +12,7 @@
 
 #include "wilc_wfi_netdevice.h"
 #include "wilc_wlan.h"
+#include "wilc_wfi_cfgoperations.h"
 
 enum sdio_host_lock {
 	WILC_SDIO_HOST_NO_TAKEN = 0,
@@ -39,6 +40,7 @@ struct wilc_sdio {
 	u32 block_size;
 	int nint;
 	bool is_init;
+	struct wilc *wl;
 };
 
 struct sdio_cmd52 {
@@ -150,7 +152,7 @@ static int wilc_sdio_probe(struct sdio_func *func,
 	else
 		io_type = WILC_HIF_SDIO;
 	dev_dbg(&func->dev, "Initializing netdev\n");
-	ret = wilc_netdev_init(&wilc, &func->dev, io_type, &wilc_hif_sdio);
+	ret = wilc_cfg80211_init(&wilc, &func->dev, io_type, &wilc_hif_sdio);
 	if (ret) {
 		dev_err(&func->dev, "Couldn't initialize netdev\n");
 		kfree(sdio_priv);
@@ -160,6 +162,7 @@ static int wilc_sdio_probe(struct sdio_func *func,
 	wilc->bus_data = sdio_priv;
 	wilc->dev = &func->dev;
 	wilc->dt_dev = &func->card->dev;
+	sdio_priv->wl = wilc;
 
 	if (!init_power) {
 		wilc_wlan_power_on_sequence(wilc);

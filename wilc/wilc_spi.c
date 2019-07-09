@@ -8,6 +8,7 @@
 #include <linux/module.h>
 
 #include "wilc_wfi_netdevice.h"
+#include "wilc_wfi_cfgoperations.h"
 
 struct wilc_spi {
 	int crc_off;
@@ -123,7 +124,7 @@ static int wilc_bus_probe(struct spi_device *spi)
 	if (!spi_priv)
 		return -ENOMEM;
 
-	ret = wilc_netdev_init(&wilc, dev, WILC_HIF_SPI, &wilc_hif_spi);
+	ret = wilc_cfg80211_init(&wilc, dev, WILC_HIF_SPI, &wilc_hif_spi);
 	if (ret) {
 		kfree(spi_priv);
 		return ret;

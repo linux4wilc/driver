@@ -31,20 +31,15 @@ void wilc_wfi_handle_monitor_rx(struct wilc *wilc, u8 *buff, u32 size)
 	struct wfi_rtap_hdr *hdr;
 	int i;
 
-	for (i = 0; i < wilc->vif_num; i++) {
-		if (wilc->vif[i]->iftype == WILC_MONITOR_MODE) {
-			vif = wilc->vif[i];
-			break;
-		}
-	}
-
-	if (!vif) {
+	i = wilc_get_vif_from_type(wilc, WILC_MONITOR_MODE);
+	if (i < 0) {
 		PRINT_D(vif->ndev, HOSTAPD_DBG, "Monitor interface not up\n");
 		return;
 	}
 
-	skb = dev_alloc_skb(size + sizeof(*hdr));
+	vif = wilc->vif[i];
 
+	skb = dev_alloc_skb(size + sizeof(*hdr));
 	if (!skb) {
 		PRINT_D(vif->ndev, HOSTAPD_DBG,
 			"Monitor if: No memory to allocate skb");
@@ -302,7 +297,11 @@ struct net_device *wilc_wfi_init_mon_interface(struct wilc *wl,
 	strncpy(wl->monitor_dev->name, name, IFNAMSIZ);
 	wl->monitor_dev->name[IFNAMSIZ - 1] = 0;
 	wl->monitor_dev->netdev_ops = &wilc_wfi_netdev_ops;
-
+#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
+	wl->monitor_dev->needs_free_netdev = true;
+#else
+	wl->monitor_dev->destructor = free_netdev;
+#endif
 	if (register_netdevice(wl->monitor_dev)) {
 		PRINT_ER(real_dev, "register_netdevice failed\n");
 		return NULL;
@@ -318,7 +317,7 @@ struct net_device *wilc_wfi_init_mon_interface(struct wilc *wl,
 	return wl->monitor_dev;
 }
 
-void wilc_wfi_deinit_mon_interface(struct wilc *wl)
+void wilc_wfi_deinit_mon_interface(struct wilc *wl, bool rtnl_locked)
 {
 	if (!wl->monitor_dev)
 		return;
@@ -326,8 +325,10 @@ void wilc_wfi_deinit_mon_interface(struct wilc *wl)
 	PRINT_INFO(wl->monitor_dev, HOSTAPD_DBG,
 		   "In Deinit monitor interface\n");
 	PRINT_INFO(wl->monitor_dev, HOSTAPD_DBG, "Unregister monitor netdev\n");
-	unregister_netdev(wl->monitor_dev);
-	free_netdev(wl->monitor_dev);
+	if (rtnl_locked)
+		unregister_netdevice(wl->monitor_dev);
+	else
+		unregister_netdev(wl->monitor_dev);
 	PRINT_INFO(wl->monitor_dev, HOSTAPD_DBG,
 		   "Deinit monitor interface done\n");
 	wl->monitor_dev = NULL;

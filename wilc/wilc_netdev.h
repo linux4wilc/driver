@@ -61,5 +61,8 @@ static inline bool ether_addr_equal_unaligned(const u8 *addr1, const u8 *addr2)
 int wilc_bt_power_up(struct wilc *wilc, int source);
 int wilc_bt_power_down(struct wilc *wilc, int source);
 void wilc_wfi_monitor_rx(struct net_device *mon_dev, u8 *buff, u32 size);
+struct wilc_vif *
+wilc_netdev_ifc_init(struct wilc *wl, const char *name, int iftype,
+		     enum nl80211_iftype type, bool rtnl_locked);
 
 #endif /* WILC_NETDEV_H */

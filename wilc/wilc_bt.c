@@ -74,7 +74,7 @@ static const struct cmd_entry cmd_table[] = {
 
 static int wilc_bt_dev_open(struct inode *i, struct file *f)
 {
-	pr_err("at_pwr_dev: open()\n");
+	pr_info("at_pwr_dev: open()\n");
 	return 0;
 }
 

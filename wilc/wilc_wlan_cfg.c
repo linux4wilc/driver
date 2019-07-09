@@ -8,6 +8,7 @@
 #include "wilc_wlan.h"
 #include "wilc_wlan_cfg.h"
 #include "wilc_wfi_netdevice.h"
+#include "wilc_wfi_cfgoperations.h"
 
 enum cfg_cmd_type {
 	CFG_BYTE_CMD	= 0,
@@ -173,14 +174,11 @@ static void wilc_wlan_parse_response_frame(struct wilc *wl, u8 *info,
 {
 	u16 wid;
 	u32 len = 0, i = 0;
-	struct wilc_vif *vif = wl->vif[0];
 
 	while (size > 0) {
 		i = 0;
 		wid = get_unaligned_le16(info);
 
-		PRINT_D(vif->ndev, GENERIC_DBG, "Processing response for %d\n",
-			wid);
 		switch (GET_WID_TYPE(wid)) {
 		case WID_CHAR:
 			do {
@@ -267,7 +265,8 @@ static void wilc_wlan_parse_response_frame(struct wilc *wl, u8 *info,
 				 * DATA
 				 */
 				if (checksum != info[4 + length]) {
-					PRINT_ER(vif->ndev, "Checksum Failed");
+					pr_err("%s: Checksum Failed\n",
+					       __func__);
 					return;
 				}
 
@@ -291,13 +290,11 @@ static void wilc_wlan_parse_response_frame(struct wilc *wl, u8 *info,
 
 static void wilc_wlan_parse_info_frame(struct wilc *wl, u8 *info)
 {
-	struct wilc_vif *vif = wl->vif[0];
 	u32 wid, len;
 
 	wid = get_unaligned_le16(info);
 
 	len = info[2];
-	PRINT_D(vif->ndev, GENERIC_DBG, "Status Len = %d Id= %d\n", len, wid);
 
 	if (len == 1 && wid == WID_STATUS) {
 		int i = 0;
@@ -453,7 +450,7 @@ int cfg_get_wid_value(struct wilc *wl, u16 wid, u8 *buffer, u32 buffer_size)
 			i++;
 		} while (1);
 	} else {
-		PRINT_ER(wl->vif[0]->ndev, "[CFG]: illegal type (%08x)\n", wid);
+		pr_err("[CFG]: illegal type (%08x)\n", wid);
 	}
 
 	return ret;
@@ -490,7 +487,7 @@ void cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 		rsp->type = WILC_CFG_RSP_STATUS;
 		rsp->seq_no = msg_id;
 		/*call host interface info parse as well*/
-		PRINT_D(wilc->vif[0]->ndev, RX_DBG, "Info message received\n");
+		pr_info("%s: Info message received\n", __func__);
 		wilc_gnrl_async_info_received(wilc, frame - 4, size + 4);
 		break;
 
@@ -499,16 +496,14 @@ void cfg_indicate_rx(struct wilc *wilc, u8 *frame, int size,
 		break;
 
 	case 'S':
-		PRINT_D(wilc->vif[0]->ndev, RX_DBG,
-			"Scan Notification Received\n");
+		pr_info("%s: Scan Notification Received\n", __func__);
 		wilc_scan_complete_received(wilc, frame - 4, size + 4);
 		break;
 
 	default:
-		PRINT_D(wilc->vif[0]->ndev, RX_DBG,
-			"Receive unknown message %d-%d-%d-%d-%d-%d-%d-%d\n",
-			 frame[0], frame[1], frame[2], frame[3], frame[4],
-			 frame[5], frame[6], frame[7]);
+		pr_err("%s: Receive unknown message %d-%d-%d-%d-%d-%d-%d-%d\n",
+		       __func__, frame[0], frame[1], frame[2], frame[3],
+		       frame[4], frame[5], frame[6], frame[7]);
 		rsp->seq_no = msg_id;
 		break;
 	}
