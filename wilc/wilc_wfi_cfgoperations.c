@@ -176,7 +176,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 		}
 
 		if (connect_status == WLAN_STATUS_SUCCESS) {
-			PRINT_ER(dev,
+			PRINT_INFO(vif->ndev, CFG80211_DBG,
 				"Connection Successful: BSSID: %x%x%x%x%x%x\n",
 				conn_info->bssid[0], conn_info->bssid[1],
 				conn_info->bssid[2], conn_info->bssid[3],
@@ -202,7 +202,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 		vif->obtaining_ip = false;
 #endif
-		PRINT_ER(vif->ndev,
+		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			 "Received WILC_MAC_STATUS_DISCONNECTED dev [%p]\n",
 			 priv->dev);
 		priv->p2p.local_random = 0x01;
