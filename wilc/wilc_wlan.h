@@ -335,7 +335,6 @@ int cfg_set(struct wilc_vif *vif, int start, u16 wid, u8 *buffer,
 		      u32 buffer_size, int commit, u32 drv_handler);
 int cfg_get(struct wilc_vif *vif, int start, u16 wid, int commit,
 		      u32 drv_handler);
-int cfg_get_val(struct wilc *wl, u16 wid, u8 *buffer, u32 buffer_size);
 int txq_add_mgmt_pkt(struct net_device *dev, void *priv, u8 *buffer,
 			       u32 buffer_size,
 			       void (*tx_complete_fn)(void *, int));

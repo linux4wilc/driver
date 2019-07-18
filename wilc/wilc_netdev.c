@@ -19,6 +19,7 @@
 
 #include "wilc_netdev.h"
 #include "wilc_wfi_cfgoperations.h"
+#include "wilc_wlan_cfg.h"
 
 #define WILC_MULTICAST_TABLE_SIZE	8
 
