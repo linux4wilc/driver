@@ -1231,7 +1231,7 @@ bool wilc_wfi_p2p_rx(struct wilc_vif *vif, u8 *buff, u32 size)
 	__le16 fc;
 	int ret;
 
-	memcpy(&header, (buff - HOST_HDR_OFFSET), HOST_HDR_OFFSET);
+	header = get_unaligned_le32(buff - HOST_HDR_OFFSET);
 
 	pkt_offset = GET_PKT_OFFSET(header);
 
