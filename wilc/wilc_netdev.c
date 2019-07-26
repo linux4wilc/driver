@@ -430,20 +430,6 @@ void wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
 	mutex_unlock(&wilc->vif_mutex);
 }
 
-int wilc_wlan_get_num_conn_ifcs(struct wilc *wilc)
-{
-	u8 i = 0;
-	u8 ret_val = 0;
-
-	mutex_lock(&wilc->vif_mutex);
-	for (i = 0; i < wilc->vif_num; i++)
-		if (!is_zero_ether_addr(wilc->vif[i]->bssid))
-			ret_val++;
-	mutex_unlock(&wilc->vif_mutex);
-
-	return ret_val;
-}
-
 struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc)
 {
 	if (wilc->vif[ifc])

@@ -2482,9 +2482,6 @@ int wilc_set_power_mgmt(struct wilc_vif *vif, bool enabled, u32 timeout)
 	int result;
 	s8 power_mode;
 
-	if (wilc_wlan_get_num_conn_ifcs(vif->wilc) == 2 && enabled)
-		return 0;
-
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "\n\n>> Setting PS to %d <<\n\n",
 		   enabled);
 	if (enabled)
