@@ -2507,14 +2507,8 @@ int wilc_init_host_int(struct net_device *net)
 	PRINT_INFO(net, INIT_DBG, "Host[%p][%p]\n", net, net->ieee80211_ptr);
 
 #if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
-	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	timer_setup(&vif->during_ip_timer, clear_during_ip, 0);
-	#endif
 	timer_setup(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #else
-	#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	setup_timer(&vif->during_ip_timer, clear_during_ip, 0);
-	#endif
 	setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #endif
 
@@ -2540,9 +2534,6 @@ void wilc_deinit_host_int(struct net_device *net)
 	mutex_destroy(&priv->scan_req_lock);
 	ret = wilc_deinit(vif);
 
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	del_timer_sync(&vif->during_ip_timer);
-#endif
 	del_timer_sync(&priv->eap_buff_timer);
 
 	if (ret)

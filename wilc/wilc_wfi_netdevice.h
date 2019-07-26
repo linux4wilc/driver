@@ -237,7 +237,6 @@ struct wilc_vif {
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 	bool pwrsave_current_state;
-	struct timer_list during_ip_timer;
 	bool obtaining_ip;
 #endif
 	struct rf_info periodic_stats;

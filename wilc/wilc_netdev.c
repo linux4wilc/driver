@@ -13,9 +13,6 @@
 #include <linux/interrupt.h>
 #include <net/ip.h>
 #include <linux/module.h>
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-#include <linux/inetdevice.h>
-#endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
 #include "wilc_netdev.h"
 #include "wilc_wfi_cfgoperations.h"
@@ -25,7 +22,6 @@
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 bool g_ignore_PS_state;
-#define WILC_IP_TIMEOUT_MS		15000
 
 void store_power_save_current_state(struct wilc_vif *vif, bool val)
 {
@@ -34,25 +30,6 @@ void store_power_save_current_state(struct wilc_vif *vif, bool val)
 		return;
 	}
 	vif->pwrsave_current_state = val;
-}
-
-#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
-void clear_during_ip(struct timer_list *t)
-#else
-void clear_during_ip(unsigned long arg)
-#endif
-{
-#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
-	struct wilc_vif *vif = from_timer(vif, t, during_ip_timer);
-#else
-	struct wilc_vif *vif = (struct wilc_vif *)arg;
-#endif
-
-	PRINT_ER(vif->ndev, "Unable to Obtain IP\n");
-
-	vif->obtaining_ip = false;
-
-	wilc_powersave_state_changes(vif);
 }
 #endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
