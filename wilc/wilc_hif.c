@@ -1044,18 +1044,6 @@ int wilc_disconnect(struct wilc_vif *vif)
 	return 0;
 }
 
-void wilc_resolve_disconnect_aberration(struct wilc_vif *vif)
-{
-	if (!vif->hif_drv)
-		return;
-	if (vif->hif_drv->hif_state == HOST_IF_WAITING_CONN_RESP ||
-	    vif->hif_drv->hif_state == HOST_IF_CONNECTING) {
-		PRINT_INFO(vif->ndev, HOSTINF_DBG,
-			   "\n\n<< correcting Supplicant state machine >>\n\n");
-		wilc_disconnect(vif);
-	}
-}
-
 int wilc_get_statistics(struct wilc_vif *vif, struct rf_info *stats)
 {
 	struct wid wid_list[5];
@@ -1832,18 +1820,15 @@ int wilc_set_mac_chnl_num(struct wilc_vif *vif, u8 channel)
 	return result;
 }
 
-int wilc_set_wfi_drv_handler(struct wilc_vif *vif, int index, u8 mode,
-			     u8 ifc_id)
+int wilc_set_operation_mode(struct wilc_vif *vif, int index, u8 mode,
+			    u8 ifc_id)
 {
 	struct wid wid;
-	struct host_if_drv *hif_drv = vif->hif_drv;
 	int result;
 	struct wilc_drv_handler drv;
 
-	if (!hif_drv)
-		return -EFAULT;
 
-	wid.id = WID_SET_DRV_HANDLER;
+	wid.id = WID_SET_OPERATION_MODE;
 	wid.type = WID_STR;
 	wid.size = sizeof(drv);
 	wid.val = (u8 *)&drv;
@@ -1854,26 +1839,6 @@ int wilc_set_wfi_drv_handler(struct wilc_vif *vif, int index, u8 mode,
 	result = wilc_send_config_pkt(vif, WILC_SET_CFG, &wid, 1);
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to set driver handler\n");
-
-	return result;
-}
-
-int wilc_set_operation_mode(struct wilc_vif *vif, u32 mode)
-{
-	struct wid wid;
-	struct wilc_op_mode op_mode;
-	int result;
-
-	wid.id = WID_SET_OPERATION_MODE;
-	wid.type = WID_INT;
-	wid.size = sizeof(op_mode);
-	wid.val = (u8 *)&op_mode;
-
-	op_mode.mode = cpu_to_le32(mode);
-
-	result = wilc_send_config_pkt(vif, WILC_SET_CFG, &wid, 1);
-	if (result)
-		PRINT_ER(vif->ndev, "Failed to set operation mode\n");
 
 	return result;
 }

@@ -735,7 +735,6 @@ enum {
 	/* NMAC Integer WID list */
 	/* Custom Integer WID list */
 	WID_GET_INACTIVE_TIME		= 0x2084,
-	WID_SET_OPERATION_MODE		= 0X2086,
 	/* EMAC String WID list */
 	WID_SSID			= 0x3000,
 	WID_FIRMWARE_VERSION		= 0x3001,
@@ -768,7 +767,7 @@ enum {
 	WID_DEVICE_NAME			= 0x3029, /*Added for CAPI tool */
 
 	/* NMAC String WID list */
-	WID_SET_DRV_HANDLER		= 0x3079,
+	WID_SET_OPERATION_MODE		= 0x3079,
 	WID_11N_P_ACTION_REQ		= 0x3080,
 	WID_HUT_TEST_ID			= 0x3081,
 	WID_PMKID_INFO			= 0x3082,

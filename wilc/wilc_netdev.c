@@ -1039,9 +1039,8 @@ static int wilc_mac_open(struct net_device *ndev)
 	}
 
 	wait_for_recovery = 0;
-	wilc_set_wfi_drv_handler(vif, wilc_get_vif_idx(vif),
+	wilc_set_operation_mode(vif, wilc_get_vif_idx(vif),
 				 vif->iftype, vif->idx);
-	wilc_set_operation_mode(vif, vif->iftype);
 	wilc_get_mac_address(vif, mac_add);
 	PRINT_INFO(vif->ndev, INIT_DBG, "Mac address: %pM\n", mac_add);
 
