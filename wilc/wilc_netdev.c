@@ -27,82 +27,6 @@
 bool g_ignore_PS_state;
 #define WILC_IP_TIMEOUT_MS		15000
 
-static int dev_state_ev_handler(struct notifier_block *this,
-				unsigned long event, void *ptr);
-
-static struct notifier_block g_dev_notifier = {
-	.notifier_call = dev_state_ev_handler
-};
-
-void handle_pwrsave_for_IP(struct wilc_vif *vif, uint8_t state)
-{
-	switch (state) {
-	case IP_STATE_OBTAINING:
-
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Obtaining IP, Disable (Scan-Set PowerSave)\n");
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Save the Current state of the PS = %d\n",
-			   vif->pwrsave_current_state);
-
-		vif->obtaining_ip = true;
-
-		/* Set this flag to avoid storing the disabled case of PS which
-		 * occurs duringIP
-		 */
-		g_ignore_PS_state = true;
-
-		wilc_set_power_mgmt(vif, 0, 0);
-
-		/* Start the DuringIPTimer */
-	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
-		vif->during_ip_timer.data = (uint32_t)vif;
-	#endif
-		mod_timer(&vif->during_ip_timer,
-			  (jiffies + msecs_to_jiffies(20000)));
-
-		break;
-
-	case IP_STATE_OBTAINED:
-
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "IP obtained , Enable (Scan-Set PowerSave)\n");
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Recover the state of the PS = %d\n",
-			   vif->pwrsave_current_state);
-
-		vif->obtaining_ip = false;
-
-		wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
-
-		del_timer(&vif->during_ip_timer);
-
-		break;
-
-	case IP_STATE_GO_ASSIGNING:
-
-		vif->obtaining_ip = true;
-
-		/* Start the DuringIPTimer */
-	#if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
-		vif->during_ip_timer.data = (uint32_t)vif;
-	#endif
-		mod_timer(&vif->during_ip_timer,
-			  (jiffies + msecs_to_jiffies(WILC_IP_TIMEOUT_MS)));
-
-		break;
-
-	default: //IP_STATE_DEFAULT
-
-		vif->obtaining_ip = false;
-
-		/* Stop the DuringIPTimer */
-		del_timer(&vif->during_ip_timer);
-
-		break;
-	}
-}
-
 void store_power_save_current_state(struct wilc_vif *vif, bool val)
 {
 	if (g_ignore_PS_state) {
@@ -204,11 +128,6 @@ static int debug_thread(void *arg)
 				handle_scan_done(vif, SCAN_EVENT_ABORTED);
 			}
 			if (conn_info->conn_result) {
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-
-				handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
-#endif
-
 				conn_info->conn_result(EVENT_DISCONN_NOTIF,
 						       0, conn_info->arg);
 			} else {
@@ -1103,9 +1022,6 @@ static int wilc_wlan_initialize(struct net_device *dev, struct wilc_vif *vif)
 			ret = -EIO;
 			goto fail_fw_start;
 		}
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		register_inetaddr_notifier(&g_dev_notifier);
-#endif
 
 		wl->initialized = true;
 		return 0;
@@ -1384,9 +1300,6 @@ static int wilc_mac_close(struct net_device *ndev)
 		PRINT_INFO(ndev, GENERIC_DBG, "Deinitializing wilc\n");
 		wl->close = 1;
 
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		unregister_inetaddr_notifier(&g_dev_notifier);
-#endif
 		wilc_wlan_deinitialize(ndev);
 	}
 
@@ -1435,79 +1348,6 @@ static const struct net_device_ops wilc_netdev_ops = {
 	.ndo_get_stats = mac_stats,
 	.ndo_set_rx_mode  = wilc_set_multicast_list,
 };
-
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-static int dev_state_ev_handler(struct notifier_block *this,
-				unsigned long event, void *ptr)
-{
-	struct in_ifaddr *dev_iface = ptr;
-	struct wilc_priv *priv;
-	struct host_if_drv *hif_drv;
-	struct net_device *dev;
-	struct wilc_vif *vif;
-
-	if (!dev_iface || !dev_iface->ifa_dev || !dev_iface->ifa_dev->dev) {
-		pr_err("dev_iface = NULL\n");
-		return NOTIFY_DONE;
-	}
-
-	dev  = (struct net_device *)dev_iface->ifa_dev->dev;
-	if (dev->netdev_ops != &wilc_netdev_ops) {
-		pr_info("interface is not ours\n");
-		return NOTIFY_DONE;
-	}
-
-	if (!dev->ieee80211_ptr || !dev->ieee80211_ptr->wiphy) {
-		pr_err("No Wireless registerd\n");
-		return NOTIFY_DONE;
-	}
-
-	vif = netdev_priv(dev);
-	priv = &vif->priv;
-	if (!priv) {
-		pr_err("No Wireless Priv\n");
-		return NOTIFY_DONE;
-	}
-
-	hif_drv = (struct host_if_drv *)priv->hif_drv;
-	if (!vif || !hif_drv) {
-		PRINT_WRN(vif->ndev, GENERIC_DBG, "No Wireless Priv\n");
-		return NOTIFY_DONE;
-	}
-
-	switch (event) {
-	case NETDEV_UP:
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "event NETDEV_UP%p\n", dev);
-		PRINT_D(vif->ndev, GENERIC_DBG,
-			"\n =========== IP Address Obtained ============\n\n");
-		if (vif->iftype == WILC_STATION_MODE ||
-		    vif->iftype == WILC_CLIENT_MODE) {
-			hif_drv->ifc_up = 1;
-
-			handle_pwrsave_for_IP(vif, IP_STATE_OBTAINED);
-		}
-		break;
-
-	case NETDEV_DOWN:
-		PRINT_INFO(vif->ndev, GENERIC_DBG, "event=NETDEV_DOWN %p\n",
-			   dev);
-		if (vif->iftype == WILC_STATION_MODE ||
-		    vif->iftype == WILC_CLIENT_MODE) {
-			hif_drv->ifc_up = 0;
-			handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
-		}
-		break;
-
-	default:
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "[%s] unknown dev event %lu\n",
-			   dev_iface->ifa_label, event);
-		break;
-	}
-
-	return NOTIFY_DONE;
-}
-#endif
 
 void wilc_netdev_cleanup(struct wilc *wilc)
 {

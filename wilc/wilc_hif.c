@@ -888,9 +888,6 @@ static inline void host_int_parse_assoc_resp_info(struct wilc_vif *vif,
 			   "MAC status : CONNECTED and Connect Status : Successful\n");
 		hif_drv->hif_state = HOST_IF_CONNECTED;
 		ether_addr_copy(hif_drv->assoc_bssid, conn_info->bssid);
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		handle_pwrsave_for_IP(vif, IP_STATE_OBTAINING);
-#endif
 	} else {
 		PRINT_INFO(vif->ndev, HOSTINF_DBG,
 			   "MAC status : %d and Connect Status : %d\n",
@@ -921,10 +918,6 @@ static inline void host_int_handle_disconnect(struct wilc_vif *vif)
 	}
 
 	if (hif_drv->conn_info.conn_result) {
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
-#endif
-
 		hif_drv->conn_info.conn_result(EVENT_DISCONN_NOTIF,
 					       0, hif_drv->conn_info.arg);
 	} else {
@@ -1013,10 +1006,6 @@ int wilc_disconnect(struct wilc_vif *vif)
 	wid.size = sizeof(char);
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Sending disconnect request\n");
-
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
-#endif
 
 	result = wilc_send_config_pkt(vif, WILC_SET_CFG, &wid, 1);
 	if (result) {

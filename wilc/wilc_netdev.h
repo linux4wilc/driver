@@ -13,15 +13,9 @@
 #include "wilc_wfi_netdevice.h"
 #include "wilc_wlan_if.h"
 
-#define IP_STATE_OBTAINING		1
-#define IP_STATE_OBTAINED		2
-#define IP_STATE_GO_ASSIGNING		3
-#define IP_STATE_DEFAULT		4
-
 extern int wait_for_recovery;
 
 #ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-void handle_pwrsave_for_IP(struct wilc_vif *vif, uint8_t state);
 void store_power_save_current_state(struct wilc_vif *vif, bool val);
 #if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 void clear_during_ip(struct timer_list *t);

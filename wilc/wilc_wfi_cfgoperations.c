@@ -1750,11 +1750,6 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 	priv->p2p.local_random = 0x01;
 	priv->p2p.recv_random = 0x00;
 	priv->p2p.is_wilc_ie = false;
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	PRINT_INFO(vif->ndev, GENERIC_DBG,
-		   "Changing virtual interface, enable scan\n");
-	handle_pwrsave_for_IP(vif, IP_STATE_DEFAULT);
-#endif
 
 	switch (type) {
 	case NL80211_IFTYPE_STATION:
@@ -1811,9 +1806,6 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 			   "Interface type = NL80211_IFTYPE_GO\n");
 		PRINT_INFO(vif->ndev, GENERIC_DBG, "start duringIP timer\n");
 
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		handle_pwrsave_for_IP(vif, IP_STATE_GO_ASSIGNING);
-#endif
 		dev->ieee80211_ptr->iftype = type;
 		priv->wdev.iftype = type;
 		vif->iftype = WILC_GO_MODE;
