@@ -235,10 +235,6 @@ struct wilc_vif {
 	struct host_if_drv *hif_drv;
 	struct net_device *ndev;
 
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	bool pwrsave_current_state;
-	bool obtaining_ip;
-#endif
 	struct rf_info periodic_stats;
 	struct timer_list periodic_rssi;
 	struct tcp_ack_filter ack_filter;

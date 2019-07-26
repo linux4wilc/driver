@@ -16,22 +16,8 @@
 
 #include "wilc_netdev.h"
 #include "wilc_wfi_cfgoperations.h"
-#include "wilc_wlan_cfg.h"
 
 #define WILC_MULTICAST_TABLE_SIZE	8
-
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-bool g_ignore_PS_state;
-
-void store_power_save_current_state(struct wilc_vif *vif, bool val)
-{
-	if (g_ignore_PS_state) {
-		g_ignore_PS_state = false;
-		return;
-	}
-	vif->pwrsave_current_state = val;
-}
-#endif /* DISABLE_PWRSAVE_AND_SCAN_DURING_IP */
 
 static int wilc_mac_open(struct net_device *ndev);
 static int wilc_mac_close(struct net_device *ndev);

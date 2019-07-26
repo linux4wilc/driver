@@ -199,9 +199,7 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 					GFP_KERNEL);
 	} else if (conn_disconn_evt == EVENT_DISCONN_NOTIF) {
 		u16 reason = 0;
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-		vif->obtaining_ip = false;
-#endif
+
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			 "Received WILC_MAC_STATUS_DISCONNECTED dev [%p]\n",
 			 priv->dev);
@@ -1697,20 +1695,6 @@ static int set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 		return -EIO;
 	}
 
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	/* Can't set PS during obtaining IP */
-	if (vif->obtaining_ip == true) {
-		PRINT_ER(dev,
-			 "Device obtaining IP, Power Managment will be handled after IP Obtained\n");
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Save the Current state of the PS = %d\n", enabled);
-
-		/* Save the current status of the PS */
-		store_power_save_current_state(vif, enabled);
-
-		return 0;
-	}
-#endif
 	PRINT_INFO(vif->ndev, CFG80211_DBG,
 		   " Power save Enabled= %d , TimeOut = %d\n", enabled,
 		   timeout);

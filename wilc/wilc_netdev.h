@@ -15,9 +15,6 @@
 
 extern int wait_for_recovery;
 
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-void store_power_save_current_state(struct wilc_vif *vif, bool val);
-#endif //DISABLE_PWRSAVE_AND_SCAN_DURING_IP
 struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc);
 struct host_if_drv *get_drv_hndl_by_ifc(struct wilc *wilc, uint8_t ifc);
 

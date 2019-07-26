@@ -352,13 +352,6 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 		result = -EBUSY;
 		goto error;
 	}
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	if (vif->obtaining_ip) {
-		PRINT_ER(vif->ndev, "Don't do obss scan\n");
-		result = -EBUSY;
-		goto error;
-	}
-#endif
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting SCAN params\n");
 	hif_drv->usr_scan_req.ch_cnt = 0;
@@ -1209,13 +1202,6 @@ static int handle_remain_on_chan(struct wilc_vif *vif,
 			   "Don't do scan in (CONNECTING) state\n");
 		return -EBUSY;
 	}
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	if (vif->obtaining_ip) {
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Don't obss scan until IP adresss is obtained\n");
-		return -EBUSY;
-	}
-#endif
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG,
 		   "Setting channel [%d] duration[%d] [%llu]\n",
@@ -2044,28 +2030,19 @@ int wilc_init(struct net_device *dev, struct host_if_drv **hif_drv_handler)
 	*hif_drv_handler = hif_drv;
 	vif->hif_drv = hif_drv;
 
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	vif->obtaining_ip = false;
-#endif
-
-	#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
-		timer_setup(&vif->periodic_rssi, get_periodic_rssi, 0);
-	#else
-		setup_timer(&vif->periodic_rssi, get_periodic_rssi,
-			    (unsigned long)vif);
-	#endif
-		mod_timer(&vif->periodic_rssi,
-			  jiffies + msecs_to_jiffies(5000));
-
 #if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
 	timer_setup(&hif_drv->scan_timer, timer_scan_cb, 0);
 	timer_setup(&hif_drv->connect_timer, timer_connect_cb, 0);
 	timer_setup(&hif_drv->remain_on_ch_timer, listen_timer_cb, 0);
+	timer_setup(&vif->periodic_rssi, get_periodic_rssi, 0);
 #else
 	setup_timer(&hif_drv->scan_timer, timer_scan_cb, 0);
 	setup_timer(&hif_drv->connect_timer, timer_connect_cb, 0);
 	setup_timer(&hif_drv->remain_on_ch_timer, listen_timer_cb, 0);
+	setup_timer(&vif->periodic_rssi, get_periodic_rssi,
+			    (unsigned long)vif);
 #endif
+	mod_timer(&vif->periodic_rssi, jiffies + msecs_to_jiffies(5000));
 
 	hif_drv->hif_state = HOST_IF_IDLE;
 
@@ -2521,10 +2498,6 @@ int wilc_set_power_mgmt(struct wilc_vif *vif, bool enabled, u32 timeout)
 	result = wilc_send_config_pkt(vif, WILC_SET_CFG, &wid, 1);
 	if (result)
 		PRINT_ER(vif->ndev, "Failed to send power management\n");
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-	else
-		store_power_save_current_state(vif, power_mode);
-#endif
 
 	return result;
 }
@@ -2552,36 +2525,6 @@ int wilc_setup_multicast_filter(struct wilc_vif *vif, u32 enabled, u32 count,
 	}
 	return result;
 }
-
-#ifdef DISABLE_PWRSAVE_AND_SCAN_DURING_IP
-void handle_powersave_state_changes(struct work_struct *work)
-{
-	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
-	struct wilc_vif *vif = msg->vif;
-
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "Recover PS = %d\n",
-		   vif->pwrsave_current_state);
-
-	/* Recover PS previous state */
-	wilc_set_power_mgmt(vif, vif->pwrsave_current_state, 0);
-}
-
-void wilc_powersave_state_changes(struct wilc_vif *vif)
-{
-	int result;
-	struct host_if_msg *msg;
-
-	msg = wilc_alloc_work(vif, handle_powersave_state_changes, false);
-	if (IS_ERR(msg))
-		return;
-
-	result = wilc_enqueue_work(msg);
-	if (result) {
-		PRINT_ER(vif->ndev, "enqueue work failed\n");
-		kfree(msg);
-	}
-}
-#endif
 
 int wilc_set_tx_power(struct wilc_vif *vif, u8 tx_power)
 {
