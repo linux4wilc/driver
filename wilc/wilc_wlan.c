@@ -1560,7 +1560,6 @@ int wilc_wlan_stop(struct wilc *wilc, struct wilc_vif *vif)
 {
 	u32 reg = 0;
 	int ret;
-	u8 timeout = 10;
 
 	acquire_bus(wilc, WILC_BUS_ACQUIRE_AND_WAKEUP, DEV_WIFI);
 
@@ -1598,66 +1597,17 @@ int wilc_wlan_stop(struct wilc *wilc, struct wilc_vif *vif)
 		return ret;
 	}
 
-	ret = wilc->hif_func->hif_read_reg(wilc, WILC_GLB_RESET_0, &reg);
+	ret = wilc->hif_func->hif_read_reg(wilc, WILC_GP_REG_0, &reg);
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while reading reg\n");
 		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
-		return ret;
 	}
 
-	reg &= ~BIT(10);
-	ret = wilc->hif_func->hif_write_reg(wilc, WILC_GLB_RESET_0, reg);
+	ret = wilc->hif_func->hif_write_reg(wilc, WILC_GP_REG_0,
+					(reg | WILC_ABORT_REQ_BIT));
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while writing reg\n");
 		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
-		return ret;
-	}
-
-	do {
-		ret = wilc->hif_func->hif_read_reg(wilc,
-						   WILC_GLB_RESET_0, &reg);
-		if (!ret) {
-			PRINT_ER(vif->ndev, "Error while reading reg\n");
-			release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP,
-				    DEV_WIFI);
-			return ret;
-		}
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "Read RESET Reg %x : Retry%d\n", reg, timeout);
-		if ((reg & BIT(10))) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Bit 10 not reset : Retry %d\n", timeout);
-			reg &= ~BIT(10);
-			ret = wilc->hif_func->hif_write_reg(wilc,
-							    WILC_GLB_RESET_0,
-							    reg);
-			timeout--;
-		} else {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Bit 10 reset after : Retry %d\n", timeout);
-			ret = wilc->hif_func->hif_read_reg(wilc,
-							   WILC_GLB_RESET_0,
-							   &reg);
-			if (!ret) {
-				PRINT_ER(vif->ndev, "Error reading reg\n");
-				release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP,
-					    DEV_WIFI);
-				return ret;
-			}
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Read RESET Reg %x : Retry%d\n", reg,
-				   timeout);
-			break;
-		}
-
-	} while (timeout);
-
-	if (wilc->chip == WILC_1000) {
-		reg = (BIT(0) | BIT(1) | BIT(2) | BIT(3) | BIT(8) | BIT(9) |
-		       BIT(26) | BIT(29) | BIT(30) | BIT(31));
-	} else {
-		reg = (BIT(0) | BIT(2) | BIT(3) | BIT(8) | BIT(9) |
-		       BIT(20) | BIT(26) | BIT(29) | BIT(30) | BIT(31));
 	}
 
 	wilc->hif_func->hif_read_reg(wilc, WILC_FW_HOST_COMM, &reg);

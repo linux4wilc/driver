@@ -142,7 +142,7 @@ static inline bool is_wilc3000(u32 id)
 #define WILC_CFG_RSP		1
 #define WILC_CFG_RSP_STATUS	2
 #define WILC_CFG_RSP_SCAN	3
-#define ABORT_INT		BIT(31)
+#define WILC_ABORT_REQ_BIT		BIT(31)
 
 #define WILC_RX_BUFF_SIZE	(96 * 1024)
 #define WILC_TX_BUFF_SIZE	(64 * 1024)
