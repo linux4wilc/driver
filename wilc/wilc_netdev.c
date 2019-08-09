@@ -1378,7 +1378,7 @@ struct wilc_vif *wilc_netdev_ifc_init(struct wilc *wl, const char *name,
 		free_netdev(ndev);
 		return ERR_PTR(-EFAULT);
 	}
-#if KERNEL_VERSION(4, 15, 0) <= LINUX_VERSION_CODE
+#if KERNEL_VERSION(4, 11, 9) <= LINUX_VERSION_CODE
 	ndev->needs_free_netdev = true;
 #else
 	ndev->destructor = free_netdev;
