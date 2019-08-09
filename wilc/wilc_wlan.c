@@ -1568,7 +1568,7 @@ int wilc_wlan_stop(struct wilc *wilc, struct wilc_vif *vif)
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while reading reg\n");
 		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
-		return ret;
+		return -EIO;
 	}
 
 	reg &= ~BIT(0);
@@ -1576,7 +1576,7 @@ int wilc_wlan_stop(struct wilc *wilc, struct wilc_vif *vif)
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while writing reg\n");
 		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
-		return ret;
+		return -EIO;
 	}
 
 	/* Configure the power sequencer to ignore WIFI sleep signal on making
@@ -1586,7 +1586,7 @@ int wilc_wlan_stop(struct wilc *wilc, struct wilc_vif *vif)
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while reading reg\n");
 		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
-		return ret;
+		return -EIO;
 	}
 
 	reg &= ~BIT(28);
@@ -1594,13 +1594,14 @@ int wilc_wlan_stop(struct wilc *wilc, struct wilc_vif *vif)
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while writing reg\n");
 		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
-		return ret;
+		return -EIO;
 	}
 
 	ret = wilc->hif_func->hif_read_reg(wilc, WILC_GP_REG_0, &reg);
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while reading reg\n");
 		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
+		return -EIO;
 	}
 
 	ret = wilc->hif_func->hif_write_reg(wilc, WILC_GP_REG_0,
@@ -1608,16 +1609,27 @@ int wilc_wlan_stop(struct wilc *wilc, struct wilc_vif *vif)
 	if (!ret) {
 		PRINT_ER(vif->ndev, "Error while writing reg\n");
 		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
+		return -EIO;
 	}
 
-	wilc->hif_func->hif_read_reg(wilc, WILC_FW_HOST_COMM, &reg);
+	ret = wilc->hif_func->hif_read_reg(wilc, WILC_FW_HOST_COMM, &reg);
+	if (!ret) {
+		PRINT_ER(vif->ndev, "Error while reading reg\n");
+		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
+		return -EIO;
+	}
 	reg = BIT(0);
 
 	ret = wilc->hif_func->hif_write_reg(wilc, WILC_FW_HOST_COMM, reg);
+	if (!ret) {
+		PRINT_ER(vif->ndev, "Error while writing reg\n");
+		release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
+		return -EIO;
+	}
 
 	release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
 
-	return ret;
+	return 0;
 }
 
 void wilc_wlan_cleanup(struct net_device *dev)

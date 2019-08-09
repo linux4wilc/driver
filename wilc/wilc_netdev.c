@@ -848,7 +848,7 @@ static void wilc_wlan_deinitialize(struct net_device *dev)
 		deinit_irq(dev);
 
 		ret = wilc_wlan_stop(wl, vif);
-		if (ret == 0)
+		if (ret != 0)
 			PRINT_ER(dev, "failed in wlan_stop\n");
 
 		PRINT_INFO(vif->ndev, INIT_DBG, "Deinitializing WILC Wlan\n");
