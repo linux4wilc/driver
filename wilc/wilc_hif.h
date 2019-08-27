@@ -18,11 +18,6 @@ enum {
 	WILC_MONITOR_MODE = 0x5
 };
 
-enum {
-	WILC_WLAN_IFC = 0x00,
-	WILC_P2P_IFC = 0x01,
-};
-
 #define WILC_MAX_NUM_STA			9
 #define WILC_MAX_NUM_SCANNED_CH			14
 #define WILC_MAX_NUM_PROBED_SSID		10

@@ -438,14 +438,6 @@ struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc)
 		return NULL;
 }
 
-struct host_if_drv *get_drv_hndl_by_ifc(struct wilc *wilc, uint8_t ifc)
-{
-	if (wilc->vif[ifc])
-		return wilc->vif[ifc]->hif_drv;
-	else
-		return NULL;
-}
-
 #define TX_BACKOFF_WEIGHT_INCR_STEP (1)
 #define TX_BACKOFF_WEIGHT_DECR_STEP (1)
 #define TX_BACKOFF_WEIGHT_MAX (0)

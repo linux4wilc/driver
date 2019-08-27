@@ -316,36 +316,30 @@ int wilc_scan(struct wilc_vif *vif, u8 scan_source, u8 scan_type,
 	u8 valuesize = 0;
 	u8 *search_ssid_vals = NULL;
 	struct host_if_drv *hif_drv = vif->hif_drv;
-	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
-							      WILC_P2P_IFC);
-	struct host_if_drv *hif_drv_wlan = get_drv_hndl_by_ifc(vif->wilc,
-							       WILC_WLAN_IFC);
 
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Setting SCAN params\n");
 	PRINT_INFO(vif->ndev, HOSTINF_DBG, "Scanning: In [%d] state\n",
 		   hif_drv->hif_state);
 
-	if (hif_drv_p2p != NULL) {
-		if (hif_drv_p2p->hif_state != HOST_IF_IDLE &&
-		    hif_drv_p2p->hif_state != HOST_IF_CONNECTED) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Don't scan. P2P_IFC is in state [%d]\n",
-				   hif_drv_p2p->hif_state);
+	for (i = 0; i < WILC_NUM_CONCURRENT_IFC; i++) {
+		struct wilc_vif *vif_tmp = vif->wilc->vif[i];
+		struct host_if_drv *hif_drv_tmp;
+
+		if (vif_tmp == NULL || vif_tmp->hif_drv == NULL)
+			continue;
+
+		hif_drv_tmp = vif_tmp->hif_drv;
+
+		if (hif_drv_tmp->hif_state != HOST_IF_IDLE &&
+		    hif_drv_tmp->hif_state != HOST_IF_CONNECTED) {
+			PRINT_INFO(vif_tmp->ndev, GENERIC_DBG,
+				   "Abort scan. In state [%d]\n",
+				   hif_drv_tmp->hif_state);
 			result = -EBUSY;
 			goto error;
 		}
 	}
 
-	if (hif_drv_wlan != NULL) {
-		if (hif_drv_wlan->hif_state != HOST_IF_IDLE &&
-		    hif_drv_wlan->hif_state != HOST_IF_CONNECTED) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Don't scan. WLAN_IFC is in state [%d]\n",
-				   hif_drv_wlan->hif_state);
-			result = -EBUSY;
-			goto error;
-		}
-	}
 	if (vif->connecting) {
 		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "Don't do scan in (CONNECTING) state\n");
@@ -500,32 +494,27 @@ s32 handle_scan_done(struct wilc_vif *vif, enum scan_event evt)
 
 static int wilc_send_connect_wid(struct wilc_vif *vif)
 {
-	int result = 0;
+	int result = 0, i;
 	struct wid wid_list[4];
 	u32 wid_cnt = 0;
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct wilc_conn_info *conn_attr = &hif_drv->conn_info;
 	struct wilc_join_bss_param *bss_param = hif_drv->conn_info.param;
-	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
-							      WILC_P2P_IFC);
-	struct host_if_drv *hif_drv_wlan = get_drv_hndl_by_ifc(vif->wilc,
-							       WILC_WLAN_IFC);
 
-	if (hif_drv_p2p != NULL) {
-		if (hif_drv_p2p->hif_state == HOST_IF_SCANNING) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Don't scan. P2P_IFC is in state [%d]\n",
-			 hif_drv_p2p->hif_state);
-			 result = -EFAULT;
-			goto error;
-		}
-	}
-	if (hif_drv_wlan != NULL) {
-		if (hif_drv_wlan->hif_state == HOST_IF_SCANNING) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Don't scan. WLAN_IFC is in state [%d]\n",
-			 hif_drv_wlan->hif_state);
-			result = -EFAULT;
+	for (i = 0; i < WILC_NUM_CONCURRENT_IFC; i++) {
+		struct wilc_vif *vif_tmp = vif->wilc->vif[i];
+		struct host_if_drv *hif_drv_tmp;
+
+		if (vif_tmp == NULL || vif_tmp->hif_drv == NULL)
+			continue;
+
+		hif_drv_tmp = vif_tmp->hif_drv;
+
+		if (hif_drv_tmp->hif_state == HOST_IF_SCANNING) {
+			PRINT_INFO(vif_tmp->ndev, GENERIC_DBG,
+				   "Abort connect in state [%d]\n",
+				   hif_drv_tmp->hif_state);
+			result = -EBUSY;
 			goto error;
 		}
 	}
@@ -968,29 +957,24 @@ int wilc_disconnect(struct wilc_vif *vif)
 	struct host_if_drv *hif_drv = vif->hif_drv;
 	struct wilc_user_scan_req *scan_req;
 	struct wilc_conn_info *conn_info;
-	int result;
+	int result, i;
 	u16 dummy_reason_code = 0;
-	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
-							      WILC_P2P_IFC);
-	struct host_if_drv *hif_drv_wlan = get_drv_hndl_by_ifc(vif->wilc,
-							       WILC_WLAN_IFC);
 
-	if (hif_drv_wlan != NULL) {
-		if (hif_drv_wlan->hif_state == HOST_IF_SCANNING) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Abort Scan. WLAN_IFC is in state [%d]\n",
-				   hif_drv_wlan->hif_state);
-			del_timer(&hif_drv_wlan->scan_timer);
-			handle_scan_done(vif, SCAN_EVENT_ABORTED);
-		}
-	}
-	if (hif_drv_p2p != NULL) {
-		if (hif_drv_p2p->hif_state == HOST_IF_SCANNING) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "Abort Scan. P2P_IFC is in state [%d]\n",
-				   hif_drv_p2p->hif_state);
-			del_timer(&hif_drv_p2p->scan_timer);
-			handle_scan_done(vif, SCAN_EVENT_ABORTED);
+	for (i = 0; i < WILC_NUM_CONCURRENT_IFC; i++) {
+		struct wilc_vif *vif_tmp = vif->wilc->vif[i];
+		struct host_if_drv *hif_drv_tmp;
+
+		if (vif_tmp == NULL || vif_tmp->hif_drv == NULL)
+			continue;
+
+		hif_drv_tmp = vif_tmp->hif_drv;
+
+		if (hif_drv_tmp->hif_state == HOST_IF_SCANNING) {
+			PRINT_INFO(vif_tmp->ndev, GENERIC_DBG,
+				   "Abort scan from disconnect. state [%d]\n",
+				   hif_drv_tmp->hif_state);
+			del_timer(&hif_drv_tmp->scan_timer);
+			handle_scan_done(vif_tmp, SCAN_EVENT_ABORTED);
 		}
 	}
 	wid.id = WID_DISCONNECT;
@@ -1142,45 +1126,36 @@ static void wilc_hif_pack_sta_param(struct wilc_vif *vif, u8 *cur_byte,
 static int handle_remain_on_chan(struct wilc_vif *vif,
 				 struct wilc_remain_ch *hif_remain_ch)
 {
-	int result;
+	int result, i;
 	u8 remain_on_chan_flag;
 	struct wid wid;
 	struct host_if_drv *hif_drv = vif->hif_drv;
-	struct host_if_drv *hif_drv_p2p = get_drv_hndl_by_ifc(vif->wilc,
-							      WILC_P2P_IFC);
-	struct host_if_drv *hif_drv_wlan = get_drv_hndl_by_ifc(vif->wilc,
-							       WILC_WLAN_IFC);
 
 	if (!hif_drv) {
 		PRINT_ER(vif->ndev, "Driver is null\n");
 		return -EFAULT;
 	}
 
-	if (hif_drv_p2p != NULL) {
-		if (hif_drv_p2p->hif_state == HOST_IF_SCANNING) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "IFC busy scanning P2P_IFC state %d\n",
-				   hif_drv_p2p->hif_state);
-			return -EBUSY;
-		} else if ((hif_drv_p2p->hif_state != HOST_IF_IDLE) &&
-		(hif_drv_p2p->hif_state != HOST_IF_CONNECTED)) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "IFC busy connecting. P2P_IFC state %d\n",
-				   hif_drv_p2p->hif_state);
-			return -EBUSY;
-		}
-	}
-	if (hif_drv_wlan != NULL) {
-		if (hif_drv_wlan->hif_state == HOST_IF_SCANNING) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
+
+	for (i = 0; i < WILC_NUM_CONCURRENT_IFC; i++) {
+		struct wilc_vif *vif_tmp = vif->wilc->vif[i];
+		struct host_if_drv *hif_drv_tmp;
+
+		if (vif_tmp == NULL || vif_tmp->hif_drv == NULL)
+			continue;
+
+		hif_drv_tmp = vif_tmp->hif_drv;
+
+		if (hif_drv_tmp->hif_state == HOST_IF_SCANNING) {
+			PRINT_INFO(vif_tmp->ndev, GENERIC_DBG,
 				   "IFC busy scanning. WLAN_IFC state %d\n",
-				   hif_drv_wlan->hif_state);
+				   hif_drv_tmp->hif_state);
 			return -EBUSY;
-		} else if ((hif_drv_wlan->hif_state != HOST_IF_IDLE) &&
-		(hif_drv_wlan->hif_state != HOST_IF_CONNECTED)) {
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
+		} else if (hif_drv_tmp->hif_state != HOST_IF_IDLE &&
+			   hif_drv_tmp->hif_state != HOST_IF_CONNECTED) {
+			PRINT_INFO(vif_tmp->ndev, GENERIC_DBG,
 				   "IFC busy connecting. WLAN_IFC %d\n",
-				   hif_drv_wlan->hif_state);
+				   hif_drv_tmp->hif_state);
 			return -EBUSY;
 		}
 	}

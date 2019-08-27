@@ -16,7 +16,6 @@
 extern int wait_for_recovery;
 
 struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc);
-struct host_if_drv *get_drv_hndl_by_ifc(struct wilc *wilc, uint8_t ifc);
 
 #if KERNEL_VERSION(3, 14, 0) > LINUX_VERSION_CODE
 static inline void ether_addr_copy(u8 *dst, const u8 *src)
