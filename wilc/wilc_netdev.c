@@ -58,7 +58,7 @@ static int debug_thread(void *arg)
 
 		if (!debug_running)
 			continue;
-		PRINT_INFO(wl->vif[0]->ndev, GENERIC_DBG,
+		PRINT_D(wl->vif[0]->ndev, GENERIC_DBG,
 			   "*** Debug Thread Running ***\n");
 		if (cfg_packet_timeout < 5)
 			continue;

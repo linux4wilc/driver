@@ -1626,7 +1626,7 @@ void wilc_mgmt_frame_register(struct wiphy *wiphy, struct wireless_dev *wdev,
 	if (!frame_type)
 		return;
 
-	PRINT_INFO(vif->ndev, GENERIC_DBG,
+	PRINT_D(vif->ndev, GENERIC_DBG,
 		   "Frame registering Frame Type: %x: Boolean: %d\n",
 		   frame_type, reg);
 	switch (frame_type) {
