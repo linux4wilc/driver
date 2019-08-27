@@ -19,12 +19,9 @@ enum {
 };
 
 enum {
-	WILC_P2P_IFC = 0x00,
-	WILC_WLAN_IFC = 0x01,
+	WILC_WLAN_IFC = 0x00,
+	WILC_P2P_IFC = 0x01,
 };
-
-#define IFC_0 "wlan0"
-#define IFC_1 "p2p0"
 
 #define WILC_MAX_NUM_STA			9
 #define WILC_MAX_NUM_SCANNED_CH			14
