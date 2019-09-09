@@ -223,6 +223,7 @@ static struct spi_driver wilc_spi_driver = {
 };
 module_spi_driver(wilc_spi_driver);
 MODULE_LICENSE("GPL");
+MODULE_VERSION("15.3_RC2_DEV");
 
 static int spi_data_rsp(struct wilc *wilc, u8 cmd)
 {
