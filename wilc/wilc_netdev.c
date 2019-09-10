@@ -130,8 +130,6 @@ static irqreturn_t isr_uh_routine(int irq, void *user_data)
 {
 	struct wilc *wilc = (struct wilc *)user_data;
 
-	pr_info("%s: Interrupt received UH\n", __func__);
-
 	if (wilc->close) {
 		pr_err("%s: Can't handle UH interrupt\n", __func__);
 		return IRQ_HANDLED;
@@ -148,7 +146,6 @@ static irqreturn_t isr_bh_routine(int irq, void *userdata)
 		return IRQ_HANDLED;
 	}
 
-	pr_info("%s: Interrupt received BH\n", __func__);
 	wilc_handle_isr(wilc);
 
 	return IRQ_HANDLED;
@@ -207,7 +204,7 @@ static int init_irq(struct net_device *dev)
 	if (wl->io_type == WILC_HIF_SPI ||
 		wl->io_type == WILC_HIF_SDIO_GPIO_IRQ) {
 		if (request_threaded_irq(wl->dev_irq_num, isr_uh_routine,
-					 isr_bh_routine, IRQF_TRIGGER_LOW |
+					 isr_bh_routine, IRQF_TRIGGER_FALLING |
 							IRQF_ONESHOT |
 							IRQF_NO_SUSPEND,
 					 "WILC_IRQ", wl) < 0) {
