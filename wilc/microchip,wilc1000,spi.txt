@@ -9,8 +9,12 @@ Required properties:
 - reg			: Chip select address of device
 - irq-gpios		: Connect to a host IRQ
 - reset-gpios		: Reset module GPIO
-- chip_en-gpios:    	: Chip enable GPIO
+- chip_en-gpios:	: Chip enable GPIO
 
+Optional:
+- rtc_clk	:	Clock connected on the rtc clock line. Must be assigned
+			a frequency with assigned-clocks property, and must be
+			connected to a clock provider.
 
 Examples:
 
@@ -25,6 +29,10 @@ spi1: spi@fc018000 {
 			irq-gpios = <&pioC 27 0>;
 			reset-gpios = <&pioB 28 0>;
 			chip_en-gpios = <&pioC 30 0>;
+			clocks = <&pck1>;
+			clock-names = "rtc_clk";
+			assigned-clocks = <&pck1>;
+			assigned-clock-rates = <32768>;
 			status = "okay";
 		};
 };
