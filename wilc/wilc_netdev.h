@@ -43,6 +43,10 @@ static inline bool ether_addr_equal_unaligned(const u8 *addr1, const u8 *addr2)
 }
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0) */
 
+#if KERNEL_VERSION(3, 12, 0) > LINUX_VERSION_CODE
+#define PTR_ERR_OR_ZERO(ptr) PTR_RET(ptr)
+#endif
+
 int wilc_bt_power_up(struct wilc *wilc, int source);
 int wilc_bt_power_down(struct wilc *wilc, int source);
 void wilc_wfi_monitor_rx(struct net_device *mon_dev, u8 *buff, u32 size);

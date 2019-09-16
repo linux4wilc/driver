@@ -14,6 +14,7 @@
 #include "wilc_wfi_netdevice.h"
 #include "wilc_wlan.h"
 #include "wilc_wfi_cfgoperations.h"
+#include "wilc_netdev.h"
 
 enum sdio_host_lock {
 	WILC_SDIO_HOST_NO_TAKEN = 0,
