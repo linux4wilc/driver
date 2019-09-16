@@ -4,6 +4,7 @@
  * All rights reserved.
  */
 
+#include <linux/clk.h>
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
@@ -136,7 +137,7 @@ static int wilc_sdio_cmd53(struct wilc *wilc, struct sdio_cmd53 *cmd)
 }
 
 static int wilc_sdio_probe(struct sdio_func *func,
-			    const struct sdio_device_id *id)
+			   const struct sdio_device_id *id)
 {
 	struct wilc *wilc;
 	int ret, io_type;
@@ -164,6 +165,12 @@ static int wilc_sdio_probe(struct sdio_func *func,
 	wilc->dt_dev = &func->card->dev;
 	sdio_priv->wl = wilc;
 
+	wilc->rtc_clk = devm_clk_get(&func->card->dev, "rtc_clk");
+	if (PTR_ERR_OR_ZERO(wilc->rtc_clk) == -EPROBE_DEFER)
+		return -EPROBE_DEFER;
+	else if (!IS_ERR(wilc->rtc_clk))
+		clk_prepare_enable(wilc->rtc_clk);
+
 	if (!init_power) {
 		wilc_wlan_power_on_sequence(wilc);
 		init_power = 1;
@@ -178,6 +185,9 @@ static int wilc_sdio_probe(struct sdio_func *func,
 static void wilc_sdio_remove(struct sdio_func *func)
 {
 	struct wilc *wilc = sdio_get_drvdata(func);
+
+	if (!IS_ERR(wilc->rtc_clk))
+		clk_disable_unprepare(wilc->rtc_clk);
 
 	wilc_netdev_cleanup(wilc);
 	wilc_bt_deinit();
