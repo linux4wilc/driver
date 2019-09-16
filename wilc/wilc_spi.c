@@ -4,11 +4,13 @@
  * All rights reserved.
  */
 
+#include <linux/clk.h>
 #include <linux/spi/spi.h>
 #include <linux/module.h>
 
 #include "wilc_wfi_netdevice.h"
 #include "wilc_wfi_cfgoperations.h"
+#include "wilc_netdev.h"
 
 struct wilc_spi {
 	int crc_off;
@@ -135,6 +137,11 @@ static int wilc_bus_probe(struct spi_device *spi)
 	wilc->bus_data = spi_priv;
 	wilc->dt_dev = &spi->dev;
 
+	wilc->rtc_clk = devm_clk_get(&spi->dev, "rtc_clk");
+	if (PTR_ERR_OR_ZERO(wilc->rtc_clk) == -EPROBE_DEFER)
+		return -EPROBE_DEFER;
+	else if (!IS_ERR(wilc->rtc_clk))
+		clk_prepare_enable(wilc->rtc_clk);
 
 	if (!init_power) {
 		wilc_wlan_power_on_sequence(wilc);
@@ -150,6 +157,9 @@ static int wilc_bus_probe(struct spi_device *spi)
 static int wilc_bus_remove(struct spi_device *spi)
 {
 	struct wilc *wilc = spi_get_drvdata(spi);
+
+	if (!IS_ERR(wilc->rtc_clk))
+		clk_disable_unprepare(wilc->rtc_clk);
 
 	wilc_netdev_cleanup(wilc);
 	wilc_bt_deinit();
