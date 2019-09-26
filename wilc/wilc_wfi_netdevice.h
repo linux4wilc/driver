@@ -240,6 +240,7 @@ struct wilc_vif {
 	struct tcp_ack_filter ack_filter;
 	bool connecting;
 	struct wilc_priv priv;
+	struct list_head list;
 };
 
 struct wilc {
@@ -257,7 +258,8 @@ struct wilc {
 	int dev_irq_num;
 	int close;
 	u8 vif_num;
-	struct wilc_vif *vif[WILC_NUM_CONCURRENT_IFC];
+	struct list_head vif_list;
+	struct srcu_struct srcu;
 	/*protect vif list queue*/
 	struct mutex vif_mutex;
 	u8 open_ifcs;

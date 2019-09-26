@@ -225,15 +225,15 @@ static void cfg_connect_result(enum conn_event conn_disconn_evt,
 	}
 }
 
-static struct wilc_vif *wilc_get_wl_to_vif(struct wilc *wl)
+struct wilc_vif *wilc_get_wl_to_vif(struct wilc *wl)
 {
-	int i;
+	struct wilc_vif *vif;
 
-	for (i = 0; i < wl->vif_num; i++)
-		if (wl->vif[i])
-			return wl->vif[i];
+	vif = list_first_or_null_rcu(&wl->vif_list, typeof(*vif), list);
+	if (!vif)
+		return ERR_PTR(-EINVAL);
 
-	return ERR_PTR(-EINVAL);
+	return vif;
 }
 
 static int set_channel(struct wiphy *wiphy,
@@ -243,11 +243,12 @@ static int set_channel(struct wiphy *wiphy,
 	struct wilc_vif *vif;
 	u32 channelnum = 0;
 	int result = 0;
+	int srcu_idx;
 
-	mutex_lock(&wl->vif_mutex);
+	srcu_idx = srcu_read_lock(&wl->srcu);
 	vif = wilc_get_wl_to_vif(wl);
 	if (IS_ERR(vif)) {
-		mutex_unlock(&wl->vif_mutex);
+		srcu_read_unlock(&wl->srcu, srcu_idx);
 		return 0;
 	}
 
@@ -262,7 +263,7 @@ static int set_channel(struct wiphy *wiphy,
 		PRINT_ER(vif->ndev, "Error in setting channel %d\n",
 			 channelnum);
 
-	mutex_unlock(&wl->vif_mutex);
+	srcu_read_unlock(&wl->srcu, srcu_idx);
 	return result;
 }
 
@@ -753,12 +754,11 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 		   const u8 *mac_addr)
 {
 	int ret = 0;
-	struct wilc *wl = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(netdev);
 	struct wilc_priv *priv = &vif->priv;
 
 	//TODO: Why to compare with only interface vif[0]
-	if (netdev == wl->vif[0]->ndev) {
+	//if (netdev == wl->vif[0]->ndev) {
 		if (priv->wilc_gtk[key_index]) {
 			kfree(priv->wilc_gtk[key_index]->key);
 			priv->wilc_gtk[key_index]->key = NULL;
@@ -777,7 +777,7 @@ static int del_key(struct wiphy *wiphy, struct net_device *netdev,
 			kfree(priv->wilc_ptk[key_index]);
 			priv->wilc_ptk[key_index] = NULL;
 		}
-	}
+	//}
 
 	if (key_index <= 3 && priv->wep_key_len[key_index]) {
 		memset(priv->wep_key[key_index], 0,
@@ -922,29 +922,23 @@ static int change_bss(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
-struct wilc_vif *wilc_get_interface(struct wilc *wl)
-{
-	int i;
-	struct wilc_vif *vif = NULL;
-
-	mutex_lock(&wl->vif_mutex);
-	for (i = 0; i < wl->vif_num; i++) {
-		if (wl->vif[i]) {
-			vif = wl->vif[i];
-			break;
-		}
-	}
-	mutex_unlock(&wl->vif_mutex);
-	return vif;
-}
-
 static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 {
 	int ret;
 	struct cfg_param_attr cfg_param_val;
 	struct wilc *wl = wiphy_priv(wiphy);
-	struct wilc_vif *vif = wilc_get_interface(wl);
-	struct wilc_priv *priv = &vif->priv;
+	struct wilc_vif *vif;
+	struct wilc_priv *priv;
+	int srcu_idx;
+
+	srcu_idx = srcu_read_lock(&wl->srcu);
+	vif = wilc_get_wl_to_vif(wl);
+	if (IS_ERR(vif)) {
+		srcu_read_unlock(&wl->srcu, srcu_idx);
+		return 0;
+	}
+
+	priv = &vif->priv;
 
 	cfg_param_val.flag = 0;
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Setting Wiphy params\n");
@@ -974,7 +968,8 @@ static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 		} else {
 			PRINT_ER(vif->ndev,
 				 "Fragmentation threshold out of range\n");
-			return -EINVAL;
+			ret = -EINVAL;
+			goto out;
 		}
 	}
 
@@ -987,7 +982,8 @@ static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 			cfg_param_val.rts_threshold = wiphy->rts_threshold;
 		} else {
 			PRINT_ER(vif->ndev, "RTS threshold out of range\n");
-			return -EINVAL;
+			ret = -EINVAL;
+			goto out;
 		}
 	}
 
@@ -996,6 +992,9 @@ static int set_wiphy_params(struct wiphy *wiphy, u32 changed)
 	ret = wilc_hif_set_cfg(vif, &cfg_param_val);
 	if (ret)
 		PRINT_ER(priv->dev, "Error in setting WIPHY PARAMS\n");
+
+out:
+	srcu_read_unlock(&wl->srcu, srcu_idx);
 
 	return ret;
 }
@@ -2006,19 +2005,15 @@ static int change_station(struct wiphy *wiphy, struct net_device *dev,
 	return ret;
 }
 
-int wilc_get_vif_from_type(struct wilc *wl, int type)
+struct wilc_vif *wilc_get_vif_from_type(struct wilc *wl, int type)
 {
-	int i;
+	struct wilc_vif *vif;
 
-	mutex_lock(&wl->vif_mutex);
-	for (i = 0; i < wl->vif_num; i++) {
-		if (wl->vif[i]->iftype == type) {
-			mutex_unlock(&wl->vif_mutex);
-			return i;
-		}
+	list_for_each_entry_rcu(vif, &wl->vif_list, list) {
+		if (vif->iftype == type)
+			return vif;
 	}
-	mutex_unlock(&wl->vif_mutex);
-	return -1;
+	return NULL;
 }
 
 #if KERNEL_VERSION(4, 12, 0) <= LINUX_VERSION_CODE
@@ -2061,17 +2056,23 @@ static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 	if (type == NL80211_IFTYPE_MONITOR) {
 		struct wilc_vif *vif;
 		struct net_device *ndev;
-		int ap_index = wilc_get_vif_from_type(wl, WILC_AP_MODE);
+		int srcu_idx;
 
-		if (ap_index < 0) {
-			ap_index = wilc_get_vif_from_type(wl, WILC_GO_MODE);
-			if (ap_index < 0)
+		srcu_idx = srcu_read_lock(&wl->srcu);
+		vif = wilc_get_vif_from_type(wl, WILC_AP_MODE);
+
+		if (!vif) {
+			vif = wilc_get_vif_from_type(wl, WILC_GO_MODE);
+			if (!vif) {
+				srcu_read_unlock(&wl->srcu, srcu_idx);
 				goto validate_interface;
+			}
 		}
 
-		vif  = wl->vif[ap_index];
-		if (vif->monitor_flag)
+		if (vif->monitor_flag) {
+			srcu_read_unlock(&wl->srcu, srcu_idx);
 			goto validate_interface;
+		}
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
 			   "Initializing mon ifc virtual device driver\n");
 		PRINT_INFO(vif->ndev, CFG80211_DBG,
@@ -2086,6 +2087,7 @@ static struct wireless_dev *add_virtual_intf(struct wiphy *wiphy,
 				 "Error in initializing monitor interface\n");
 		}
 		wdev = &vif->priv.wdev;
+		srcu_read_unlock(&wl->srcu, srcu_idx);
 		return wdev;
 	}
 
@@ -2096,6 +2098,7 @@ validate_interface:
 		mutex_unlock(&wl->vif_mutex);
 		return ERR_PTR(-EINVAL);
 	}
+	mutex_unlock(&wl->vif_mutex);
 
 	pr_info("add_interaface [%d] name[%s] type[%d]\n", wl->vif_num,
 	       name, type);
@@ -2111,16 +2114,12 @@ validate_interface:
 		iftype = WILC_MONITOR_MODE;
 		break;
 	default:
-		mutex_unlock(&wl->vif_mutex);
 		return ERR_PTR(-EINVAL);
 	}
 
 	vif = wilc_netdev_ifc_init(wl, name, iftype, type, true);
-	if (IS_ERR(vif)) {
-		mutex_unlock(&wl->vif_mutex);
+	if (IS_ERR(vif))
 		return ERR_PTR(-EINVAL);
-	}
-	mutex_unlock(&wl->vif_mutex);
 
 	return &vif->priv.wdev;
 }
@@ -2129,7 +2128,6 @@ static int del_virtual_intf(struct wiphy *wiphy, struct wireless_dev *wdev)
 {
 	struct wilc *wl = wiphy_priv(wiphy);
 	struct wilc_vif *vif;
-	int i;
 
 	/* delete the monitor mode interface */
 	if (wdev->iftype == NL80211_IFTYPE_MONITOR) {
@@ -2146,21 +2144,11 @@ static int del_virtual_intf(struct wiphy *wiphy, struct wireless_dev *wdev)
 
 	/* update the vif list */
 	mutex_lock(&wl->vif_mutex);
-	wilc_set_operation_mode(vif, 0, 0, 0);
-	/* if the index is deleted inbetween shift it accordingly */
-	for (i = vif->idx; i < wl->vif_num; i++) {
-		if ((i + 1) >= wl->vif_num) {
-			wl->vif[i] = NULL;
-		} else {
-			vif = wl->vif[i + 1];
-			vif->idx = i;
-			wl->vif[i] = vif;
-			wilc_set_operation_mode(vif, wilc_get_vif_idx(vif),
-						 vif->iftype, vif->idx);
-		}
-	}
+	//delete the interface from rcu list
+	list_del_rcu(&vif->list);
 	wl->vif_num--;
 	mutex_unlock(&wl->vif_mutex);
+	synchronize_srcu(&wl->srcu);
 	return 0;
 }
 
@@ -2178,17 +2166,18 @@ static void wilc_set_wakeup(struct wiphy *wiphy, bool enabled)
 {
 	struct wilc *wl = wiphy_priv(wiphy);
 	struct wilc_vif *vif;
+	int srcu_idx;
 
-	mutex_lock(&wl->vif_mutex);
+	srcu_idx = srcu_read_lock(&wl->srcu);
 	vif = wilc_get_wl_to_vif(wl);
 	if (IS_ERR(vif)) {
-		mutex_unlock(&wl->vif_mutex);
+		srcu_read_unlock(&wl->srcu, srcu_idx);
 		return;
 	}
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG, "cfg set wake up = %d\n", enabled);
 	wilc_set_wowlan_trigger(vif, (u8)enabled);
-	mutex_unlock(&wl->vif_mutex);
+	srcu_read_unlock(&wl->srcu, srcu_idx);
 }
 
 static int set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
@@ -2235,21 +2224,26 @@ static int set_antenna(struct wiphy *wiphy, u32 tx_ant, u32 rx_ant)
 	int ret;
 	struct wilc *wl = wiphy_priv(wiphy);
 	struct wilc_vif *vif;
+	int srcu_idx;
 
-	mutex_lock(&wl->vif_mutex);
+	srcu_idx = srcu_read_lock(&wl->srcu);
 	vif = wilc_get_wl_to_vif(wl);
+	if (IS_ERR(vif)) {
+		srcu_read_unlock(&wl->srcu, srcu_idx);
+		return -EINVAL;
+	}
 
 	PRINT_INFO(vif->ndev, CFG80211_DBG, "Select antenna mode %d\n", tx_ant);
 	if (!tx_ant || !rx_ant) {
-		mutex_unlock(&wl->vif_mutex);
+		srcu_read_unlock(&wl->srcu, srcu_idx);
 		return -EINVAL;
 	}
 
 	ret = wilc_set_antenna(vif, (u8)(tx_ant-1));
 	if (ret)
 		PRINT_ER(vif->ndev, "Failed to set tx antenna\n");
+	srcu_read_unlock(&wl->srcu, srcu_idx);
 
-	mutex_unlock(&wl->vif_mutex);
 	return ret;
 }
 
@@ -2315,6 +2309,7 @@ static void wlan_init_locks(struct wilc *wl)
 	init_completion(&wl->sync_event);
 	init_completion(&wl->txq_thread_started);
 	init_completion(&wl->debug_thread_started);
+	init_srcu_struct(&wl->srcu);
 }
 
 void wlan_deinit_locks(struct wilc *wl)
@@ -2327,6 +2322,7 @@ void wlan_deinit_locks(struct wilc *wl)
 	mutex_destroy(&wl->txq_add_to_head_cs);
 	mutex_destroy(&wl->cs);
 	mutex_destroy(&wl->deinit_lock);
+	cleanup_srcu_struct(&wl->srcu);
 }
 
 int wilc_cfg80211_init(struct wilc **wilc, struct device *dev, int io_type,
@@ -2356,6 +2352,7 @@ int wilc_cfg80211_init(struct wilc **wilc, struct device *dev, int io_type,
 		INIT_LIST_HEAD(&wl->txq[i].txq_head.list);
 
 	INIT_LIST_HEAD(&wl->rxq_head.list);
+	INIT_LIST_HEAD(&wl->vif_list);
 
 	wl->hif_workqueue = create_singlethread_workqueue("WILC_wq");
 	if (!wl->hif_workqueue) {

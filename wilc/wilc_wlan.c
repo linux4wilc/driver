@@ -271,22 +271,20 @@ static void wilc_wlan_txq_filter_dup_tcp_ack(struct net_device *dev)
 static struct net_device *get_if_handler(struct wilc *wilc, u8 *mac_header)
 {
 	u8 *bssid, *bssid1;
-	int i = 0;
 	struct net_device *mon_netdev = NULL;
+	struct wilc_vif *vif;
 
 	bssid = mac_header + 10;
 	bssid1 = mac_header + 4;
-	for (i = 0; i < wilc->vif_num; i++) {
-		if (wilc->vif[i]->iftype == WILC_STATION_MODE)
-			if (ether_addr_equal_unaligned(bssid,
-						       wilc->vif[i]->bssid))
-				return wilc->vif[i]->ndev;
-		if (wilc->vif[i]->iftype == WILC_AP_MODE)
-			if (ether_addr_equal_unaligned(bssid1,
-						       wilc->vif[i]->bssid))
-				return wilc->vif[i]->ndev;
-		if (wilc->vif[i]->iftype == WILC_MONITOR_MODE)
-			mon_netdev = wilc->vif[i]->ndev;
+	list_for_each_entry_rcu(vif, &wilc->vif_list, list) {
+		if (vif->iftype == WILC_STATION_MODE)
+			if (ether_addr_equal_unaligned(bssid, vif->bssid))
+				return vif->ndev;
+		if (vif->iftype == WILC_AP_MODE)
+			if (ether_addr_equal_unaligned(bssid1, vif->bssid))
+				return vif->ndev;
+		if (vif->iftype == WILC_MONITOR_MODE)
+			mon_netdev = vif->ndev;
 	}
 
 	if (!mon_netdev)
@@ -957,6 +955,7 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 	u8 ac_pkt_num_to_chip[NQUEUES] = {0, 0, 0, 0};
 	struct wilc_vif *vif;
 	const struct wilc_hif_func *func;
+	int srcu_idx;
 
 	txb = wilc->tx_buffer;
 	if (!wilc->txq_entries) {
@@ -971,8 +970,10 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 
 	mutex_lock(&wilc->txq_add_to_head_cs);
 
-	for (i = 0; i < wilc->vif_num; i++)
-		wilc_wlan_txq_filter_dup_tcp_ack(wilc->vif[i]->ndev);
+	srcu_idx = srcu_read_lock(&wilc->srcu);
+	list_for_each_entry_rcu(vif, &wilc->vif_list, list)
+		wilc_wlan_txq_filter_dup_tcp_ack(vif->ndev);
+	srcu_read_unlock(&wilc->srcu, srcu_idx);
 
 	for (ac = 0; ac < NQUEUES; ac++)
 		tqe_q[ac] = txq_get_first(wilc, ac);
@@ -1049,7 +1050,7 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 	do {
 		ret = func->hif_read_reg(wilc, WILC_HOST_TX_CTRL, &reg);
 		if (!ret) {
-			PRINT_ER(wilc->vif[0]->ndev,
+			PRINT_ER(vif->ndev,
 				 "fail read reg vmm_tbl_entry..\n");
 			break;
 		}
@@ -1062,7 +1063,7 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 		counter++;
 		if (counter > 200) {
 			counter = 0;
-			PRINT_INFO(wilc->vif[0]->ndev, TX_DBG,
+			PRINT_INFO(vif->ndev, TX_DBG,
 				   "Looping in tx ctrl , force quit\n");
 			ret = func->hif_write_reg(wilc, WILC_HOST_TX_CTRL, 0);
 			break;
@@ -1079,7 +1080,7 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 					 (u8 *)vmm_table,
 					 ((i + 1) * 4));
 		if (!ret) {
-			PRINT_ER(wilc->vif[0]->ndev,
+			PRINT_ER(vif->ndev,
 				 "ERR block TX of VMM table.\n");
 			break;
 		}
@@ -1089,7 +1090,7 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 							    WILC_HOST_VMM_CTL,
 							    0x2);
 			if (!ret) {
-				PRINT_ER(wilc->vif[0]->ndev,
+				PRINT_ER(vif->ndev,
 					  "fail write reg host_vmm_ctl..\n");
 				break;
 			}
@@ -1110,7 +1111,7 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 					      WILC_HOST_VMM_CTL,
 					      0);
 			if (!ret) {
-				PRINT_ER(wilc->vif[0]->ndev,
+				PRINT_ER(vif->ndev,
 					  "fail write reg host_vmm_ctl..\n");
 				break;
 			}
@@ -1119,7 +1120,7 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 					      WILC_INTERRUPT_CORTUS_0,
 					      1);
 			if (!ret) {
-				PRINT_ER(wilc->vif[0]->ndev,
+				PRINT_ER(vif->ndev,
 					  "fail write reg WILC_INTERRUPT_CORTUS_0..\n");
 				break;
 			}
@@ -1129,7 +1130,7 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 						      WILC_INTERRUPT_CORTUS_0,
 						      &reg);
 				if (!ret) {
-					PRINT_ER(wilc->vif[0]->ndev,
+					PRINT_ER(vif->ndev,
 						  "fail read reg WILC_INTERRUPT_CORTUS_0..\n");
 					break;
 				}
@@ -1140,7 +1141,7 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 							      WILC_HOST_VMM_CTL,
 							      &reg);
 					if (!ret) {
-						PRINT_ER(wilc->vif[0]->ndev,
+						PRINT_ER(vif->ndev,
 							  "fail read reg host_vmm_ctl..\n");
 						break;
 					}
@@ -1158,19 +1159,19 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 			break;
 
 		if (entries == 0) {
-			PRINT_INFO(wilc->vif[0]->ndev, TX_DBG,
+			PRINT_INFO(vif->ndev, TX_DBG,
 				   "no buffer in the chip (reg: %08x), retry later [[ %d, %x ]]\n",
 				   reg, i, vmm_table[i-1]);
 			ret = func->hif_read_reg(wilc, WILC_HOST_TX_CTRL, &reg);
 			if (!ret) {
-				PRINT_ER(wilc->vif[0]->ndev,
+				PRINT_ER(vif->ndev,
 					  "fail read reg WILC_HOST_TX_CTRL..\n");
 				break;
 			}
 			reg &= ~BIT(0);
 			ret = func->hif_write_reg(wilc, WILC_HOST_TX_CTRL, reg);
 			if (!ret) {
-				PRINT_ER(wilc->vif[0]->ndev,
+				PRINT_ER(vif->ndev,
 					  "fail write reg WILC_HOST_TX_CTRL..\n");
 				break;
 			}
@@ -1250,13 +1251,13 @@ int wilc_wlan_handle_txq(struct wilc *wilc, u32 *txq_count)
 
 	ret = func->hif_clear_int_ext(wilc, ENABLE_TX_VMM);
 	if (!ret) {
-		PRINT_ER(wilc->vif[0]->ndev, "fail start tx VMM ...\n");
+		PRINT_ER(vif->ndev, "fail start tx VMM ...\n");
 		goto out_release_bus;
 	}
 
 	ret = func->hif_block_tx_ext(wilc, 0, txb, offset);
 	if (!ret)
-		PRINT_ER(wilc->vif[0]->ndev, "fail block tx ext...\n");
+		PRINT_ER(vif->ndev, "fail block tx ext...\n");
 
 out_release_bus:
 	release_bus(wilc, WILC_BUS_RELEASE_ALLOW_SLEEP, DEV_WIFI);
@@ -1317,19 +1318,20 @@ static void wilc_wlan_handle_rx_buff(struct wilc *wilc, u8 *buffer, int size)
 		} else if (pkt_len > 0) {
 			struct net_device *wilc_netdev;
 			struct wilc_vif *vif;
+			int srcu_idx;
 
-			mutex_lock(&wilc->vif_mutex);
+			srcu_idx = srcu_read_lock(&wilc->srcu);
 			wilc_netdev = get_if_handler(wilc, buff_ptr);
 			if (!wilc_netdev) {
 				pr_err("%s: wilc_netdev in wilc is NULL\n",
 				       __func__);
-				mutex_unlock(&wilc->vif_mutex);
+				srcu_read_unlock(&wilc->srcu, srcu_idx);
 				return;
 			}
 			vif = netdev_priv(wilc_netdev);
 			wilc_frmw_to_host(vif, buff_ptr, pkt_len,
 					  pkt_offset, PKT_STATUS_NEW);
-			mutex_unlock(&wilc->vif_mutex);
+			srcu_read_unlock(&wilc->srcu, srcu_idx);
 		}
 
 		offset += tp_len;

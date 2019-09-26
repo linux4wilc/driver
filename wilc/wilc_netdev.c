@@ -28,12 +28,12 @@ int wait_for_recovery;
 static int debug_thread(void *arg)
 {
 	struct wilc *wl = arg;
-	struct wilc_vif *vif = wilc_get_interface(wl);
+	struct wilc_vif *vif = wilc_get_wl_to_vif(wl);
 	signed long timeout;
 	struct host_if_drv *hif_drv;
 	int i = 0;
 
-	if (!vif)
+	if (IS_ERR(vif))
 		return -1;
 
 	hif_drv = vif->priv.hif_drv;
@@ -41,6 +41,8 @@ static int debug_thread(void *arg)
 	complete(&wl->debug_thread_started);
 
 	while (1) {
+		int srcu_idx;
+
 		if (!wl->initialized && !kthread_should_stop()) {
 			msleep(1000);
 			continue;
@@ -55,37 +57,46 @@ static int debug_thread(void *arg)
 			pr_info("Exit debug thread\n");
 			return 0;
 		}
+		vif = wilc_get_wl_to_vif(wl);
 
 		if (!debug_running)
 			continue;
-		PRINT_D(wl->vif[0]->ndev, GENERIC_DBG,
+		PRINT_D(vif->ndev, GENERIC_DBG,
 			   "*** Debug Thread Running ***\n");
 		if (cfg_packet_timeout < 5)
 			continue;
 
-		PRINT_INFO(wl->vif[0]->ndev, GENERIC_DBG,
+		PRINT_INFO(vif->ndev, GENERIC_DBG,
 			   "<Recover>\n");
 		cfg_packet_timeout = 0;
 		timeout = 10;
 		recovery_on = 1;
 		wait_for_recovery = 1;
-		for (i = 0; i < WILC_NUM_CONCURRENT_IFC; i++)
-			wilc_mac_close(wl->vif[i]->ndev);
-		for (i = WILC_NUM_CONCURRENT_IFC; i > 0; i--) {
-			while (wilc_mac_open(wl->vif[i-1]->ndev) && --timeout)
+
+		srcu_idx = srcu_read_lock(&wl->srcu);
+		list_for_each_entry_rcu(vif, &wl->vif_list, list)
+			wilc_mac_close(vif->ndev);
+
+		//TODO://Need to find way to call them in reverse
+		i = 0;
+		list_for_each_entry_rcu(vif, &wl->vif_list, list) {
+			i++;
+			while (wilc_mac_open(vif->ndev) && --timeout)
 				msleep(100);
 
 			if (timeout == 0)
-				PRINT_WRN(wl->vif[0]->ndev, GENERIC_DBG,
+				PRINT_WRN(vif->ndev, GENERIC_DBG,
 					  "Couldn't restart ifc %d\n", i);
 		}
+		srcu_read_unlock(&wl->srcu, srcu_idx);
+
 		if (hif_drv->hif_state == HOST_IF_CONNECTED) {
 			struct wilc_conn_info *conn_info = &hif_drv->conn_info;
 
-			PRINT_INFO(wl->vif[0]->ndev, GENERIC_DBG,
+			PRINT_INFO(vif->ndev, GENERIC_DBG,
 				   "notify the user with the Disconnection\n");
 			if (hif_drv->usr_scan_req.scan_result) {
-				PRINT_INFO(wl->vif[0]->ndev, GENERIC_DBG,
+				PRINT_INFO(vif->ndev, GENERIC_DBG,
 					   "Abort the running OBSS Scan\n");
 				del_timer(&hif_drv->scan_timer);
 				handle_scan_done(vif, SCAN_EVENT_ABORTED);
@@ -94,7 +105,7 @@ static int debug_thread(void *arg)
 				conn_info->conn_result(EVENT_DISCONN_NOTIF,
 						       0, conn_info->arg);
 			} else {
-				PRINT_ER(wl->vif[0]->ndev,
+				PRINT_ER(vif->ndev,
 					 "Connect result NULL\n");
 			}
 			eth_zero_addr(hif_drv->assoc_bssid);
@@ -408,31 +419,21 @@ void wilc_wlan_set_bssid(struct net_device *wilc_netdev, u8 *bssid, u8 mode)
 {
 	struct wilc_vif *vif = netdev_priv(wilc_netdev);
 	struct wilc *wilc = vif->wilc;
-	u8 i = 0;
+	int srcu_idx;
 
-	//TODO: Do we really need this iteration?
-	mutex_lock(&wilc->vif_mutex);
-	PRINT_INFO(vif->ndev, GENERIC_DBG, "set bssid on[%p]\n", wilc_netdev);
-	for (i = 0; i < wilc->vif_num; i++) {
-		if (wilc_netdev == wilc->vif[i]->ndev) {
+	srcu_idx = srcu_read_lock(&wilc->srcu);
+	list_for_each_entry_rcu(vif, &wilc->vif_list, list) {
+		if (wilc_netdev == vif->ndev) {
 			if (bssid)
-				ether_addr_copy(wilc->vif[i]->bssid, bssid);
+				ether_addr_copy(vif->bssid, bssid);
 			else
-				eth_zero_addr(wilc->vif[i]->bssid);
+				eth_zero_addr(vif->bssid);
 			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "set bssid [%pM]\n", wilc->vif[i]->bssid);
-			wilc->vif[i]->iftype = mode;
+				   "set bssid [%pM]\n", vif->bssid);
+			vif->iftype = mode;
 		}
 	}
-	mutex_unlock(&wilc->vif_mutex);
-}
-
-struct net_device *wilc_get_if_netdev(struct wilc *wilc, uint8_t ifc)
-{
-	if (wilc->vif[ifc])
-		return wilc->vif[ifc]->ndev;
-	else
-		return NULL;
+	srcu_read_unlock(&wilc->srcu, srcu_idx);
 }
 
 #define TX_BACKOFF_WEIGHT_INCR_STEP (1)
@@ -451,7 +452,7 @@ static int wilc_txq_task(void *vp)
 
 	complete(&wl->txq_thread_started);
 	while (1) {
-		struct wilc_vif *vif = wilc_get_interface(wl);
+		struct wilc_vif *vif = wilc_get_wl_to_vif(wl);
 		struct net_device *ndev = vif->ndev;
 
 		PRINT_INFO(ndev, TX_DBG, "txq_task Taking a nap\n");
@@ -469,18 +470,19 @@ static int wilc_txq_task(void *vp)
 		do {
 			ret = wilc_wlan_handle_txq(wl, &txq_count);
 			if (txq_count < FLOW_CTRL_LOW_THRESHLD) {
-				int i;
 				struct wilc_vif *ifc;
+				int srcu_idx;
 
-				mutex_lock(&wl->vif_mutex);
+				srcu_idx = srcu_read_lock(&wl->srcu);
 				PRINT_INFO(ndev, TX_DBG, "Waking up queue\n");
-				for (i = 0; i < wl->vif_num; i++) {
-					ifc = wl->vif[i];
+				list_for_each_entry_rcu(ifc, &wl->vif_list,
+							list) {
 					if (ifc->mac_opened &&
 					    netif_queue_stopped(ifc->ndev))
 						netif_wake_queue(ifc->ndev);
 				}
-				mutex_unlock(&wl->vif_mutex);
+				srcu_read_unlock(&wl->srcu, srcu_idx);
+
 			}
 
 			if (ret == -ENOBUFS) {
@@ -1070,25 +1072,29 @@ static int wilc_set_mac_addr(struct net_device *dev, void *p)
 	struct sockaddr *addr = (struct sockaddr *)p;
 	struct wilc *wilc = vif->wilc;
 	unsigned char mac_addr[6] = {0};
-	int i;
+	struct wilc_vif *tmp_vif;
+	int srcu_idx;
 
 	if (!is_valid_ether_addr(addr->sa_data)) {
 		PRINT_INFO(vif->ndev, INIT_DBG, "Invalid MAC address\n");
 		return -EINVAL;
 	}
 
-	for (i = 0; i < wilc->vif_num; i++) {
-		wilc_get_mac_address(wilc->vif[i], mac_addr);
+	srcu_idx = srcu_read_lock(&wilc->srcu);
+	list_for_each_entry_rcu(tmp_vif, &wilc->vif_list, list) {
+		wilc_get_mac_address(tmp_vif, mac_addr);
 		if (ether_addr_equal(addr->sa_data, mac_addr)) {
-			if (vif != wilc->vif[i]) {
+			if (vif != tmp_vif) {
 				PRINT_INFO(vif->ndev, INIT_DBG,
 					   "MAC address is alredy in use\n");
+				srcu_read_unlock(&wilc->srcu, srcu_idx);
 				return -EINVAL;
-			} else {
-				return 0;
 			}
+			srcu_read_unlock(&wilc->srcu, srcu_idx);
+			return 0;
 		}
 	}
+	srcu_read_unlock(&wilc->srcu, srcu_idx);
 
 	/* configure new MAC address */
 	result = wilc_set_mac_address(vif, (u8 *)addr->sa_data);
@@ -1199,14 +1205,15 @@ netdev_tx_t wilc_mac_xmit(struct sk_buff *skb, struct net_device *ndev)
 				      wilc_tx_complete);
 
 	if (queue_count > FLOW_CTRL_UP_THRESHLD) {
-		int i;
+		struct wilc_vif *vif;
+		int srcu_idx;
 
-		mutex_lock(&wilc->vif_mutex);
-		for (i = 0; i < wilc->vif_num; i++) {
-			if (wilc->vif[i] && wilc->vif[i]->mac_opened)
-				netif_stop_queue(wilc->vif[i]->ndev);
+		srcu_idx = srcu_read_lock(&wilc->srcu);
+		list_for_each_entry_rcu(vif, &wilc->vif_list, list) {
+			if (vif->mac_opened)
+				netif_stop_queue(vif->ndev);
 		}
-		mutex_unlock(&wilc->vif_mutex);
+		srcu_read_unlock(&wilc->srcu, srcu_idx);
 	}
 
 	return NETDEV_TX_OK;
@@ -1247,15 +1254,14 @@ static int wilc_mac_close(struct net_device *ndev)
 
 void wilc_wfi_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size)
 {
-	int i = 0;
 	struct wilc_vif *vif;
+	int srcu_idx;
 
-	mutex_lock(&wilc->vif_mutex);
-	for (i = 0; i < wilc->vif_num; i++) {
+	srcu_idx = srcu_read_lock(&wilc->srcu);
+	list_for_each_entry_rcu(vif, &wilc->vif_list, list) {
 		u16 tp = le16_to_cpup((__le16 *)buff);
 		struct wilc_priv *priv;
 
-		vif = netdev_priv(wilc->vif[i]->ndev);
 		priv = &vif->priv;
 
 		if (((tp == vif->frame_reg[0].type && vif->frame_reg[0].reg) ||
@@ -1265,7 +1271,7 @@ void wilc_wfi_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size)
 
 			ret = wilc_wfi_p2p_rx(vif, buff, size);
 			if (ret) {
-				mutex_unlock(&wilc->vif_mutex);
+				srcu_read_unlock(&wilc->srcu, srcu_idx);
 				return;
 			}
 		}
@@ -1273,7 +1279,7 @@ void wilc_wfi_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size)
 		if (vif->monitor_flag)
 			wilc_wfi_monitor_rx(wilc->monitor_dev, buff, size);
 	}
-	mutex_unlock(&wilc->vif_mutex);
+	srcu_read_unlock(&wilc->srcu, srcu_idx);
 }
 
 static const struct net_device_ops wilc_netdev_ops = {
@@ -1288,7 +1294,8 @@ static const struct net_device_ops wilc_netdev_ops = {
 
 void wilc_netdev_cleanup(struct wilc *wilc)
 {
-	int i;
+	struct wilc_vif *vif;
+	int srcu_idx;
 
 	if (!wilc)
 		return;
@@ -1298,20 +1305,39 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 		wilc->firmware = NULL;
 	}
 
-	for (i = 0; i < wilc->vif_num; i++) {
-		if (wilc->vif[i] && wilc->vif[i]->ndev) {
-			PRINT_INFO(wilc->vif[i]->ndev, INIT_DBG,
+	srcu_idx = srcu_read_lock(&wilc->srcu);
+	list_for_each_entry_rcu(vif, &wilc->vif_list, list) {
+		/* clear the mode */
+		wilc_set_operation_mode(vif, 0, 0, 0);
+		if (vif->ndev) {
+			PRINT_INFO(vif->ndev, INIT_DBG,
 				   "Unregistering netdev %p\n",
-				   wilc->vif[i]->ndev);
-			unregister_netdev(wilc->vif[i]->ndev);
+				   vif->ndev);
+			unregister_netdev(vif->ndev);
 		}
 	}
+	srcu_read_unlock(&wilc->srcu, srcu_idx);
 
 	wilc_wfi_deinit_mon_interface(wilc, false);
 
 	flush_workqueue(wilc->hif_workqueue);
 	destroy_workqueue(wilc->hif_workqueue);
 	wilc->hif_workqueue = NULL;
+	/* update the list */
+	do {
+		mutex_lock(&wilc->vif_mutex);
+		if (wilc->vif_num <= 0) {
+			mutex_unlock(&wilc->vif_mutex);
+			break;
+		}
+		vif = wilc_get_wl_to_vif(wilc);
+		if (!IS_ERR(vif))
+			list_del_rcu(&vif->list);
+		wilc->vif_num--;
+		mutex_unlock(&wilc->vif_mutex);
+		synchronize_srcu(&wilc->srcu);
+	} while (1);
+
 	cfg_deinit(wilc);
 #ifdef WILC_DEBUGFS
 	wilc_debugfs_remove();
@@ -1325,6 +1351,23 @@ void wilc_netdev_cleanup(struct wilc *wilc)
 	pr_info("Module_exit Done.\n");
 }
 
+
+static u8 wilc_get_available_idx(struct wilc *wl)
+{
+	int idx = 0;
+	struct wilc_vif *vif;
+	int srcu_idx;
+
+	srcu_idx = srcu_read_lock(&wl->srcu);
+	list_for_each_entry_rcu(vif, &wl->vif_list, list) {
+		if (vif->idx == 0)
+			idx = 1;
+		else
+			idx = 0;
+	}
+	srcu_read_unlock(&wl->srcu, srcu_idx);
+	return idx;
+}
 
 struct wilc_vif *wilc_netdev_ifc_init(struct wilc *wl, const char *name,
 				      int iftype, enum nl80211_iftype type,
@@ -1373,10 +1416,13 @@ struct wilc_vif *wilc_netdev_ifc_init(struct wilc *wl, const char *name,
 	ndev->destructor = free_netdev;
 #endif
 	vif->iftype = iftype;
-	vif->wilc->vif[wl->vif_num] = vif;
-	vif->idx = wl->vif_num;
-	wl->vif_num += 1;
+	vif->idx = wilc_get_available_idx(wl);
 	vif->mac_opened = 0;
+	mutex_lock(&wl->vif_mutex);
+	wl->vif_num += 1;
+	list_add_tail_rcu(&vif->list, &wl->vif_list);
+	mutex_unlock(&wl->vif_mutex);
+	synchronize_srcu(&wl->srcu);
 
 	return vif;
 }

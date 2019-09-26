@@ -23,7 +23,7 @@ void wilc_sysfs_init(struct wilc *wilc);
 void wilc_sysfs_exit(void);
 int wilc_cfg80211_init(struct wilc **wilc, struct device *dev, int io_type,
 		       const struct wilc_hif_func *ops);
-int wilc_get_vif_from_type(struct wilc *wl, int type);
-struct wilc_vif *wilc_get_interface(struct wilc *wl);
+struct wilc_vif *wilc_get_vif_from_type(struct wilc *wl, int type);
+struct wilc_vif *wilc_get_wl_to_vif(struct wilc *wl);
 void wlan_deinit_locks(struct wilc *wl);
 #endif
