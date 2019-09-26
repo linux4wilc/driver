@@ -241,6 +241,7 @@ struct wilc_vif {
 	bool connecting;
 	struct wilc_priv priv;
 	struct list_head list;
+	u8 restart;
 };
 
 struct wilc {

@@ -28,15 +28,10 @@ int wait_for_recovery;
 static int debug_thread(void *arg)
 {
 	struct wilc *wl = arg;
-	struct wilc_vif *vif = wilc_get_wl_to_vif(wl);
+	struct wilc_vif *vif;
 	signed long timeout;
 	struct host_if_drv *hif_drv;
 	int i = 0;
-
-	if (IS_ERR(vif))
-		return -1;
-
-	hif_drv = vif->priv.hif_drv;
 
 	complete(&wl->debug_thread_started);
 
@@ -57,65 +52,73 @@ static int debug_thread(void *arg)
 			pr_info("Exit debug thread\n");
 			return 0;
 		}
-		vif = wilc_get_wl_to_vif(wl);
-
 		if (!debug_running)
 			continue;
-		PRINT_D(vif->ndev, GENERIC_DBG,
-			   "*** Debug Thread Running ***\n");
+
+		pr_debug("%s *** Debug Thread Running ***cnt[%d]\n", __func__,
+			 cfg_packet_timeout);
+
 		if (cfg_packet_timeout < 5)
 			continue;
 
-		PRINT_INFO(vif->ndev, GENERIC_DBG,
-			   "<Recover>\n");
+		pr_info("%s <Recover>\n", __func__);
 		cfg_packet_timeout = 0;
 		timeout = 10;
 		recovery_on = 1;
 		wait_for_recovery = 1;
 
 		srcu_idx = srcu_read_lock(&wl->srcu);
-		list_for_each_entry_rcu(vif, &wl->vif_list, list)
-			wilc_mac_close(vif->ndev);
-
+		list_for_each_entry_rcu(vif, &wl->vif_list, list) {
+			//close the interface only if it was open
+			if (vif->mac_opened) {
+				wilc_mac_close(vif->ndev);
+				vif->restart = 1;
+			}
+		}
 		//TODO://Need to find way to call them in reverse
 		i = 0;
 		list_for_each_entry_rcu(vif, &wl->vif_list, list) {
+			struct wilc_conn_info *info;
+
+			// Only open the interface manually closed earlier
+			if (!vif->restart)
+				continue;
 			i++;
+			hif_drv = vif->priv.hif_drv;
 			while (wilc_mac_open(vif->ndev) && --timeout)
 				msleep(100);
 
 			if (timeout == 0)
 				PRINT_WRN(vif->ndev, GENERIC_DBG,
 					  "Couldn't restart ifc %d\n", i);
+
+			if (hif_drv->hif_state == HOST_IF_CONNECTED) {
+				info = &hif_drv->conn_info;
+				PRINT_INFO(vif->ndev, GENERIC_DBG,
+					   "notify the user with the Disconnection\n");
+				if (hif_drv->usr_scan_req.scan_result) {
+					PRINT_INFO(vif->ndev, GENERIC_DBG,
+						   "Abort the running OBSS Scan\n");
+					del_timer(&hif_drv->scan_timer);
+					handle_scan_done(vif,
+							 SCAN_EVENT_ABORTED);
+				}
+				if (info->conn_result) {
+					info->conn_result(EVENT_DISCONN_NOTIF,
+							  0, info->arg);
+				} else {
+					PRINT_ER(vif->ndev,
+						 "Connect result NULL\n");
+				}
+				eth_zero_addr(hif_drv->assoc_bssid);
+				info->req_ies_len = 0;
+				kfree(info->req_ies);
+				info->req_ies = NULL;
+				hif_drv->hif_state = HOST_IF_IDLE;
+			}
+			vif->restart = 0;
 		}
 		srcu_read_unlock(&wl->srcu, srcu_idx);
-
-		if (hif_drv->hif_state == HOST_IF_CONNECTED) {
-			struct wilc_conn_info *conn_info = &hif_drv->conn_info;
-
-			PRINT_INFO(vif->ndev, GENERIC_DBG,
-				   "notify the user with the Disconnection\n");
-			if (hif_drv->usr_scan_req.scan_result) {
-				PRINT_INFO(vif->ndev, GENERIC_DBG,
-					   "Abort the running OBSS Scan\n");
-				del_timer(&hif_drv->scan_timer);
-				handle_scan_done(vif, SCAN_EVENT_ABORTED);
-			}
-			if (conn_info->conn_result) {
-				conn_info->conn_result(EVENT_DISCONN_NOTIF,
-						       0, conn_info->arg);
-			} else {
-				PRINT_ER(vif->ndev,
-					 "Connect result NULL\n");
-			}
-			eth_zero_addr(hif_drv->assoc_bssid);
-
-			conn_info->req_ies_len = 0;
-			kfree(conn_info->req_ies);
-			conn_info->req_ies = NULL;
-
-			hif_drv->hif_state = HOST_IF_IDLE;
-		}
 		recovery_on = 0;
 	}
 	return 0;
@@ -1235,6 +1238,8 @@ static int wilc_mac_close(struct net_device *ndev)
 
 	if (vif->ndev) {
 		netif_stop_queue(vif->ndev);
+
+	handle_connect_cancel(vif);
 
 	if (!recovery_on)
 		wilc_deinit_host_int(vif->ndev);

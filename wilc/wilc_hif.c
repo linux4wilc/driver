@@ -586,6 +586,23 @@ error:
 	return result;
 }
 
+void handle_connect_cancel(struct wilc_vif *vif)
+{
+	struct host_if_drv *hif_drv = vif->hif_drv;
+
+	if (hif_drv->conn_info.conn_result) {
+		hif_drv->conn_info.conn_result(EVENT_DISCONN_NOTIF,
+					       0, hif_drv->conn_info.arg);
+	}
+
+	eth_zero_addr(hif_drv->assoc_bssid);
+
+	hif_drv->conn_info.req_ies_len = 0;
+	kfree(hif_drv->conn_info.req_ies);
+	hif_drv->conn_info.req_ies = NULL;
+	hif_drv->hif_state = HOST_IF_IDLE;
+}
+
 static void handle_connect_timeout(struct work_struct *work)
 {
 	struct host_if_msg *msg = container_of(work, struct host_if_msg, work);
@@ -1042,6 +1059,7 @@ int wilc_disconnect(struct wilc_vif *vif)
 	conn_info->req_ies_len = 0;
 	kfree(conn_info->req_ies);
 	conn_info->req_ies = NULL;
+	conn_info->conn_result = NULL;
 
 	return 0;
 }
