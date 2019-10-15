@@ -242,6 +242,7 @@ struct wilc_vif {
 	struct wilc_priv priv;
 	struct list_head list;
 	u8 restart;
+	struct cfg80211_bss *bss;
 };
 
 struct wilc {
