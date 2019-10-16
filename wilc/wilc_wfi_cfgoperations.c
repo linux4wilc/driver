@@ -1351,7 +1351,7 @@ static void wilc_wfi_remain_on_channel_expired(void *data, u64 cookie)
 		return;
 	}
 
-	vif->wilc->p2p_listen_state = false;
+	vif->p2p_listen_state = false;
 
 	cfg80211_remain_on_channel_expired(&vif->priv.wdev, cookie,
 					   params->listen_ch, GFP_KERNEL);
@@ -1387,14 +1387,14 @@ static int remain_on_channel(struct wiphy *wiphy,
 	priv->remain_on_ch_params.listen_cookie = id;
 	*cookie = id;
 	priv->remain_on_ch_params.listen_duration = duration;
-	vif->wilc->p2p_listen_state = true;
+	vif->p2p_listen_state = true;
 	cfg80211_ready_on_channel(wdev, *cookie, chan, duration, GFP_KERNEL);
 
 #if KERNEL_VERSION(4, 15, 0) > LINUX_VERSION_CODE
 	vif->hif_drv->remain_on_ch_timer.data = (unsigned long)vif->hif_drv;
 #endif
 	mod_timer(&vif->hif_drv->remain_on_ch_timer,
-		  jiffies + msecs_to_jiffies(duration));
+		  jiffies + msecs_to_jiffies(duration + 1000));
 
 	PRINT_INFO(vif->ndev, GENERIC_DBG,
 		   "Remaining on duration [%d] [%llu]\n",
@@ -1621,14 +1621,13 @@ static int mgmt_tx_cancel_wait(struct wiphy *wiphy,
 			       struct wireless_dev *wdev,
 			       u64 cookie)
 {
-	struct wilc *wl = wiphy_priv(wiphy);
 	struct wilc_vif *vif = netdev_priv(wdev->netdev);
 	struct wilc_priv *priv = &vif->priv;
 	struct host_if_drv *wfi_drv = priv->hif_drv;
 
 	wfi_drv->p2p_timeout = jiffies;
 
-	if (!wl->p2p_listen_state) {
+	if (!vif->p2p_listen_state) {
 		struct wilc_wfi_p2p_listen_params *params;
 
 		params = &priv->remain_on_ch_params;
@@ -2508,7 +2507,7 @@ int wilc_init_host_int(struct net_device *net)
 	setup_timer(&priv->eap_buff_timer, eap_buff_timeout, 0);
 #endif
 
-	vif->wilc->p2p_listen_state = false;
+	vif->p2p_listen_state = false;
 
 	mutex_init(&priv->scan_req_lock);
 	ret = wilc_init(net, &priv->hif_drv);
@@ -2524,7 +2523,7 @@ void wilc_deinit_host_int(struct net_device *net)
 	struct wilc_vif *vif = netdev_priv(net);
 	struct wilc_priv *priv = &vif->priv;
 
-	vif->wilc->p2p_listen_state = false;
+	vif->p2p_listen_state = false;
 
 	flush_workqueue(vif->wilc->hif_workqueue);
 	mutex_destroy(&priv->scan_req_lock);

@@ -1268,18 +1268,10 @@ void wilc_wfi_mgmt_rx(struct wilc *wilc, u8 *buff, u32 size)
 		struct wilc_priv *priv;
 
 		priv = &vif->priv;
-
 		if (((tp == vif->frame_reg[0].type && vif->frame_reg[0].reg) ||
 		    (tp == vif->frame_reg[1].type && vif->frame_reg[1].reg)) &&
-			    wilc->p2p_listen_state) {
-			bool ret;
-
-			ret = wilc_wfi_p2p_rx(vif, buff, size);
-			if (ret) {
-				srcu_read_unlock(&wilc->srcu, srcu_idx);
-				return;
-			}
-		}
+			    vif->p2p_listen_state)
+			wilc_wfi_p2p_rx(vif, buff, size);
 
 		if (vif->monitor_flag)
 			wilc_wfi_monitor_rx(wilc->monitor_dev, buff, size);

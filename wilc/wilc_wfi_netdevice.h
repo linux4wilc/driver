@@ -242,6 +242,7 @@ struct wilc_vif {
 	struct wilc_priv priv;
 	struct list_head list;
 	u8 restart;
+	bool p2p_listen_state;
 	struct cfg80211_bss *bss;
 };
 
@@ -317,7 +318,6 @@ struct wilc {
 	struct mutex deinit_lock;
 	u8 sta_ch;
 	u8 op_ch;
-	bool p2p_listen_state;
 	struct sysfs_attr_group attr_sysfs;
 	struct ieee80211_channel channels[ARRAY_SIZE(wilc_2ghz_channels)];
 	struct ieee80211_rate bitrates[ARRAY_SIZE(wilc_bitrates)];
