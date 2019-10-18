@@ -173,7 +173,12 @@ static int wilc_sdio_probe(struct sdio_func *func,
 		clk_prepare_enable(wilc->rtc_clk);
 
 	if (!init_power) {
-		wilc_wlan_power_on_sequence(wilc);
+		ret = wilc_wlan_power_on_sequence(wilc);
+		if (ret) {
+			wilc_netdev_cleanup(wilc);
+			kfree(sdio_priv);
+			return ret;
+		}
 		init_power = 1;
 	}
 

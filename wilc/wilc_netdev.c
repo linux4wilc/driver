@@ -1425,10 +1425,11 @@ struct wilc_vif *wilc_netdev_ifc_init(struct wilc *wl, const char *name,
 }
 
 #if KERNEL_VERSION(3, 13, 0) < LINUX_VERSION_CODE
-static void wilc_wlan_power(struct wilc *wilc, int power)
+static int wilc_wlan_power(struct wilc *wilc, int power)
 {
 	struct gpio_desc *gpio_reset;
 	struct gpio_desc *gpio_chip_en;
+	int ret = 0;
 
 	pr_info("wifi_pm : %d\n", power);
 
@@ -1439,7 +1440,7 @@ static void wilc_wlan_power(struct wilc *wilc, int power)
 		if (!gpio_reset) {
 			dev_warn(wilc->dev,
 				 "failed to get default Reset GPIO\r\n");
-			return;
+			return -EIO;
 		}
 	} else {
 		dev_info(wilc->dev, "succesfully got gpio_reset\r\n");
@@ -1452,25 +1453,53 @@ static void wilc_wlan_power(struct wilc *wilc, int power)
 			dev_warn(wilc->dev,
 				 "failed to get default chip_en GPIO\r\n");
 			gpiod_put(gpio_reset);
-			return;
+			return -EIO;
 		}
 	} else {
 		dev_info(wilc->dev, "succesfully got gpio_chip_en\r\n");
 	}
 
 	if (power) {
-		gpiod_direction_output(gpio_chip_en, 1);
+		ret = gpiod_direction_output(gpio_chip_en, 1);
+		if (ret < 0) {
+			dev_warn(wilc->dev,
+				 "failed to set chip_en GPIO direction\r\n");
+			goto out;
+			ret = -EIO;
+		}
 		mdelay(5);
-		gpiod_direction_output(gpio_reset, 1);
+		ret = gpiod_direction_output(gpio_reset, 1);
+		if (ret) {
+			dev_warn(wilc->dev,
+				 "failed to set reset GPIO direction\r\n");
+			goto out;
+			ret = -EIO;
+		}
 	} else {
-		gpiod_direction_output(gpio_reset, 0);
-		gpiod_direction_output(gpio_chip_en, 0);
+		ret = gpiod_direction_output(gpio_reset, 0);
+		if (ret) {
+			dev_warn(wilc->dev,
+				 "failed to set chip_en GPIO direction\r\n");
+			goto out;
+			ret = -EIO;
+		}
+		ret = gpiod_direction_output(gpio_chip_en, 0);
+		if (ret) {
+			dev_warn(wilc->dev,
+				 "failed to set reset GPIO direction\r\n");
+			goto out;
+			ret = -EIO;
+		}
 	}
+
+out:
 	gpiod_put(gpio_chip_en);
 	gpiod_put(gpio_reset);
+
+	return ret;
 }
 #else
-static void wilc_wlan_power(struct wilc *wilc, int power)
+static int wilc_wlan_power(struct wilc *wilc, int power)
 {
 	int gpio_reset;
 	int gpio_chip_en;
@@ -1511,19 +1540,36 @@ static void wilc_wlan_power(struct wilc *wilc, int power)
 	} else {
 		dev_err(wilc->dev,
 			"Error requesting GPIOs for CHIP_EN and RESET");
+		return -EIO;
 	}
+
+	return 0;
 }
 #endif
 
-void wilc_wlan_power_on_sequence(struct wilc *wilc)
+int wilc_wlan_power_on_sequence(struct wilc *wilc)
 {
-	wilc_wlan_power(wilc, 0);
-	wilc_wlan_power(wilc, 1);
+	int ret;
+
+	ret = wilc_wlan_power(wilc, 0);
+	if (ret)
+		return ret;
+	ret = wilc_wlan_power(wilc, 1);
+	if (ret)
+		return ret;
+
+	return 0;
 }
 
-void wilc_wlan_power_off_sequence(struct wilc *wilc)
+int wilc_wlan_power_off_sequence(struct wilc *wilc)
 {
-	wilc_wlan_power(wilc, 0);
+	int ret;
+
+	ret = wilc_wlan_power(wilc, 0);
+	if (ret)
+		return ret;
+
+	return 0;
 }
 
 MODULE_LICENSE("GPL");

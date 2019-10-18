@@ -144,7 +144,12 @@ static int wilc_bus_probe(struct spi_device *spi)
 		clk_prepare_enable(wilc->rtc_clk);
 
 	if (!init_power) {
-		wilc_wlan_power_on_sequence(wilc);
+		ret = wilc_wlan_power_on_sequence(wilc);
+		if (ret) {
+			wilc_netdev_cleanup(wilc);
+			kfree(spi_priv);
+			return ret;
+		}
 		init_power = 1;
 	}
 

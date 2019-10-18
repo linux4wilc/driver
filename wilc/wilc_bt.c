@@ -210,9 +210,9 @@ static void handle_cmd_cca_thrshld(char *param)
 int wilc_bt_power_down(struct wilc *wilc, int source)
 {
 	const struct wilc_hif_func *hif_func = wilc->hif_func;
+	int ret;
 
 	if (source == DEV_BT) {
-		int ret;
 		u32 reg;
 
 		pr_info("AT PWR: bt_power_down\n");
@@ -322,7 +322,11 @@ int wilc_bt_power_down(struct wilc *wilc, int source)
 		pr_warn("Another device is preventing power down. request source is %s\n",
 			(source == DEV_WIFI ? "Wifi" : "BT"));
 	} else {
-		wilc_wlan_power_off_sequence(wilc);
+		ret = wilc_wlan_power_off_sequence(wilc);
+		if (ret) {
+			mutex_unlock(&wilc->cs);
+			return ret;
+		}
 	}
 	wilc->power_status[source] = false;
 
