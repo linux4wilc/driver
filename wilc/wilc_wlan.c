@@ -754,7 +754,7 @@ void chip_allow_sleep(struct wilc *wilc, int source)
 void chip_wakeup_wilc1000(struct wilc *wilc, int source)
 {
 	u32 ret = 0;
-	u32 reg = 0, clk_status_val = 0, trials = 0;
+	u32 clk_status_val = 0, trials = 0;
 	u32 wakeup_reg, wakeup_bit;
 	u32 clk_status_reg, clk_status_bit;
 	u32 to_host_from_fw_reg, to_host_from_fw_bit;
@@ -782,28 +782,18 @@ void chip_wakeup_wilc1000(struct wilc *wilc, int source)
 		to_host_from_fw_bit = BIT(0);
 	}
 
-	ret = hif_func->hif_read_reg(wilc, from_host_to_fw_reg, &reg);
+
+	/*USE bit 0 to indicate host wakeup*/
+	ret = hif_func->hif_write_reg(wilc, from_host_to_fw_reg,
+				      from_host_to_fw_bit);
 	if (!ret)
 		goto _fail_;
 
-	if (!(reg & from_host_to_fw_bit)) {
-		/*USE bit 0 to indicate host wakeup*/
-		ret = hif_func->hif_write_reg(wilc, from_host_to_fw_reg,
-					      reg | from_host_to_fw_bit);
-		if (!ret)
-			goto _fail_;
-	}
-
-	ret = hif_func->hif_read_reg(wilc, wakeup_reg, &reg);
-	if (!ret)
-		goto _fail_;
 	/* Set bit 1 */
-	if (!(reg & wakeup_bit)) {
-		ret = hif_func->hif_write_reg(wilc, wakeup_reg,
-					      reg | wakeup_bit);
-		if (!ret)
-			goto _fail_;
-	}
+	ret = hif_func->hif_write_reg(wilc, wakeup_reg,
+				      wakeup_bit);
+	if (!ret)
+		goto _fail_;
 
 	do {
 		ret = hif_func->hif_read_reg(wilc, clk_status_reg,

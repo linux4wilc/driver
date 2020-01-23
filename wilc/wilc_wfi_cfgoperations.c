@@ -1816,6 +1816,7 @@ static int change_virtual_intf(struct wiphy *wiphy, struct net_device *dev,
 		dev->type = ARPHRD_IEEE80211_RADIOTAP;
 		priv->wdev.iftype = type;
 		vif->iftype = WILC_MONITOR_MODE;
+
 		if (wl->initialized)
 			wilc_set_operation_mode(vif, wilc_get_vif_idx(vif),
 						 WILC_MONITOR_MODE,

@@ -541,7 +541,11 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 
 	rsp = rb[rix++];
 
-	if (rsp != cmd) {
+	/*
+	 * Clockless registers operations might return unexptected responses,
+	 * even if successful.
+	 */
+	if (rsp != cmd && !clockless) {
 		dev_err(&spi->dev,
 			"Failed cmd response, cmd (%02x), resp (%02x)\n",
 			cmd, rsp);
@@ -552,7 +556,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 	 * State response
 	 */
 	rsp = rb[rix++];
-	if (rsp != 0x00) {
+	if (rsp != 0x00 && !clockless) {
 		dev_err(&spi->dev, "Failed cmd state response state (%02x)\n",
 			rsp);
 		return N_FAIL;
@@ -579,7 +583,7 @@ static int spi_cmd_complete(struct wilc *wilc, u8 cmd, u32 adr, u8 *b, u32 sz,
 				break;
 		} while (retry--);
 
-		if (retry <= 0) {
+		if (retry <= 0 && !clockless) {
 			dev_err(&spi->dev,
 				"Error, data read response (%02x)\n", rsp);
 			return N_RESET;
