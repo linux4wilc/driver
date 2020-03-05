@@ -1239,10 +1239,10 @@ static int wilc_mac_close(struct net_device *ndev)
 	if (vif->ndev) {
 		netif_stop_queue(vif->ndev);
 
-	handle_connect_cancel(vif);
+		handle_connect_cancel(vif);
 
-	if (!recovery_on)
-		wilc_deinit_host_int(vif->ndev);
+		if (!recovery_on)
+			wilc_deinit_host_int(vif->ndev);
 	}
 
 	if (wl->open_ifcs == 0) {
