@@ -8,10 +8,12 @@ Required properties:
 - spi-max-frequency	: Maximum SPI clocking speed of device in Hz
 - reg			: Chip select address of device
 - irq-gpios		: Connect to a host IRQ
-- reset-gpios		: Reset module GPIO
-- chip_en-gpios:	: Chip enable GPIO
 
 Optional:
+- reset-gpios	:	Reset module GPIO. If not specified, handle this signal
+			in a hardware way (e.g. via a RC network).
+- chip_en-gpios	:	Chip enable GPIO. If not specified, handle this signal
+			in a hardware way (e.g. via a RC network).
 - rtc_clk	:	Clock connected on the rtc clock line. Must be assigned
 			a frequency with assigned-clocks property, and must be
 			connected to a clock provider.

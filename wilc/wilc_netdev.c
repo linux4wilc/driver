@@ -175,12 +175,8 @@ static int init_irq(struct net_device *dev)
 
 	wl->gpio_irq = gpiod_get(wl->dt_dev, "irq", GPIOD_IN);
 	if (IS_ERR(wl->gpio_irq)) {
-		dev_warn(wl->dev, "failed to get IRQ GPIO, load default\r\n");
-		wl->gpio_irq = gpio_to_desc(GPIO_NUM);
-		if (!wl->gpio_irq) {
-			dev_warn(wl->dev, "failed to load default irq\r\n");
-			return -1;
-		}
+		dev_warn(wl->dev, "failed to get IRQ GPIO\r\n");
+		return -1;
 	} else {
 		dev_info(wl->dev, "got gpio_irq successfully\r\n");
 	}
@@ -1435,26 +1431,17 @@ static int wilc_wlan_power(struct wilc *wilc, int power)
 
 	gpio_reset = gpiod_get(wilc->dt_dev, "reset", GPIOD_ASIS);
 	if (IS_ERR(gpio_reset)) {
-		dev_warn(wilc->dev, "failed to get Reset GPIO, try default\r\n");
-		gpio_reset = gpio_to_desc(GPIO_NUM_RESET);
-		if (!gpio_reset) {
-			dev_warn(wilc->dev,
-				 "failed to get default Reset GPIO\r\n");
-			return -EIO;
-		}
+		dev_warn(wilc->dev, "failed to get Reset GPIO %ld, signal handled by hardware?\r\n", PTR_ERR(gpio_reset));
+		return 0;
 	} else {
 		dev_info(wilc->dev, "succesfully got gpio_reset\r\n");
 	}
 
 	gpio_chip_en = gpiod_get(wilc->dt_dev, "chip_en", GPIOD_ASIS);
 	if (IS_ERR(gpio_chip_en)) {
-		gpio_chip_en = gpio_to_desc(GPIO_NUM_CHIP_EN);
-		if (!gpio_chip_en) {
-			dev_warn(wilc->dev,
-				 "failed to get default chip_en GPIO\r\n");
-			gpiod_put(gpio_reset);
-			return -EIO;
-		}
+		dev_warn(wilc->dev, "failed to get chip en %ld, signal handled by hardware?\r\n", PTR_ERR(gpio_chip_en));
+		gpiod_put(gpio_reset);
+		return 0;
 	} else {
 		dev_info(wilc->dev, "succesfully got gpio_chip_en\r\n");
 	}
