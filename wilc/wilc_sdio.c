@@ -163,7 +163,7 @@ static int wilc_sdio_probe(struct sdio_func *func,
 	sdio_set_drvdata(func, wilc);
 	wilc->bus_data = sdio_priv;
 	wilc->dev = &func->dev;
-	wilc->dt_dev = &func->card->dev;
+	wilc->dt_dev = &func->dev;
 	sdio_priv->wl = wilc;
 
 	wilc->rtc_clk = devm_clk_get(&func->card->dev, "rtc_clk");
